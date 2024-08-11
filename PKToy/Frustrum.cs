@@ -18,124 +18,62 @@ public static class Frustrum
     static int frustrum_starts = 0;
     static int num_open_files = 0;
 
-    static string end_of_header_s = "**END_OF_HEADER";
-    // static byte[] end_of_header = Encoding.ASCII.GetBytes("**END_OF_HEADER");
+    const string end_of_header_s = "**END_OF_HEADER";
 
-    static byte newline_c = (byte)'\n';
-
-    class PSFile
+    class PSFile : IDisposable
     {
-        private bool is_text;
-        private FileStream file;
+        private StreamReader file;
         private string data;
-        private int loc;
 
-        public PSFile(string name, int namelen)
+        public PSFile(string name)
         {
-            if (namelen > 2 && name[0] == '*' && name[1] == '*')
-            {
-                data = name;
-                loc = 0;
-                is_text = true;
-            }
-            else
-            {
-                file = new FileStream(name, FileMode.Open, FileAccess.Read);
-                is_text = false;
-            }
+            file = new StreamReader(name);
+            data = "";
         }
 
         public void SkipHeader()
         {
-            if (is_text)
-            {
-                SkipHeaderText();
-            }
-            else
-            {
-                SkipHeaderFile();
-            }
+            SkipHeaderFile();
         }
 
         public unsafe void Read(int max, byte* buffer, int* n_read, int* ifail)
         {
-            if (is_text)
-            {
-                ReadText(max, buffer, n_read, ifail);
-            }
-            else
-            {
-                ReadFile(max, buffer, n_read, ifail);
-            }
-        }
-
-        private void SkipHeaderText()
-        {
-            // int end_of_header_start = data.IndexOf(new string(end_of_header));
-            int end_of_header_start = data.IndexOf(end_of_header_s);
-            loc = data.IndexOf('\n', end_of_header_start);
+            ReadFile(max, buffer, n_read, ifail);
         }
 
         private void SkipHeaderFile()
         {
-            PrintMethodName();
-            using StreamReader reader = new(file, leaveOpen: true);
             string? line;
-            while ((line = reader.ReadLine()) != null && !line.StartsWith(end_of_header_s))
+            while ((line = file.ReadLine()) != null && !line.StartsWith(end_of_header_s))
             {
 
             }
-            Console.Write(line);
-            //file.Seek(0, SeekOrigin.Begin); // Reset the file stream position
         }
 
-        private unsafe void ReadText(int max, byte* buffer, int* n_read, int* ifail)
-        {
-            *ifail = FR_no_errors;
-            if (loc >= data.Length)
-            {
-                *ifail = FR_end_of_file;
-            }
-            if (loc + max > data.Length)
-            {
-                *n_read = data.Length - loc;
-            }
-            else
-            {
-                *n_read = max;
-            }
-            string to_return = data.Substring(loc, *n_read);
-            loc += *n_read;
-            byte[] bytes = Encoding.ASCII.GetBytes(to_return);
-            for (int i = 0; i < *n_read; i++)
-            {
-                buffer[i] = bytes[i];
-            }
-        }
 
         private unsafe void ReadFile(int max, byte* buffer, int* n_read, int* ifail)
         {
             *ifail = FR_no_errors;
             *n_read = 0;
-            Span<byte> b = stackalloc byte[1];
-            for (int i = 0; i < max; ++i)
+            var line = file.ReadLine();
+            if (line == null)
             {
-                int byteRead = file.Read(b);
-                if (byteRead > 0)
-                {
-                    buffer[i] = b[0];
-                    ++(*n_read);
-                    if (buffer[i] == newline_c) break;
-                }
-                else
-                {
-                    if (*n_read < max)
-                    {
-                        *ifail = FR_end_of_file;
-                    }
-                    break;
-                }
+                *ifail = FR_end_of_file;
             }
+            else
+            {
+                fixed (char* p = line)
+                {
+                    *n_read = Encoding.ASCII.GetBytes(p, line.Length, buffer, max);
+                }
+                //buffer[*n_read] = (byte)'\n';
+                //*n_read += 1;
+            }
+        }
+
+        public void Dispose()
+        {
+            file.Dispose();
         }
     }
 
@@ -145,7 +83,6 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FSTART(int* ifail)
     {
-        PrintMethodName();
         *ifail = FR_unspecified;
         if (frustrum_starts == 0)
         {
@@ -158,7 +95,6 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FSTOP(int* ifail)
     {
-        PrintMethodName();
         *ifail = FR_unspecified;
         if (frustrum_starts <= 0) return;
         --frustrum_starts;
@@ -172,7 +108,6 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FMALLO(int* nbytes, byte** memory, int* ifail)
     {
-        PrintMethodName();
         *ifail = FR_unspecified;
         if (frustrum_starts <= 0)
         {
@@ -190,7 +125,6 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FMFREE(int* nbytes, byte** memory, int* ifail)
     {
-        PrintMethodName();
         *ifail = FR_unspecified;
         if (frustrum_starts <= 0)
         {
@@ -202,13 +136,11 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FFOPRD(int* guise, int* format, byte* name, int* namlen, int* skiphd, int* strid, int* ifail)
     {
-        PrintMethodName();
         var name_str = Marshal.PtrToStringAnsi((nint)name, *namlen);
         *ifail = FR_unspecified;
         *strid = -1;
         if (frustrum_starts <= 0) return;
-        var file = new PSFile(name_str, *namlen);
-        //open_files.Add(next_file_id, file);
+        var file = new PSFile(name_str);
         open_files[next_file_id] = file;
         if (*skiphd != 0)
         {
@@ -221,7 +153,6 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FFOPWR(int* guise, int* format, byte* name, int* namlen, byte* pd2hdr, int* pd2len, int* strid, int* ifail)
     {
-        PrintMethodName();
         // Dummy Function - we don't ever write
         *strid = 1;
         *ifail = FR_no_errors;
@@ -229,36 +160,35 @@ public static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FFWRIT(int* guise, int* strid, int* nchars, byte* buffer, int* ifail)
     {
-        PrintMethodName();
         // Dummy Function - we don't ever write
         *ifail = FR_no_errors;
     }
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FFREAD(int* guise, int* strid, int* nmax, byte* buffer, int* nactual, int* ifail)
     {
-        PrintMethodName();
         *ifail = FR_unspecified;
         *nactual = 0;
-        if (frustrum_starts <= 0) return;
+        if (frustrum_starts <= 0)
+        {
+            return;
+        }
         if (open_files.TryGetValue(*strid, out var file))
         {
             *ifail = FR_no_errors;
             file.Read(*nmax, buffer, nactual, ifail);
-            var str = Encoding.ASCII.GetString(buffer, *nactual);
-            Console.Write(str);
-            if (*ifail != FR_no_errors)
-            {
-            }
         }
     }
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FFCLOS(int* guise, int* strid, int* action, int* ifail)
     {
-        PrintMethodName();
         *ifail = FR_unspecified;
-        if (frustrum_starts <= 0) return;
-        if (open_files.Remove(*strid))
+        if (frustrum_starts <= 0)
         {
+            return;
+        }
+        if (open_files.Remove(*strid,out var file))
+        {
+            file.Dispose();
             *ifail = FR_no_errors;
         }
         else
