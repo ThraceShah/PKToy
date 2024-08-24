@@ -7,7 +7,7 @@ using System.Text;
 
 namespace PKToy;
 
-public static class Frustrum
+public unsafe static class Frustrum
 {
     const int FR_no_errors = 0;
     const int FR_unspecified = 99;
@@ -197,8 +197,41 @@ public static class Frustrum
         }
     }
 
-    private static void PrintMethodName([CallerMemberName] string methodName = "")
+
+    public static void InitializeParasolidFrustrum()
     {
-        Console.WriteLine($"Method: {methodName}");
+#if WINDOWS
+        string libc = "msvcrt";
+#elif UNIX
+        string libc = "libc";
+#endif
+        var handle = NativeLibrary.Load(libc);
+        var mallocPtr = (delegate* unmanaged[Cdecl]<ulong, void*>)NativeLibrary.GetExport(handle, "malloc");
+        var freePtr = (delegate* unmanaged[Cdecl]<void*, void>)NativeLibrary.GetExport(handle, "free");
+
+        PK.SESSION.frustrum_v fru = new()
+        {
+            fstart = &FSTART,
+            fstop = &FSTOP,
+            fmallo = &FMALLO,
+            fmfree = &FMFREE,
+            ffoprd = &FFOPRD,
+            ffopwr = &FFOPWR,
+            ffclos = &FFCLOS,
+            ffread = &FFREAD,
+            ffwrit = &FFWRIT
+        };
+        PK.SESSION._register_frustrum(&fru);
+        PK.MEMORY.frustrum_t a = new()
+        {
+            alloc_fn = mallocPtr,
+            free_fn = freePtr
+        };
+        PK.MEMORY.register_callbacks(a);
+        PK.ERROR.code_t err;
+        PK.SESSION.start_o_t start_options = new(true);
+        err = PK.SESSION.start(&start_options);
+        err = PK.SESSION.set_unicode(PK.LOGICAL_t.@true);
     }
+
 }
