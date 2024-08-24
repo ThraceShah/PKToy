@@ -1,0 +1,9 @@
+*/bin
+*/obj
+out
+.vscode
+/.vs/sharpdxdemo/FileContentIndex
+.vs
+.github/workflows
+debugout
+releaseout
