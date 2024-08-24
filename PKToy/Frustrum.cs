@@ -14,10 +14,6 @@ public unsafe static class Frustrum
     const int FR_memory_full = 15;
     const int FR_end_of_file = 4;
     const int FR_close_fail = 14;
-
-    static int frustrum_starts = 0;
-    static int num_open_files = 0;
-
     const string end_of_header_s = "**END_OF_HEADER";
 
     class PSFile : IDisposable
@@ -83,53 +79,23 @@ public unsafe static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FSTART(int* ifail)
     {
-        *ifail = FR_unspecified;
-        if (frustrum_starts == 0)
-        {
-            // Setup any data structures
-        }
-        ++frustrum_starts;
         *ifail = FR_no_errors;
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FSTOP(int* ifail)
     {
-        *ifail = FR_unspecified;
-        if (frustrum_starts <= 0) return;
-        --frustrum_starts;
-        if (frustrum_starts == 0)
-        {
-            next_file_id = 0;
-            open_files.Clear();
-        }
         *ifail = FR_no_errors;
     }
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FMALLO(int* nbytes, byte** memory, int* ifail)
     {
-        *ifail = FR_unspecified;
-        if (frustrum_starts <= 0)
-        {
-            *memory = null;
-            return;
-        }
         *memory = (byte*)NativeMemory.Alloc((nuint)(*nbytes));
-        if (*memory == null)
-        {
-            *ifail = FR_memory_full;
-            return;
-        }
         *ifail = FR_no_errors;
     }
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FMFREE(int* nbytes, byte** memory, int* ifail)
     {
-        *ifail = FR_unspecified;
-        if (frustrum_starts <= 0)
-        {
-            return;
-        }
         NativeMemory.Free(*memory);
         *ifail = FR_no_errors;
     }
@@ -139,7 +105,6 @@ public unsafe static class Frustrum
         var name_str = Marshal.PtrToStringAnsi((nint)name, *namlen);
         *ifail = FR_unspecified;
         *strid = -1;
-        if (frustrum_starts <= 0) return;
         var file = new PSFile(name_str);
         open_files[next_file_id] = file;
         if (*skiphd != 0)
@@ -168,10 +133,6 @@ public unsafe static class Frustrum
     {
         *ifail = FR_unspecified;
         *nactual = 0;
-        if (frustrum_starts <= 0)
-        {
-            return;
-        }
         if (open_files.TryGetValue(*strid, out var file))
         {
             *ifail = FR_no_errors;
@@ -182,10 +143,6 @@ public unsafe static class Frustrum
     public static unsafe void FFCLOS(int* guise, int* strid, int* action, int* ifail)
     {
         *ifail = FR_unspecified;
-        if (frustrum_starts <= 0)
-        {
-            return;
-        }
         if (open_files.Remove(*strid,out var file))
         {
             file.Dispose();
