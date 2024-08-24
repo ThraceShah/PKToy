@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+        <Configurations>Debug;Release</Configurations>
+        <PublishAot>true</PublishAot>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.GLFW" Version="2.21.0" />
+        <PackageReference Include="Silk.NET.Input.Glfw" Version="2.21.0" />
+        <PackageReference Include="Silk.NET.Maths" Version="2.21.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.21.0" />
+        <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.21.0" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="../Viewer.IContract/Viewer.IContract.csproj" />
+        <ProjectReference Include="../Viewer.Math/Viewer.Math.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Update="GLSL\faceShader.geom">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\faceShader.frag">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\faceShader.vert">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\lineShader.geom">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\lineShader.frag">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\lineShader.vert">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\pickShader.frag">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\pickShader.vert">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+</Project>
