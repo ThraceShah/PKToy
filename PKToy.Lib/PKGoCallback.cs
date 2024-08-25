@@ -9,6 +9,7 @@ namespace PKToy.Lib;
 public class BodyGeometry
 {
     public List<Vector4> FaceVertices=[];
+    public List<Vector3> Normals=[];
     public List<uint> FaceIndices=[];
     public List<uint> EdgeIndices = [];
 
@@ -108,11 +109,14 @@ public unsafe class PKGoCallback:IDisposable
             {
                 uint offset=faceVerticesCount;
                 float face = *(float*)tags;
-                for (int i = 0; i < *ngeom; i++)
+                int vCount=*ngeom/2;
+                double* normal=geom+vCount*3;
+                for (int i = 0; i < vCount; i++)
                 {
                     currentBodyPart.FaceIndices.Add(faceVerticesCount);
                     faceVerticesCount++;
                     currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
+                    currentBodyPart.Normals.Add(new((float)normal[i * 3], (float)normal[i * 3 + 1], (float)normal[i * 3 + 2]));
                 }
                 for(uint i=1;i<*ntags;i++)
                 {
@@ -174,7 +178,9 @@ public unsafe class PKGoCallback:IDisposable
                 Console.WriteLine($"edgeIndicesCount:{currentBodyPart.EdgeIndices.Count}");
                 uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
                 currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
-                bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices], [..currentBodyPart.FaceIndices],
+                bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],
+                [.. currentBodyPart.Normals], 
+                [..currentBodyPart.FaceIndices],
                 edgeStartIndex,[],[]);
 
                 break;

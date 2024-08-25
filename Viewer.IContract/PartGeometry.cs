@@ -14,7 +14,7 @@ namespace Viewer.IContract
     public struct PartGeometry:IDisposable
     {
         public UnSafeArray<Vector4> VertexArray;
-
+        public UnSafeArray<Vector3> NormalArray;
         public UnSafeArray<uint> IndexArray;
 
         public UnSafeArray<uint> FaceStartIndexArray;
@@ -30,12 +30,14 @@ namespace Viewer.IContract
 
 
         public PartGeometry(Vector4[] vertexArray,
+            Vector3[] normalArray,
             uint[] indexArray,
             uint lineStartIndex,
             uint[] faceStartIndexArray,
             uint[] edgeStartIndexArray)
         {
             this.VertexArray = vertexArray;
+            this.NormalArray = normalArray;
             this.IndexArray = indexArray;
             this.FaceStartIndexArray = faceStartIndexArray;
             this.EdgeStartIndexArray = edgeStartIndexArray;
@@ -134,7 +136,8 @@ namespace Viewer.IContract
         {
             uint[] zero = new uint[] { 0 };
             var result = new PartGeometry
-            (new Vector4[] { Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero },
+            ([Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero],
+            [Vector3.Zero, Vector3.Zero, Vector3.Zero, Vector3.Zero],
             int32Array, 0, zero, zero);
             return result;
         }

@@ -38,6 +38,7 @@ public unsafe class PKSession
         using var goCallback=new PKGoCallback();
         Console.WriteLine("render faces");
         PK.TOPOL.render_facet_o_t facet_options = new(true);
+        facet_options.go_option.go_normals = facet_go_normals_t.yes_c;
         facet_options.go_option.go_edges = facet_go_edges_t.yes_c;
         facet_options.go_option.go_strips = facet_go_strips_t.yes_c;
         facet_options.go_option.go_max_facets_per_strip=65535;
