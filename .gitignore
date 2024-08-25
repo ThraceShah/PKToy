@@ -7,3 +7,4 @@ out
 .github/workflows
 debugout
 releaseout
+.csproj.user

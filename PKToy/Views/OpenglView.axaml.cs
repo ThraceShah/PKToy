@@ -112,6 +112,12 @@ public class OpenGlPageControl : OpenGlControlBase
 
     double scale = 1;
     public GlRender GlRender{ get; private set; }
+    readonly Stopwatch sw = new();
+
+    public void ResetWatch()
+    {
+        sw.Reset();
+    }
 
     protected override unsafe void OnOpenGlInit(GlInterface gl)
     {
@@ -121,14 +127,21 @@ public class OpenGlPageControl : OpenGlControlBase
             GlRender = new GlRender(_gl);
             GlRender.GLControlLoad();
             inited = true;
+            sw.Start();
         }
     }
 
     protected override unsafe void OnOpenGlRender(GlInterface gl, int fb)
     {
         //执行opengl相关操作的函数，必须在OnOpenGlRender或OnOpenGlInit内执行
+        if (sw.ElapsedMilliseconds > 1000)
+        {
+            this.RequestNextFrameRendering();
+            return;
+        }
+        //执行opengl相关操作的函数，必须在OnOpenGlRender或OnOpenGlInit内执行
         //包括使用Dispatcher.UIThread.Post到主线程执行opengl相关的函数都不行，具体原因还不清楚，可能是上下文错误
-        if(leftReleased)
+        if (leftReleased)
         {
             leftReleased = false;
             this.GlRender.MouseUp(KeyCode.Left, nx, ny);
@@ -149,9 +162,10 @@ public class OpenGlPageControl : OpenGlControlBase
 
     public unsafe void UpdateGeometry(ref AsmGeometry geometry)
     {
-
         this.asmGeometry = geometry;
         this.updateAsm = true;
+        this.updateAsm = true;
+        ResetWatch();
     }
 
 
@@ -162,6 +176,7 @@ public class OpenGlPageControl : OpenGlControlBase
         this.width = (uint)(e.NewSize.Width*this.scale);
         this.height = (uint)(e.NewSize.Height*this.scale);
         updateSize = true;
+        ResetWatch();
     }
 
     public void UpdateScale(double newScale)
@@ -170,7 +185,7 @@ public class OpenGlPageControl : OpenGlControlBase
         this.width = (uint)(this.width * this.scale);
         this.height = (uint)(this.height * this.scale);
         updateSize = true;
-
+        ResetWatch();
     }
 
     int nx = 0;
@@ -181,6 +196,7 @@ public class OpenGlPageControl : OpenGlControlBase
         this.nx = nx;
         this.ny = ny;
         leftReleased = true;
+        ResetWatch();
     }
 
 }
