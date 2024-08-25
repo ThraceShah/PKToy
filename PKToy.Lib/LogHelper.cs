@@ -1,4 +1,4 @@
-namespace PKToy;
+namespace PKToy.Lib;
 class LogHelper
 {
     public static void PrintMethodName([CallerMemberName] string methodName = "")

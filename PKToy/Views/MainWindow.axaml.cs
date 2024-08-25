@@ -14,6 +14,7 @@ using Avalonia.Rendering;
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using PKToy.Lib;
 using Silk.NET.OpenGL;
 using Viewer.Avalonia.Entry.ViewModels;
 using Viewer.Graphic.Opengl;
@@ -26,8 +27,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        PKToy.Lib.PKSession.Init();
         this.GL.UpdateScale(this.DesktopScaling);
-        this.ScalingChanged+=(sender,args)=>this.GL.UpdateScale(this.DesktopScaling);
+        this.ScalingChanged += (sender, args) => this.GL.UpdateScale(this.DesktopScaling);
         this.OpenFileBtn.Click += async (sender, args) =>
         {
             long before = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
@@ -37,10 +39,7 @@ public partial class MainWindow : Window
             {
                 AllowMultiple = false,
                 Title = "选择mem文件",
-                FileTypeFilter = new[] { new FilePickerFileType("Files")
-            {
-                Patterns = new [] { "*.mem" },
-            } },
+                FileTypeFilter = [ new FilePickerFileType("files"){Patterns = ["*.mem","*.x_t",".x_b"]} ],
             };
             var result = await this.StorageProvider.OpenFilePickerAsync(option);
 
@@ -55,6 +54,11 @@ public partial class MainWindow : Window
             if (filename.EndsWith(".mem"))
             {
                 Viewer.Geometry.Adapter.GetGeometryByPath(filename, out IContract.AsmGeometry geometry);
+                this.GL.GLControl.UpdateGeometry(ref geometry);
+            }
+            else
+            {
+                PKSession.OpenPart(filename, out IContract.AsmGeometry geometry);
                 this.GL.GLControl.UpdateGeometry(ref geometry);
             }
             GC.Collect();

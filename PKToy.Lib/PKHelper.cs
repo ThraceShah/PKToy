@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Text;
-namespace PKToy;
+namespace PKToy.Lib;
 public static class PKHelper
 {
     public static unsafe void PrintParameters(int* guise, int* format, byte* name, int* namlen, int* skiphd, int* strid, int* ifail, [CallerMemberName] string methodName = "")
