@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace PKToy;
+namespace PKToy.Lib;
 using static PK.UNCLASSED;
 public unsafe static class Frustrum
 {
@@ -216,6 +216,7 @@ public unsafe static class Frustrum
         PK.SESSION.start_o_t start_options = new(true);
         err = PK.SESSION.start(&start_options);
         err = PK.SESSION.set_unicode(PK.LOGICAL_t.@true);
+        PK.SESSION.set_roll_forward(LOGICAL_t.@true);
     }
 
 }

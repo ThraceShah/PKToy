@@ -1,4 +1,4 @@
-namespace PKToy;
+namespace PKToy.Lib;
 ref struct PKErrorCheck
 {
     public PKErrorCheck(PK.ERROR.code_t err)

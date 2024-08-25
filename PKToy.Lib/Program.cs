@@ -1,5 +1,5 @@
 ﻿
-namespace PKToy;
+namespace PKToy.Lib;
 
 
 internal unsafe class Program
