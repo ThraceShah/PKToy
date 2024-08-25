@@ -1,4 +1,6 @@
-#version 330 core
+#version 300 es
+
+precision mediump float;
 layout (location = 0) in vec4 vIn;
 layout (location = 1) in vec3 normalIn;
 
@@ -18,12 +20,14 @@ uniform mat4 g_Origin;
 uniform mat3 g_WIT;
 
 
-out GS_Out{
-    vec3 gs_normal;
-    vec3 gs_posW;
-} vout;
+// out GS_Out{
+//     vec3 gs_normal;
+//     vec3 gs_posW;
+// } vout;
 
-out vec3 vNormal;
+
+out vec3 gs_normal;
+out vec3 gs_posW;
 
 void main()
 {
@@ -33,8 +37,8 @@ void main()
     vec4 pos=g_World*orig;
     // vout.origW=orig.xyz;
     // vout.posW=pos.xyz;
-    vout.gs_normal = normalize(g_WIT*normalIn);
-    vout.gs_posW = pos.xyz;
+    gs_normal = normalize(g_WIT*normalIn);
+    gs_posW = pos.xyz;
 
     gl_Position=g_Proj*g_View*pos*g_Translation;
 }
