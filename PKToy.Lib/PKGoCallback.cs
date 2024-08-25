@@ -180,7 +180,6 @@ public unsafe class PKGoCallback:IDisposable
                 // bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices], indices,
                 // edgeStartIndex,[],[]);
 
-                Console.WriteLine($"edgeIndicesCount:{currentBodyPart.EdgeIndices.Count}");
                 uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
                 currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
                 bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],

@@ -39,7 +39,7 @@ public partial class MainWindow : Window
             {
                 AllowMultiple = false,
                 Title = "选择parasolid文件",
-                FileTypeFilter = [ new FilePickerFileType("files"){Patterns = ["*.x_t",".x_b"]} ],
+                FileTypeFilter = [ new FilePickerFileType("files"){Patterns = ["*.x_t","*.x_b"]} ],
             };
             var result = await this.StorageProvider.OpenFilePickerAsync(option);
 

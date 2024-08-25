@@ -19,6 +19,9 @@
     <None Include="../lib/pskernel.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="sch_26105">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>  
   <ItemGroup>
     <ProjectReference Include="..\Viewer.IContract\Viewer.IContract.csproj" />
