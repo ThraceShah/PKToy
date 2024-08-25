@@ -14,7 +14,7 @@ namespace Viewer.IContract
     public struct CompGeometry
     {
 
-        public int PartIndex;
+        public uint PartIndex;
 
         public Matrix4x4 CompMatrix;
 

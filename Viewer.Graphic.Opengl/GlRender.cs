@@ -92,7 +92,6 @@ public partial class GlRender(GL gl) : IDisposable
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry.Dispose();
         geometry = asmGeometry;
-
         
     }
 
@@ -147,17 +146,17 @@ public partial class GlRender(GL gl) : IDisposable
         faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
 
 
-        for (int i = 0; i < geometry.Components.Length;i++)
+        for (uint i = 0; i < geometry.Components.Length;i++)
         {
-            var comp = geometry.Components.Span[i];
-            var part = geometry.Parts.Span[comp.PartIndex];
+            var comp = geometry.Components[i];
+            var part = geometry.Parts[comp.PartIndex];
             faceShader.SetUniform("g_Origin", comp.CompMatrix);
             partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
             gl.BindVertexArray(vao);
-            if (hightlightFaceComp == i)
+            if (highlightType == HighlightType.Face && highlightFaceComp == i)
             {
-                if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(hightlightFaceIndex,
-                out int start, out var length))
+                if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
+                out var start, out var length))
                 {
                     //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
                     gl.Disable(GLEnum.PolygonOffsetFill);
@@ -182,17 +181,17 @@ public partial class GlRender(GL gl) : IDisposable
         lineShader.SetUniform("g_View", m_VSConstantBuffer.view);
         lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-        for (int i = 0; i < geometry.Components.Length; i++)
+        for (uint i = 0; i < geometry.Components.Length; i++)
         {
-            var comp = geometry.Components.Span[i];
-            var part = geometry.Parts.Span[comp.PartIndex];
+            var comp = geometry.Components[i];
+            var part = geometry.Parts[comp.PartIndex];
             lineShader.SetUniform("g_Origin", comp.CompMatrix);
             partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
             gl.BindVertexArray(vao);
-            if (hightlightEdgeComp == i)
+            if (highlightType==HighlightType.Edge&&highlightEdgeComp == i)
             {
-                if (part.GetEdgeStartIndexAndLengthByIndexArrayIndex(hightlightEdgeIndex,
-                out int start, out var length))
+                if (part.GetEdgeStartIndexAndLengthByIndexArrayIndex(highlightEdgeIndex,
+                out var start, out var length))
                 {
                     gl.LineWidth(2.0f);
                     m_PSConstantBuffer.objColor = new Vector4(1f, 0f, 0f, 1f);

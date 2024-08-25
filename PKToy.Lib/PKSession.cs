@@ -49,7 +49,7 @@ public unsafe class PKSession
             partGeometries[i]=goCallback.GetPartGeometry(body);
         }
         var compGeometries=new CompGeometry[bodies.size];
-        for (int i = 0; i < bodies.size; i++)
+        for (uint i = 0; i < bodies.size; i++)
         {
             compGeometries[i]=new ()
             {

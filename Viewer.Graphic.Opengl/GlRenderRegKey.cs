@@ -13,25 +13,32 @@ using Matrix = System.Numerics.Matrix4x4;
 
 namespace Viewer.Graphic.Opengl
 {
+    enum HighlightType
+    {
+        None,
+        Face,
+        Edge,
+
+    }
     public partial class GlRender
     {
-
+        HighlightType highlightType = HighlightType.None;
         /// <summary>
         /// 高亮线条的索引
         /// </summary>
-        int hightlightEdgeIndex = -1;
+        uint highlightEdgeIndex = 0;
         /// <summary>
         /// 高亮面的索引
         /// </summary>
-        int hightlightFaceIndex = -1;
+        uint highlightFaceIndex = 0;
         /// <summary>
         /// 高亮面的component的索引
         /// </summary>
-        int hightlightFaceComp = -1;
+        uint highlightFaceComp = 0;
         /// <summary>
         /// 高亮线条的component索引
         /// </summary>
-        int hightlightEdgeComp = -1;
+        uint highlightEdgeComp = 0;
 
         bool computeEnd = true;
 
@@ -51,19 +58,20 @@ namespace Viewer.Graphic.Opengl
             var watch = new Stopwatch();
     
             var id = this.GetPickObjectId(nx, ny);
-            this.ConvertIdToCompIndex(id, out hightlightFaceComp,
-            out hightlightFaceIndex, out hightlightEdgeIndex);
-            if (hightlightEdgeIndex >= 0)
+            this.ConvertIdToCompIndex(id, out var highlightCompIndex,
+            out var highlightIndex);
+            if (highlightType == HighlightType.Edge)
             {
-                hightlightEdgeComp = hightlightFaceComp;
-                hightlightFaceComp = -1;
+                highlightEdgeComp = highlightCompIndex;
+                highlightEdgeIndex = highlightIndex;
             }
-            else
+            else if (highlightType == HighlightType.Face)
             {
-                hightlightEdgeComp = -1;
+                highlightFaceComp = highlightCompIndex;
+                highlightFaceIndex = highlightIndex;
             }
             watch.Stop();
-            Console.WriteLine($"gpu:fComp={hightlightFaceComp},lComp={hightlightEdgeComp},faceI={hightlightFaceIndex},lineI={hightlightEdgeIndex},time={watch.ElapsedMilliseconds}ms");
+            Console.WriteLine($"gpu:highlightType={Enum.GetName(highlightType)},highlightComp={highlightCompIndex},highlightIndex={highlightIndex},time={watch.ElapsedMilliseconds}ms");
             computeEnd = true;
         }
 
@@ -74,7 +82,7 @@ namespace Viewer.Graphic.Opengl
         /// <param name="x">鼠标的x位置</param>
         /// <param name="y">鼠标的y位置</param>
         /// <returns>拾取到的图元的id,如果id>0,证明拾取成功</returns>
-        private unsafe int GetPickObjectId(int x, int y)
+        private unsafe uint GetPickObjectId(int x, int y)
         {
             gl.Disable(GLEnum.LineSmooth);  // 启用线条平滑
             gl.Disable(GLEnum.Blend);
@@ -111,10 +119,10 @@ namespace Viewer.Graphic.Opengl
             pickShader.SetUniform("g_View", m_VSConstantBuffer.view);
             pickShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
             pickShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-            for (int i = 0; i < geometry.Components.Length;i++)
+            for (uint i = 0; i < geometry.Components.Length;i++)
             {
                 var comp = geometry.Components[i];
-                var part = geometry.Parts.Span[comp.PartIndex];
+                var part = geometry.Parts[comp.PartIndex];
                 partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                 var baseId= geometry.GetCompFirstIdByIndex(i);
                 float t = *(float*)&baseId;
@@ -129,14 +137,14 @@ namespace Viewer.Graphic.Opengl
             }
             gl.Disable(GLEnum.PolygonOffsetFill);
             gl.LineWidth(4.0f);
-            for (int i = 0; i < geometry.Components.Length; i++)
+            for (uint i = 0; i < geometry.Components.Length; i++)
             {
                 var comp = geometry.Components[i];
                 pickShader.SetUniform("g_Origin", comp.CompMatrix);
                 var baseId = geometry.GetCompFirstIdByIndex(i);
                 float t = *(float*)&baseId;
                 pickShader.SetUniform("baseId", new Vector4(t, 0, 0, 0));
-                var part = geometry.Parts.Span[comp.PartIndex];
+                var part = geometry.Parts[comp.PartIndex];
                 partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                 gl.BindVertexArray(vao);
                 unsafe
@@ -149,7 +157,7 @@ namespace Viewer.Graphic.Opengl
             //注意opengl的Texture2D坐标原点在左下角(d3d则在左上角),与winform控件坐标原点(在左上角)不同,需要进行转换
             var rgba = stackalloc byte[4];
             gl.ReadPixels(x, (int)height-y, 1, 1, GLEnum.Rgba, GLEnum.UnsignedByte, rgba);
-            int id = *(int*)rgba;
+            uint id = *(uint*)rgba;
             gl.BindFramebuffer(GLEnum.Framebuffer, 0);
             gl.Enable(GLEnum.LineSmooth);  // 启用线条平滑
             gl.Enable(GLEnum.Blend);
@@ -157,17 +165,13 @@ namespace Viewer.Graphic.Opengl
             return id;
         }
 
-        private void ConvertIdToCompIndex(int id, out int compIndex,
-        out int faceIndex, out int lineIndex)
+        private void ConvertIdToCompIndex(uint id, out uint compIndex,
+        out uint highlightFaceIndex)
         {
-            compIndex = -1;
-            faceIndex = -1;
-            lineIndex = -1;
-            if (id < 0)
-            {
-                return;
-            }
-            for (int i = 0; i < geometry.Components.Length; i++)
+            compIndex = 0;
+            highlightFaceIndex = 0;
+            highlightType = HighlightType.None;
+            for (uint i = 0; i < geometry.Components.Length; i++)
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
@@ -182,7 +186,8 @@ namespace Viewer.Graphic.Opengl
                 if (id < faceMax)
                 {
                     var j = id - baseId;
-                    faceIndex = part.FaceStartIndexArray[j];
+                    highlightFaceIndex = part.FaceStartIndexArray[j];
+                    highlightType = HighlightType.Face;
                     return;
 
                 }
@@ -190,10 +195,12 @@ namespace Viewer.Graphic.Opengl
                 {
                     var edgeBaseId = baseId + part.FaceStartIndexArray.Length - 1;
                     var j = id - edgeBaseId;
-                    lineIndex = part.EdgeStartIndexArray[j];
+                    highlightFaceIndex = part.EdgeStartIndexArray[j];
+                    highlightType = HighlightType.Edge;
                     return;
                 }
             };
+            return;
         }
 
     }

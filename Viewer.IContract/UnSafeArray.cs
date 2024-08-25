@@ -10,30 +10,46 @@ namespace Viewer.IContract
     public readonly unsafe struct UnSafeArray<T> : IDisposable where T:unmanaged
     {
 
-        private readonly unsafe T* Ptr;
+        public readonly unsafe T* Ptr;
 
-        public readonly int Length;
+        public readonly uint Length;
 
-        public Span<T> Span => new Span<T>(Ptr, Length);
+        public Span<T> Span => new Span<T>(Ptr, (int)Length);
 
-        internal UnSafeArray(T* pointer,int length)
+        public Span<T> Span2
+        {
+            get
+            {
+                if(Length>int.MaxValue)
+                {
+                    return new Span<T>(Ptr+int.MaxValue, (int)(Length-int.MaxValue));
+                }
+                else
+                {
+                    return new Span<T>(Ptr, (int)Length);
+                }
+            }
+        }
+
+        public Span<T> Slice(int start, int length)
+        {
+            return new Span<T>(Ptr + start, length);
+        }
+
+        internal UnSafeArray(T* pointer, uint length)
         {
             Ptr = pointer;
             Length = length;
         }
 
-        public T this[int index]
+        public T this[uint index]
         {
             get
             {
-                if (index < 0 || index >= Length)
-                    throw new IndexOutOfRangeException();
                 return Ptr[index];
             }
             set
             {
-                if (index < 0 || index >= Length)
-                    throw new IndexOutOfRangeException();
                 Ptr[index] = value;
             }
         }
@@ -77,7 +93,7 @@ namespace Viewer.IContract
             var p = (T1*)Marshal.AllocHGlobal(sizeof(T1) * array.Length);
             var newSpan = new Span<T1>(p, array.Length);
             array.CopyTo(newSpan);
-            return new UnSafeArray<T1>(p, array.Length);
+            return new UnSafeArray<T1>(p, (uint)array.Length);
         }
 
         public static unsafe UnSafeArray<T1> CreateUnSafeArray<T1>(in Span<T1> array) where T1 : unmanaged
@@ -85,7 +101,7 @@ namespace Viewer.IContract
             var p = (T1*)Marshal.AllocHGlobal(sizeof(T1) * array.Length);
             var newSpan = new Span<T1>(p, array.Length);
             array.CopyTo(newSpan);
-            return new UnSafeArray<T1>(p, array.Length);
+            return new UnSafeArray<T1>(p, (uint)array.Length);
         }
 
 
@@ -96,7 +112,7 @@ namespace Viewer.IContract
             {
                 Buffer.MemoryCopy(src, p, sizeof(T1) * array.Length, sizeof(T1) * array.Length);
             }
-            return new UnSafeArray<T1>(p, array.Length);
+            return new UnSafeArray<T1>(p, (uint)array.Length);
         }
         public static unsafe UnSafeArray<T1> CreateUnSafeArray<T1>(in ArraySegment<T1> array) where T1 : unmanaged
         {
@@ -105,7 +121,7 @@ namespace Viewer.IContract
             {
                 Buffer.MemoryCopy(src, p, sizeof(T1) * array.Array.Length, sizeof(T1) * array.Array.Length);
             }
-            return new UnSafeArray<T1>(p, array.Array.Length);
+            return new UnSafeArray<T1>(p, (uint)array.Array.Length);
         }
 
     }
