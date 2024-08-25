@@ -10,7 +10,6 @@ public class BodyGeometry
 {
     public List<Vector4> FaceVertices=[];
     public List<uint> FaceIndices=[];
-    public List<Vector4> EdgeVertices = [];
     public List<uint> EdgeIndices = [];
 
 }
@@ -25,7 +24,6 @@ public unsafe class PKGoCallback:IDisposable
     private int currentBody=0;
     private int currentFace=0;
     private uint faceVerticesCount=0;
-    private uint edgeVerticesCount=0;
     public PKGoCallback()
     {
         Frustrum.RegGoCallback(this);
@@ -73,41 +71,42 @@ public unsafe class PKGoCallback:IDisposable
         {
             case go_segment_types_t.SGTPFT:
             {
-                float face = *(float*)tags;
-                for (int i = 0; i < 3; i++)
-                {
-                    currentBodyPart.FaceIndices.Add(faceVerticesCount);
-                    faceVerticesCount++;
-                    currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
-                }
-                float edge1 = *(float*)(tags + 1);
-                float edge2 = *(float*)(tags + 2);
-                float edge3 = *(float*)(tags + 3);
-                if (edge1 != 0)
-                {
-                    currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                    currentBodyPart.EdgeVertices.Add(new((float)geom[6], (float)geom[7], (float)geom[8], edge1));
-                    currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                    currentBodyPart.EdgeVertices.Add(new((float)geom[0], (float)geom[1], (float)geom[2], edge1));
-                }
-                if (edge2 != 0)
-                {
-                    currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                    currentBodyPart.EdgeVertices.Add(new((float)geom[0], (float)geom[1], (float)geom[2], edge2));
-                    currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                    currentBodyPart.EdgeVertices.Add(new((float)geom[3], (float)geom[4], (float)geom[5], edge2));
-                }
-                if (edge3 != 0)
-                {
-                    currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                    currentBodyPart.EdgeVertices.Add(new((float)geom[3], (float)geom[4], (float)geom[5], edge3));
-                    currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                    currentBodyPart.EdgeVertices.Add(new((float)geom[6], (float)geom[7], (float)geom[8], edge3));
-                }
+                // float face = *(float*)tags;
+                // for (int i = 0; i < 3; i++)
+                // {
+                //     currentBodyPart.FaceIndices.Add(faceVerticesCount);
+                //     faceVerticesCount++;
+                //     currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
+                // }
+                // float edge1 = *(float*)(tags + 1);
+                // float edge2 = *(float*)(tags + 2);
+                // float edge3 = *(float*)(tags + 3);
+                // if (edge1 != 0)
+                // {
+                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
+                //     currentBodyPart.EdgeVertices.Add(new((float)geom[6], (float)geom[7], (float)geom[8], edge1));
+                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
+                //     currentBodyPart.EdgeVertices.Add(new((float)geom[0], (float)geom[1], (float)geom[2], edge1));
+                // }
+                // if (edge2 != 0)
+                // {
+                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
+                //     currentBodyPart.EdgeVertices.Add(new((float)geom[0], (float)geom[1], (float)geom[2], edge2));
+                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
+                //     currentBodyPart.EdgeVertices.Add(new((float)geom[3], (float)geom[4], (float)geom[5], edge2));
+                // }
+                // if (edge3 != 0)
+                // {
+                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
+                //     currentBodyPart.EdgeVertices.Add(new((float)geom[3], (float)geom[4], (float)geom[5], edge3));
+                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
+                //     currentBodyPart.EdgeVertices.Add(new((float)geom[6], (float)geom[7], (float)geom[8], edge3));
+                // }
             }
                 break;
             case go_segment_types_t.SGTPTS:
             {
+                uint offset=faceVerticesCount;
                 float face = *(float*)tags;
                 for (int i = 0; i < *ngeom; i++)
                 {
@@ -115,20 +114,15 @@ public unsafe class PKGoCallback:IDisposable
                     faceVerticesCount++;
                     currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
                 }
-                for(int i=1;i<*ntags;i++)
+                for(uint i=1;i<*ntags;i++)
                 {
                     float edge = *(float*)(tags+i);
                     if(edge!=0)
                     {
-                        var v1=(i-1)/2;
-                        var v2=i/2+1;
-                        currentBodyPart.EdgeIndices.Add(edgeVerticesCount);
-                        edgeVerticesCount++;
-                        currentBodyPart.EdgeVertices.Add(new((float)geom[v1 * 3], (float)geom[v1 * 3 + 1], (float)geom[v1 * 3 + 2], edge));
-                        
-                        currentBodyPart.EdgeIndices.Add(edgeVerticesCount);
-                        edgeVerticesCount++;
-                        currentBodyPart.EdgeVertices.Add(new((float)geom[v2 * 3], (float)geom[v2 * 3 + 1], (float)geom[v2 * 3 + 2], edge));
+                        uint v1= (i - 1) / 2 + offset;
+                        uint v2=i/2+1+offset;
+                        currentBodyPart.EdgeIndices.Add(v1);
+                        currentBodyPart.EdgeIndices.Add(v2);
                     }
                 }
             }
@@ -148,7 +142,6 @@ public unsafe class PKGoCallback:IDisposable
                 currentBody = *tags;
                 currentBodyPart = new BodyGeometry();
                 faceVerticesCount = 0;
-                edgeVerticesCount = 0;
                 break;
             case go_segment_types_t.SGTPFA:
                 currentFace = *tags;
@@ -165,21 +158,25 @@ public unsafe class PKGoCallback:IDisposable
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
-                Console.WriteLine($"edgeVerticesCount:{currentBodyPart.EdgeVertices.Count}");
+                // Console.WriteLine($"edgeVerticesCount:{currentBodyPart.EdgeVertices.Count}");
+                // Console.WriteLine($"edgeIndicesCount:{currentBodyPart.EdgeIndices.Count}");
+                // uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
+                // currentBodyPart.FaceVertices.AddRange(currentBodyPart.EdgeVertices);
+                // var indices=new uint[currentBodyPart.FaceIndices.Count+currentBodyPart.EdgeIndices.Count];
+                // currentBodyPart.FaceIndices.CopyTo(indices);
+                // for (int i = 0; i < currentBodyPart.EdgeIndices.Count; i++)
+                // {
+                //     indices[edgeStartIndex+i]=currentBodyPart.EdgeIndices[i]+edgeStartIndex;
+                // }
+                // bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices], indices,
+                // edgeStartIndex,[],[]);
+
                 Console.WriteLine($"edgeIndicesCount:{currentBodyPart.EdgeIndices.Count}");
-                currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                currentBodyPart.EdgeVertices.Add(Vector4.Zero);
                 uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
-                currentBodyPart.FaceVertices.AddRange(currentBodyPart.EdgeVertices);
-                var indices=new uint[currentBodyPart.FaceIndices.Count+currentBodyPart.EdgeIndices.Count];
-                currentBodyPart.FaceIndices.CopyTo(indices);
-                for (int i = 0; i < currentBodyPart.EdgeIndices.Count; i++)
-                {
-                    indices[edgeStartIndex+i]=currentBodyPart.EdgeIndices[i]+edgeStartIndex;
-                }
-                bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices], indices,
+                currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
+                bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices], [..currentBodyPart.FaceIndices],
                 edgeStartIndex,[],[]);
+
                 break;
             case go_segment_types_t.SGTPFA:
                 break;
