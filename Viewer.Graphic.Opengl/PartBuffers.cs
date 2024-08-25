@@ -15,7 +15,7 @@ namespace Viewer.Graphic.Opengl
 
         private uint[] vaos;
         private uint[] vbos;
-
+        private uint[] nbos;
         private uint[] ebos;
 
         public uint Length{ get; private set; }
@@ -47,29 +47,48 @@ namespace Viewer.Graphic.Opengl
             gl.GenVertexArrays(vaos);
             Span<uint> vbos = stackalloc uint[(int)parts.Length];
             gl.GenBuffers(vbos);
+            Span<uint> nbos = stackalloc uint[(int)parts.Length];
+            gl.GenBuffers(nbos);
             Span<uint> ebos = stackalloc uint[(int)parts.Length];
             gl.GenBuffers(ebos);
             for (int i = 0;i<parts.Length;i++)
             {
                 gl.BindVertexArray(vaos[i]);
+
                 gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
                 var vertices = parts[(uint)i].VertexArray;
                 gl.BufferData(GLEnum.ArrayBuffer, sizeof(float)*4*vertices.Length, vertices.Ptr, GLEnum.StaticDraw);
-                gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                var indexSpan = parts[(uint)i].IndexArray;
-                gl.BufferData(GLEnum.ElementArrayBuffer, sizeof(float) * indexSpan.Length,indexSpan.Ptr, GLEnum.StaticDraw);
                 unsafe
                 {
                     // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-                    gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), (void*)0);
+                    gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
+                    gl.EnableVertexAttribArray(0);
+
                 }
-                gl.EnableVertexAttribArray(0);
+
+                gl.BindBuffer(GLEnum.ArrayBuffer, nbos[i]);
+                var normals = parts[(uint)i].NormalArray;
+                gl.BufferData(GLEnum.ArrayBuffer, sizeof(float)*3*normals.Length, normals.Ptr, GLEnum.StaticDraw);
+                unsafe
+                {
+                    // Configure vertex attribute pointer for normals
+                    gl.VertexAttribPointer(1, 3, GLEnum.Float, false, 3 * sizeof(float), 0);
+                    gl.EnableVertexAttribArray(1);
+
+                }
+
+                gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
+                var indexSpan = parts[(uint)i].IndexArray;
+                gl.BufferData(GLEnum.ElementArrayBuffer, sizeof(float) * indexSpan.Length,indexSpan.Ptr, GLEnum.StaticDraw);
             }
+            // Unbind VAO to prevent accidental modification
+            gl.BindVertexArray(0);
             var partBuffers = new PartBuffers
             {
                 gl = gl,
                 vaos=vaos.ToArray(),
                 vbos=vbos.ToArray(),
+                nbos=nbos.ToArray(),
                 ebos=ebos.ToArray(),
                 Length=parts.Length,
             };
@@ -80,6 +99,7 @@ namespace Viewer.Graphic.Opengl
         {
             gl.DeleteVertexArrays(vaos);
             gl.DeleteBuffers(this.vbos);
+            gl.DeleteBuffers(this.nbos);
             gl.DeleteBuffers(this.ebos);
             vaos = null;
             vbos = null;
