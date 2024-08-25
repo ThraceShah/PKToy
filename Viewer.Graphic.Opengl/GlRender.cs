@@ -55,7 +55,7 @@ public partial class GlRender(GL gl) : IDisposable
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         m_PSConstantBuffer = new();
         gl.Enable(GLEnum.CullFace);
-        gl.CullFace(GLEnum.Front);
+        gl.CullFace(GLEnum.Back);
         gl.Enable(GLEnum.DepthTest);
         gl.Enable(GLEnum.LineSmooth);  // 启用线条平滑
         gl.Enable(GLEnum.Blend);
@@ -67,7 +67,7 @@ public partial class GlRender(GL gl) : IDisposable
 
         // 启用重启索引功能
         gl.Enable(GLEnum.PrimitiveRestart);
-        gl.PrimitiveRestartIndex(0xFFFFFFFF); // 设置重启索引值
+        // gl.PrimitiveRestartIndex(0xFFFFFFFF); // 设置重启索引值
 
         // fbo=gl.GenFramebuffer();
         // texture= gl.GenTexture();

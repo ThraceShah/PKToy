@@ -1,4 +1,6 @@
-#version 330 core
+#version 300 es
+
+precision mediump float;
 
 // uniform vec3 lightPos; 
 // uniform vec3 lightColor;
@@ -6,10 +8,13 @@ uniform vec4 objectColor;
 // uniform mat3 normalModel;
 
 
-in GS_Out{
-    vec3 gs_normal;
-    vec3 gs_posW;
-} gout;
+// in GS_Out{
+//     vec3 gs_normal;
+//     vec3 gs_posW;
+// } gout;
+
+in vec3 gs_normal;
+in vec3 gs_posW;
 
 
 out vec4 FragColor;
@@ -26,8 +31,8 @@ void main()
     vec3 ambient = ambientStrength * lightColor;
   	
     // diffuse 
-    vec3 lightDir = normalize(lightPos - gout.gs_posW);
-    float diff = max(dot(gout.gs_normal, lightDir), 0.0);
+    vec3 lightDir = normalize(lightPos - gs_posW);
+    float diff = max(dot(gs_normal, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
             
     vec3 result = (ambient + diffuse) * objectColor.xyz;

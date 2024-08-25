@@ -1,4 +1,6 @@
-#version 330 core
+#version 300 es
+
+precision mediump float;
 layout (location = 0) in vec4 vIn;
 
 uniform mat4 g_World; 

@@ -67,7 +67,7 @@ public unsafe class PKGoCallback:IDisposable
 
     public void GOSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
     {
-        PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
+        // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPFT:
@@ -118,6 +118,9 @@ public unsafe class PKGoCallback:IDisposable
                     currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
                     currentBodyPart.Normals.Add(new((float)normal[i * 3], (float)normal[i * 3 + 1], (float)normal[i * 3 + 2]));
                 }
+                //插入strip重启索引
+                currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
+
                 for(uint i=1;i<*ntags;i++)
                 {
                     float edge = *(float*)(tags+i);
@@ -139,7 +142,7 @@ public unsafe class PKGoCallback:IDisposable
 
     public void GOOpenSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
     {
-        PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
+        // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
@@ -149,8 +152,8 @@ public unsafe class PKGoCallback:IDisposable
                 break;
             case go_segment_types_t.SGTPFA:
                 currentFace = *tags;
-                //插入strip重启索引
-                currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
+                // //插入strip重启索引
+                // currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
                 break;
             default:
                 break;
@@ -160,7 +163,7 @@ public unsafe class PKGoCallback:IDisposable
 
     public void GOCloseSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
     {
-        PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
+        // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
