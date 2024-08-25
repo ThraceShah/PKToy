@@ -146,34 +146,34 @@ public partial class GlRender(GL gl) : IDisposable
         faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
 
 
-        // for (uint i = 0; i < geometry.Components.Length;i++)
-        // {
-        //     var comp = geometry.Components[i];
-        //     var part = geometry.Parts[comp.PartIndex];
-        //     faceShader.SetUniform("g_Origin", comp.CompMatrix);
-        //     partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
-        //     gl.BindVertexArray(vao);
-        //     if (highlightType == HighlightType.Face && highlightFaceComp == i)
-        //     {
-        //         if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
-        //         out var start, out var length))
-        //         {
-        //             //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
-        //             gl.Disable(GLEnum.PolygonOffsetFill);
-        //             m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
-        //             faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-        //             gl.DrawElements(GLEnum.Triangles, (uint)length,
-        //             GLEnum.UnsignedInt, (void*)(start*sizeof(uint)));
-        //             gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-        //             m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
-        //             faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-        //         }
-        //     }
-        //     // gl.DrawElements(GLEnum.Triangles, (uint)part.FaceIndexLength,
-        //     // GLEnum.UnsignedInt, (void*)0);
-        //     gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength,GLEnum.UnsignedInt, (void*)0);
+        for (uint i = 0; i < geometry.Components.Length;i++)
+        {
+            var comp = geometry.Components[i];
+            var part = geometry.Parts[comp.PartIndex];
+            faceShader.SetUniform("g_Origin", comp.CompMatrix);
+            partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
+            gl.BindVertexArray(vao);
+            if (highlightType == HighlightType.Face && highlightFaceComp == i)
+            {
+                if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
+                out var start, out var length))
+                {
+                    //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
+                    gl.Disable(GLEnum.PolygonOffsetFill);
+                    m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
+                    faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                    gl.DrawElements(GLEnum.Triangles, (uint)length,
+                    GLEnum.UnsignedInt, (void*)(start*sizeof(uint)));
+                    gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
+                    m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
+                    faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                }
+            }
+            // gl.DrawElements(GLEnum.Triangles, (uint)part.FaceIndexLength,
+            // GLEnum.UnsignedInt, (void*)0);
+            gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength,GLEnum.UnsignedInt, (void*)0);
 
-        // }
+        }
 
         gl.Disable(GLEnum.PolygonOffsetFill);
         lineShader.Use();
