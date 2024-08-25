@@ -176,14 +176,14 @@ namespace Viewer.Graphic.Opengl
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
                 var baseId = geometry.GetCompFirstIdByIndex(i);
-                var faceMax = baseId + part.FaceStartIndexArray.Length - 1;
-                var edgeMax = faceMax + part.EdgeStartIndexArray.Length - 1;
+                var faceMax = baseId + part.FaceStartIndexArray.Length;
+                var edgeMax = faceMax + part.EdgeStartIndexArray.Length;
                 if (id >= edgeMax)
                 {
                     continue;
                 }
                 compIndex = i;
-                if (id < faceMax)
+                if (id <= faceMax)
                 {
                     var j = id - baseId;
                     highlightFaceIndex = part.FaceStartIndexArray[j];

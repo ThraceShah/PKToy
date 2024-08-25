@@ -39,8 +39,8 @@ public unsafe class PKSession
         Console.WriteLine("render faces");
         PK.TOPOL.render_facet_o_t facet_options = new(true);
         facet_options.go_option.go_edges = facet_go_edges_t.yes_c;
-        // facet_options.go_option.go_strips = facet_go_strips_t.yes_c;
-        // facet_options.go_option.go_max_facets_per_strip=65535;
+        facet_options.go_option.go_strips = facet_go_strips_t.yes_c;
+        facet_options.go_option.go_max_facets_per_strip=65535;
         err = PK.TOPOL.render_facet(bodies.size, (TOPOL_t*)bodies.data, null, 0, &facet_options);
         var partGeometries=new PartGeometry[bodies.size];
         for (int i = 0; i < bodies.size; i++)

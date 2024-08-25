@@ -26,6 +26,7 @@ namespace Viewer.IContract
 
         public uint EdgeStartIndex;
         public uint EdgeIndexLength;
+        private unsafe Box box;
 
 
         public PartGeometry(Vector4[] vertexArray,
@@ -44,8 +45,6 @@ namespace Viewer.IContract
             this.EdgeIndexLength = (uint)(indexArray.Length - (int)lineStartIndex);
             CalBox(VertexArray.Length, IndexArray, VertexArray, out box);
         }
-
-        private unsafe Box box;
 
         public Box Box
         {
