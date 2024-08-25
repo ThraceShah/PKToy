@@ -70,6 +70,10 @@ namespace Viewer.IContract
             for (uint i = 0; i < pointNum; i++)
             {
                 var index = indexArray[i];
+                if(index== 0xFFFFFFFF)
+                {
+                    continue;
+                }
                 var p = vertexArray[index];
                 xSpan[i] = p.X;
                 ySpan[i] = p.Y;

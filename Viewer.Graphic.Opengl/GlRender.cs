@@ -55,7 +55,7 @@ public partial class GlRender(GL gl) : IDisposable
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         m_PSConstantBuffer = new();
         gl.Enable(GLEnum.CullFace);
-        gl.CullFace(GLEnum.Back);
+        gl.CullFace(GLEnum.Front);
         gl.Enable(GLEnum.DepthTest);
         gl.Enable(GLEnum.LineSmooth);  // 启用线条平滑
         gl.Enable(GLEnum.Blend);
@@ -63,11 +63,20 @@ public partial class GlRender(GL gl) : IDisposable
         gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
         //设置深度偏移,offset = m * factor + r * units,其中，m是多边形的最大深度斜率，r是能产生显著深度变化的最小值
         gl.PolygonOffset(1, 0.5f);
+
+
+        // 启用重启索引功能
+        gl.Enable(GLEnum.PrimitiveRestart);
+        gl.PrimitiveRestartIndex(0xFFFFFFFF); // 设置重启索引值
+
         // fbo=gl.GenFramebuffer();
         // texture= gl.GenTexture();
 
-        faceShader = new Shader(gl,"GLSL/faceShader.vert",
-        "GLSL/faceShader.frag","GLSL/faceShader.geom");
+        // faceShader = new Shader(gl,"GLSL/faceShader.vert",
+        // "GLSL/faceShader.frag","GLSL/faceShader.geom");
+
+        faceShader = new Shader(gl, "GLSL/faceShader.vert",
+        "GLSL/faceShader.frag");
         lineShader = new Shader(gl, "GLSL/lineShader.vert",
         "GLSL/lineShader.frag");
         pickShader = new Shader(gl, "GLSL/pickShader.vert",
@@ -162,7 +171,7 @@ public partial class GlRender(GL gl) : IDisposable
                     gl.Disable(GLEnum.PolygonOffsetFill);
                     m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
                     faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.DrawElements(GLEnum.Triangles, (uint)length,
+                    gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
                     GLEnum.UnsignedInt, (void*)(start*sizeof(uint)));
                     gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
                     m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);

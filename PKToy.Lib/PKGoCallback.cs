@@ -149,6 +149,8 @@ public unsafe class PKGoCallback:IDisposable
                 break;
             case go_segment_types_t.SGTPFA:
                 currentFace = *tags;
+                //插入strip重启索引
+                currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
                 break;
             default:
                 break;
