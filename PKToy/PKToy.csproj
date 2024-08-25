@@ -28,6 +28,5 @@
 	<ItemGroup>
 		<ProjectReference Include="../Viewer.Graphic.Opengl/Viewer.Graphic.Opengl.csproj" />
 		<ProjectReference Include="..\PKToy.Lib\PKToy.Lib.csproj" />
-		<ProjectReference Include="..\Viewer.Geometry\Viewer.Geometry.csproj" />
 	</ItemGroup>
 </Project>

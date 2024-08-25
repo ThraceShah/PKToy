@@ -49,8 +49,7 @@ namespace Viewer.Graphic.Opengl
             computeEnd = false;
 
             var watch = new Stopwatch();
-            watch.Start();
-
+    
             var id = this.GetPickObjectId(nx, ny);
             this.ConvertIdToCompIndex(id, out hightlightFaceComp,
             out hightlightFaceIndex, out hightlightEdgeIndex);

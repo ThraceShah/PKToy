@@ -38,8 +38,8 @@ public partial class MainWindow : Window
             var option = new FilePickerOpenOptions
             {
                 AllowMultiple = false,
-                Title = "选择mem文件",
-                FileTypeFilter = [ new FilePickerFileType("files"){Patterns = ["*.mem","*.x_t",".x_b"]} ],
+                Title = "选择parasolid文件",
+                FileTypeFilter = [ new FilePickerFileType("files"){Patterns = ["*.x_t",".x_b"]} ],
             };
             var result = await this.StorageProvider.OpenFilePickerAsync(option);
 
@@ -51,16 +51,8 @@ public partial class MainWindow : Window
             var stop = new Stopwatch();
             stop.Start();
 
-            if (filename.EndsWith(".mem"))
-            {
-                Viewer.Geometry.Adapter.GetGeometryByPath(filename, out IContract.AsmGeometry geometry);
-                this.GL.GLControl.UpdateGeometry(ref geometry);
-            }
-            else
-            {
-                PKSession.OpenPart(filename, out IContract.AsmGeometry geometry);
-                this.GL.GLControl.UpdateGeometry(ref geometry);
-            }
+            PKSession.OpenPart(filename, out AsmGeometry geometry);
+            this.GL.GLControl.UpdateGeometry(ref geometry);
             GC.Collect();
             stop.Stop();
             Console.WriteLine(stop.ElapsedMilliseconds);

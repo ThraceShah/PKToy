@@ -16,8 +16,8 @@ public partial class GlRender(GL gl) : IDisposable
 
     Matrix world;
 
-    VSConstantBuffer m_VSConstantBuffer;            // 用于修改用于VS的GPU常量缓冲区的变量
-    PSConstantBuffer m_PSConstantBuffer;            // 用于修改用于PS的GPU常量缓冲区的变量
+    VSConstantBuffer m_VSConstantBuffer;
+    PSConstantBuffer m_PSConstantBuffer;
 
     public GL gl = gl;
 
@@ -93,8 +93,7 @@ public partial class GlRender(GL gl) : IDisposable
         geometry.Dispose();
         geometry = asmGeometry;
 
-        watch.Reset();
-        watch.Start();
+        
     }
 
     private uint width;
@@ -107,27 +106,17 @@ public partial class GlRender(GL gl) : IDisposable
         this.height = height;
         gl.Viewport(0, 0,width,height);
         this.UpdateProjMatrix();
-        watch.Reset();
-        watch.Start();
+        
     }
-    /// <summary>
-    /// 定时器,当用户超过一定时间没有操作,我们就不绘制
-    /// </summary>
-    readonly Stopwatch watch = new();
 
     private bool first = true;
     public unsafe void Render()
     {
-        if (watch.ElapsedMilliseconds > 1000)
-        {
-            return;
-        }
         if(geometry.Parts.Length==0&&first)
         {
             first = false;
             return;
         }
-
 
         gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
         gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
@@ -237,9 +226,8 @@ public partial class GlRender(GL gl) : IDisposable
         if (keyCode ==KeyCode.Left &&keyCode == KeyCode.Left)
         {
             this.HighlightPrimitiveByMousePostion(x, y);
-            watch.Reset();
-            watch.Start();
-
+            
+    
         }
         this.keyCode &= ~keyCode;
     }
@@ -264,15 +252,13 @@ public partial class GlRender(GL gl) : IDisposable
         {
             case KeyCode.Middle:
                 ProcessMouseMovement(xOffset, yOffset);
-                watch.Reset();
-                watch.Start();
-                break;
+                
+                        break;
             case KeyCode.ControlLeft:
                 m_VSConstantBuffer.translation.M14 += xOffset * 0.002f;
                 m_VSConstantBuffer.translation.M24 += yOffset * 0.002f;
-                watch.Reset();
-                watch.Start();
-                break;
+                
+                        break;
         }
     }
 
@@ -280,23 +266,20 @@ public partial class GlRender(GL gl) : IDisposable
     {
         ProcessMouseScroll(delta * 0.01f);
         UpdateProjMatrix();
-        watch.Reset();
-        watch.Start();
+        
     }
 
 
     public void KeyDown(KeyCode keyCode)
     {
         this.keyCode |= keyCode;
-        watch.Reset();
-        watch.Start();
+        
     }
 
     public void KeyUp(KeyCode keyCode)
     {
         this.keyCode &= ~keyCode;
-        watch.Reset();
-        watch.Start();
+        
     }
 
 
@@ -321,8 +304,7 @@ public partial class GlRender(GL gl) : IDisposable
         m_VSConstantBuffer.projection = Matrix.CreateOrthographicOffCenter(-orthoScale * aspectRatio,
         orthoScale * aspectRatio, -orthoScale, orthoScale, 0.1f, 100.0f);
 
-        watch.Reset();
-        watch.Start();
+        
     }
 
     #endregion
