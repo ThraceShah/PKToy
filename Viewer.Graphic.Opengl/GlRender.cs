@@ -32,7 +32,7 @@ public partial class GlRender(GL gl) : IDisposable
     {
         camera = new Camera(new Vector3(0.0f, 0.0f, -20.0f));
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
-        m_PSConstantBuffer = PSConstantBuffer.GetDefault();
+        m_PSConstantBuffer = new();
         gl.Enable(GLEnum.CullFace);
         gl.CullFace(GLEnum.Back);
         gl.Enable(GLEnum.DepthTest);
@@ -63,7 +63,7 @@ public partial class GlRender(GL gl) : IDisposable
         camera = new Camera(new Vector3(0.0f, 0.0f, -20.0f));
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
-        asmGeometry.CreateAsmWorldRH(16, 12, out world);
+        asmGeometry.CreateAsmWorldRH(1, 1, out world);
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry.Dispose();
@@ -129,7 +129,7 @@ public partial class GlRender(GL gl) : IDisposable
         }
         faceShader.SetUniform("g_World", m_VSConstantBuffer.world);
         faceShader.SetUniform("g_View", m_VSConstantBuffer.view);
-        faceShader.SetUniform("g_Proj", m_VSConstantBuffer.proj);
+        faceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         faceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
         faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
 
@@ -167,7 +167,7 @@ public partial class GlRender(GL gl) : IDisposable
         lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
         lineShader.SetUniform("g_World", m_VSConstantBuffer.world);
         lineShader.SetUniform("g_View", m_VSConstantBuffer.view);
-        lineShader.SetUniform("g_Proj", m_VSConstantBuffer.proj);
+        lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
         for (int i = 0; i < geometry.Components.Length; i++)
         {
@@ -296,10 +296,15 @@ public partial class GlRender(GL gl) : IDisposable
     #region  private
     private void UpdateProjMatrix()
     {
-        var radians = Radians(camera.Zoom);
+        // var radians = Radians(camera.Zoom);
+        // var aspectRatio = float.Max(width, 1) / float.Max(height, 1);
+        // m_VSConstantBuffer.projection = Matrix.CreatePerspectiveFieldOfView(
+        //     radians, aspectRatio, 0.1F, 100F);
+
         var aspectRatio = float.Max(width, 1) / float.Max(height, 1);
-        m_VSConstantBuffer.proj = Matrix.CreatePerspectiveFieldOfView(
-            radians, aspectRatio, 0.1F, 100F);
+        m_VSConstantBuffer.projection = Matrix.CreateOrthographicOffCenter(-camera.OrthoScale * aspectRatio,
+        camera.OrthoScale * aspectRatio, -camera.OrthoScale, camera.OrthoScale, 0.1f, 100.0f);
+
         watch.Reset();
         watch.Start();
     }

@@ -110,7 +110,7 @@ namespace Viewer.Graphic.Opengl
             gl.PolygonOffset(2, 1f);
             pickShader.SetUniform("g_World", m_VSConstantBuffer.world);
             pickShader.SetUniform("g_View", m_VSConstantBuffer.view);
-            pickShader.SetUniform("g_Proj", m_VSConstantBuffer.proj);
+            pickShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
             pickShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
             for (int i = 0; i < geometry.Components.Length;i++)
             {
