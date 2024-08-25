@@ -31,14 +31,14 @@ namespace Viewer.IContract
             return new AsmGeometry(parts,comps);
         }
 
-        public int GetCompFirstIdByIndex(int compIndex)
+        public uint GetCompFirstIdByIndex(uint compIndex)
         {
-            int id = 0;
-            for (int i = 0; i < compIndex;i++)
+            uint id = 0;
+            for (uint i = 0; i < compIndex;i++)
             {
                 //FaceStartIndexArray和EdgeStartIndexArray里面最后一个元素并不代表一个面或者一条线
-                var comp = this.Components.Span[i];
-                var part = this.Parts.Span[comp.PartIndex];
+                var comp = this.Components[i];
+                var part = this.Parts[comp.PartIndex];
                 id += part.FaceStartIndexArray.Length+part.EdgeStartIndexArray.Length-2;
             }
             return id;
@@ -50,10 +50,10 @@ namespace Viewer.IContract
             float[] xSpan = new float[Components.Length * 2];
             float[] ySpan = new float[Components.Length * 2];
             float[] zSpan = new float[Components.Length * 2];
-            for (int i = 0; i < Components.Length; i++)
+            for (uint i = 0; i < Components.Length; i++)
             {
-                var comp = this.Components.Span[i];
-                var part = this.Parts.Span[comp.PartIndex];
+                var comp = this.Components[i];
+                var part = this.Parts[comp.PartIndex];
                 var partBox = part.Box;
                 var newBox = new Box
                 {
@@ -131,8 +131,9 @@ namespace Viewer.IContract
 
         public readonly void Dispose()
         {
-            foreach(var part in Parts.Span)
+            for(uint i=0;i<Parts.Length;i++)
             {
+                var part = Parts[i];
                 part.Dispose();
             }
             Parts.Dispose();
