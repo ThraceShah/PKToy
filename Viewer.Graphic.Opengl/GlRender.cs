@@ -13,7 +13,6 @@ namespace Viewer.Graphic.Opengl;
 public partial class GlRender(GL gl) : IDisposable
 {
 
-    Camera camera;
 
     Matrix world;
 
@@ -28,9 +27,31 @@ public partial class GlRender(GL gl) : IDisposable
 
     private Shader pickShader;
 
+    private float mouseXOffset = 0;
+
+    private float mouseYOffset = 0;
+
+    private KeyCode keyCode = KeyCode.None;
+    private float orthoScale = 1;
+
+    private void ProcessMouseMovement(float xoffset, float yoffset)
+    {
+        mouseXOffset += xoffset * 0.8f;
+        mouseYOffset += yoffset * 0.8f;
+
+    }
+    private void ProcessMouseScroll(float yoffset)
+    {
+        orthoScale -= yoffset * 0.1f;
+        if (orthoScale <= 0.1f)
+        {
+            orthoScale = 0.1f;
+        }
+    }
+
+
     public unsafe void GLControlLoad()
     {
-        camera = new Camera(new Vector3(0.0f, 0.0f, -20.0f));
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         m_PSConstantBuffer = new();
         gl.Enable(GLEnum.CullFace);
@@ -59,8 +80,11 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void UpdateGeometry(ref AsmGeometry asmGeometry)
     {
-        //重置摄像机
-        camera = new Camera(new Vector3(0.0f, 0.0f, -20.0f));
+        this.keyCode = KeyCode.None;
+        orthoScale = 1.0f;
+        mouseXOffset = 0;
+        mouseYOffset = 0;
+
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
         asmGeometry.CreateAsmWorldRH(1, 1, out world);
@@ -110,8 +134,8 @@ public partial class GlRender(GL gl) : IDisposable
 
 
         // Prepare matrices
-        var xRadian = Radians(camera.MouseXOffset);
-        var yRadian = Radians(camera.MouseYOffset);
+        var xRadian = Radians(mouseXOffset);
+        var yRadian = Radians(mouseYOffset);
         Matrix W =
         world *
         Matrix.CreateRotationX(yRadian) *
@@ -205,44 +229,41 @@ public partial class GlRender(GL gl) : IDisposable
     {
         lastX = x;
         lastY = y;
-        camera.KeyCode |= keyCode;
+        this.keyCode |= keyCode;
     }
 
     public void MouseUp(KeyCode keyCode, int x, int y)
     {
-        if (keyCode ==KeyCode.Left &&camera.KeyCode == KeyCode.Left)
+        if (keyCode ==KeyCode.Left &&keyCode == KeyCode.Left)
         {
             this.HighlightPrimitiveByMousePostion(x, y);
             watch.Reset();
             watch.Start();
 
         }
-        camera.KeyCode &= ~keyCode;
+        this.keyCode &= ~keyCode;
     }
 
 
     public void MouseMove(int x, int y)
     {
-        if (camera.KeyCode != KeyCode.Middle &&
-        camera.KeyCode != KeyCode.ControlLeft)
+        if (this.keyCode != KeyCode.Middle &&
+        this.keyCode != KeyCode.ControlLeft)
         {
             return;
         }
-        var xPosIn = x;
-        var yPosIn = y;
-
-        float xPos = (float)xPosIn;
-        float yPos = (float)yPosIn;
+        float xPos = x;
+        float yPos = y;
 
         float xOffset = xPos - lastX;
         float yOffset = lastY - yPos; // reversed since y-coordinates go from bottom to top
 
         lastX = xPos;
         lastY = yPos;
-        switch (camera.KeyCode)
+        switch (this.keyCode)
         {
             case KeyCode.Middle:
-                camera.ProcessMouseMovement(xOffset, yOffset);
+                ProcessMouseMovement(xOffset, yOffset);
                 watch.Reset();
                 watch.Start();
                 break;
@@ -257,7 +278,7 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void MouseWheel(int delta)
     {
-        camera.ProcessMouseScroll(delta * 0.01f);
+        ProcessMouseScroll(delta * 0.01f);
         UpdateProjMatrix();
         watch.Reset();
         watch.Start();
@@ -266,14 +287,14 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void KeyDown(KeyCode keyCode)
     {
-        camera.KeyCode |= keyCode;
+        this.keyCode |= keyCode;
         watch.Reset();
         watch.Start();
     }
 
     public void KeyUp(KeyCode keyCode)
     {
-        camera.KeyCode &= ~keyCode;
+        this.keyCode &= ~keyCode;
         watch.Reset();
         watch.Start();
     }
@@ -296,14 +317,9 @@ public partial class GlRender(GL gl) : IDisposable
     #region  private
     private void UpdateProjMatrix()
     {
-        // var radians = Radians(camera.Zoom);
-        // var aspectRatio = float.Max(width, 1) / float.Max(height, 1);
-        // m_VSConstantBuffer.projection = Matrix.CreatePerspectiveFieldOfView(
-        //     radians, aspectRatio, 0.1F, 100F);
-
         var aspectRatio = float.Max(width, 1) / float.Max(height, 1);
-        m_VSConstantBuffer.projection = Matrix.CreateOrthographicOffCenter(-camera.OrthoScale * aspectRatio,
-        camera.OrthoScale * aspectRatio, -camera.OrthoScale, camera.OrthoScale, 0.1f, 100.0f);
+        m_VSConstantBuffer.projection = Matrix.CreateOrthographicOffCenter(-orthoScale * aspectRatio,
+        orthoScale * aspectRatio, -orthoScale, orthoScale, 0.1f, 100.0f);
 
         watch.Reset();
         watch.Start();

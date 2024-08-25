@@ -97,8 +97,8 @@ namespace Viewer.Graphic.Opengl
             gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
             gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
             // Prepare matrices
-            var xRadian = Radians(camera.MouseXOffset);
-            var yRadian = Radians(camera.MouseYOffset);
+            var xRadian = Radians(mouseXOffset);
+            var yRadian = Radians(mouseYOffset);
             Matrix W =
             world *
             Matrix.CreateRotationX(yRadian) *
