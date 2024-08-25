@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using System.Numerics;
 using Viewer.IContract;
 
@@ -27,14 +28,19 @@ public unsafe class PKSession
         {
             throw new NotSupportedException("Unsupported file format");
         }
+        var watch = new Stopwatch();
+        watch.Start();
         using var parts = new PKScopeArray<PK.PART_t>();
         err = PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
         var partitions = new PKScopeArray<PK.PARTITION_t>();
         err = PK.SESSION.ask_partitions(&partitions.size, &partitions.data);
+        watch.Stop();
+        Console.WriteLine($"OpenPart elapsed time:{watch.ElapsedMilliseconds} ms");
         // PK.PARTITION_t partition;
         // err =PK.SESSION.ask_curr_partition(&partition);
         using var bodies = new PKScopeArray<PK.BODY_t>();
         err =PK.PARTITION.ask_bodies(partitions[0], &bodies.size, &bodies.data);
+        watch.Restart();
         using var goCallback=new PKGoCallback();
         Console.WriteLine("render faces");
         PK.TOPOL.render_facet_o_t facet_options = new(true);
@@ -43,6 +49,9 @@ public unsafe class PKSession
         facet_options.go_option.go_strips = facet_go_strips_t.yes_c;
         facet_options.go_option.go_max_facets_per_strip=65535;
         err = PK.TOPOL.render_facet(bodies.size, (TOPOL_t*)bodies.data, null, 0, &facet_options);
+        watch.Stop();
+        Console.WriteLine($"render facet elapsed time:{watch.ElapsedMilliseconds} ms");
+        watch.Restart();
         var partGeometries=new PartGeometry[bodies.size];
         for (int i = 0; i < bodies.size; i++)
         {
@@ -59,5 +68,7 @@ public unsafe class PKSession
             };
         }
         geometry = new AsmGeometry(partGeometries,compGeometries);
+        watch.Stop();
+        Console.WriteLine($"get part geometry elapsed time:{watch.ElapsedMilliseconds} ms");
     }
 }
