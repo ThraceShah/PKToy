@@ -90,7 +90,19 @@ public unsafe static class Frustrum
     public static unsafe void FrustrumFileOpenRead(int* guise, int* format, byte* name, int* namlen, int* skiphd, int* strid, int* ifail)
     {
         PrintParameters(guise, format, name, namlen, skiphd, strid, ifail);
-        var name_str = Marshal.PtrToStringAnsi((nint)name, *namlen);
+        var name_str = new string((sbyte*)name, 0, *namlen, Encoding.UTF8);
+        switch ((file_guise_tokens_t)(*guise))
+        {
+            case file_guise_tokens_t.FFCSCH:
+            {
+                name_str = Path.Combine(AppContext.BaseDirectory, $"pschema/{name_str}.s_t");
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
         *ifail = FR_unspecified;
         *strid = -1;
         var file = new PSFile(name_str);
