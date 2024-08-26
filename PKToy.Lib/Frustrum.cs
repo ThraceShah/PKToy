@@ -21,25 +21,35 @@ public unsafe static class Frustrum
 
         public void SkipHeader()
         {
-            var sb = new StringBuilder();
-            Span<byte> buffer = stackalloc byte[1];
-            while (file.Read(buffer) > 0)
+            Span<byte> buffer1 = stackalloc byte[2];
+            file.Read(buffer1);
+            if(buffer1[0] == 0x2A && buffer1[1] == 0x2A)
             {
-                if (buffer[0] == (byte)'\n')
+                var sb = new StringBuilder();
+                Span<byte> buffer = stackalloc byte[1];
+                while (file.Read(buffer) > 0)
                 {
-                    var line = sb.ToString();
-                    if (line.StartsWith(end_of_header_s))
+                    if (buffer[0] == (byte)'\n')
                     {
-                        break;
+                        var line = sb.ToString();
+                        if (line.StartsWith(end_of_header_s))
+                        {
+                            break;
+                        }
+                        sb.Clear();
                     }
-                    sb.Clear();
-                }
-                else
-                {
-                    sb.Append((char)buffer[0]);
+                    else
+                    {
+                        sb.Append((char)buffer[0]);
+                    }
                 }
             }
+            else
+            {
+                file.BaseStream.Seek(0, SeekOrigin.Begin);
+            }
         }
+
 
         public unsafe void Read(int max, byte* buffer, int* n_read, int* ifail)
         {
