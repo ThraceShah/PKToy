@@ -71,39 +71,6 @@ public unsafe class PKGoCallback:IDisposable
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPFT:
-            {
-                // float face = *(float*)tags;
-                // for (int i = 0; i < 3; i++)
-                // {
-                //     currentBodyPart.FaceIndices.Add(faceVerticesCount);
-                //     faceVerticesCount++;
-                //     currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
-                // }
-                // float edge1 = *(float*)(tags + 1);
-                // float edge2 = *(float*)(tags + 2);
-                // float edge3 = *(float*)(tags + 3);
-                // if (edge1 != 0)
-                // {
-                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                //     currentBodyPart.EdgeVertices.Add(new((float)geom[6], (float)geom[7], (float)geom[8], edge1));
-                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                //     currentBodyPart.EdgeVertices.Add(new((float)geom[0], (float)geom[1], (float)geom[2], edge1));
-                // }
-                // if (edge2 != 0)
-                // {
-                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                //     currentBodyPart.EdgeVertices.Add(new((float)geom[0], (float)geom[1], (float)geom[2], edge2));
-                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                //     currentBodyPart.EdgeVertices.Add(new((float)geom[3], (float)geom[4], (float)geom[5], edge2));
-                // }
-                // if (edge3 != 0)
-                // {
-                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                //     currentBodyPart.EdgeVertices.Add(new((float)geom[3], (float)geom[4], (float)geom[5], edge3));
-                //     currentBodyPart.EdgeIndices.Add((uint)currentBodyPart.EdgeVertices.Count);
-                //     currentBodyPart.EdgeVertices.Add(new((float)geom[6], (float)geom[7], (float)geom[8], edge3));
-                // }
-            }
                 break;
             case go_segment_types_t.SGTPTS:
             {
@@ -120,7 +87,6 @@ public unsafe class PKGoCallback:IDisposable
                 }
                 //插入strip重启索引
                 currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
-
                 for(uint i=1;i<*ntags;i++)
                 {
                     float edge = *(float*)(tags+i);
@@ -167,19 +133,6 @@ public unsafe class PKGoCallback:IDisposable
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
-                // Console.WriteLine($"edgeVerticesCount:{currentBodyPart.EdgeVertices.Count}");
-                // Console.WriteLine($"edgeIndicesCount:{currentBodyPart.EdgeIndices.Count}");
-                // uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
-                // currentBodyPart.FaceVertices.AddRange(currentBodyPart.EdgeVertices);
-                // var indices=new uint[currentBodyPart.FaceIndices.Count+currentBodyPart.EdgeIndices.Count];
-                // currentBodyPart.FaceIndices.CopyTo(indices);
-                // for (int i = 0; i < currentBodyPart.EdgeIndices.Count; i++)
-                // {
-                //     indices[edgeStartIndex+i]=currentBodyPart.EdgeIndices[i]+edgeStartIndex;
-                // }
-                // bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices], indices,
-                // edgeStartIndex,[],[]);
-
                 uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
                 currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
                 bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],

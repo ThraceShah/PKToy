@@ -52,22 +52,87 @@ public unsafe class PKSession
         watch.Stop();
         Console.WriteLine($"render facet elapsed time:{watch.ElapsedMilliseconds} ms");
         watch.Restart();
+        var bodiesSet=new HashSet<PK.BODY_t>();
+        for (int i = 0; i < bodies.size; i++)
+        {
+            bodiesSet.Add(bodies[i]);
+        }
+        var bodyIndexMap=new Dictionary<BODY_t,int>();
         var partGeometries=new PartGeometry[bodies.size];
         for (int i = 0; i < bodies.size; i++)
         {
             var body = bodies[i];
-            partGeometries[i]=goCallback.GetPartGeometry(body);
+            partGeometries[i] = goCallback.GetPartGeometry(body);
+            bodyIndexMap.Add(body, i);
         }
-        var compGeometries=new CompGeometry[bodies.size];
-        for (uint i = 0; i < bodies.size; i++)
+
+        var compGeometries=new List<CompGeometry>();
+        var identityTransform = new TRANSF_sf_t(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        TRANSF_t identityTrans;
+        PK.TRANSF.create(&identityTransform, &identityTrans);
+        INSTANCE_sf_t instanceSF;
+        TRANSF_sf_t transformSF;
+        CLASS_t classSF;
+        using var assemblies=new PKScopeArray<ASSEMBLY_t>();
+        err =PK.PARTITION.ask_assemblies(partitions[0], &assemblies.size, &assemblies.data);
+        Queue<PK.ASSEMBLY_t> assemblyQueue=new();
+        for (int i = 0; i < assemblies.size; i++)
         {
-            compGeometries[i]=new ()
-            {
-                PartIndex=i,
-                CompMatrix=Matrix4x4.Identity,
-            };
+            assemblyQueue.Enqueue(assemblies[i]);
         }
-        geometry = new AsmGeometry(partGeometries,compGeometries);
+        Console.WriteLine($"assemblies count:{assemblies.size}");
+        while(assemblyQueue.Count>0)
+        {
+            var assembly=assemblyQueue.Dequeue();
+            using var instances=new PKScopeArray<PK.INSTANCE_t>();
+            err =PK.ASSEMBLY.ask_instances(assembly, &instances.size, &instances.data);
+            for (int j = 0; j < instances.size; j++)
+            {
+                PK.INSTANCE.ask(instances[j], &instanceSF);
+                PK.ENTITY.ask_class(instanceSF.part, &classSF);
+                switch (classSF)
+                {
+                    case PK.CLASS_t.body:
+                        bodiesSet.Remove(instanceSF.part);
+                        var partGeometry = goCallback.GetPartGeometry(instanceSF.part);
+                        if (instanceSF.transf == PK.ENTITY_t.@null)
+                        {
+                            instanceSF.transf = identityTrans;
+                        }
+                        PK.TRANSF.ask(instanceSF.transf, &transformSF);
+                        var transPtr=(double*)&transformSF;
+                        Matrix4x4 matrix;
+                        var matrixPtr=(float*)&matrix;
+                        for(int i=0;i<16;i++)
+                        {
+                            matrixPtr[i]=(float)transPtr[i];
+                        }
+                        compGeometries.Add(new CompGeometry
+                        {
+                            PartIndex= (uint)bodyIndexMap[instanceSF.part],
+                            CompMatrix=Matrix4x4.Transpose(matrix),
+                        });
+                        break;
+                    case PK.CLASS_t.assembly:
+                        assemblyQueue.Enqueue(instanceSF.part);
+                        break;
+                    default:
+                        continue;
+                }
+                
+            }
+        }
+        Console.WriteLine($"bodiesSet count:{bodiesSet.Count}");
+        foreach (var body in bodiesSet)
+        {
+            var index=bodyIndexMap[body];
+            compGeometries.Add(new CompGeometry
+            {
+                PartIndex= (uint)index,
+                CompMatrix=Matrix4x4.Identity,
+            });
+        }
+        geometry = new AsmGeometry(partGeometries,[..compGeometries]);
         watch.Stop();
         Console.WriteLine($"get part geometry elapsed time:{watch.ElapsedMilliseconds} ms");
     }
