@@ -33,11 +33,50 @@ public partial class GlRender(GL gl) : IDisposable
 
     private KeyCode keyCode = KeyCode.None;
     private float orthoScale = 1;
+    private Quaternion rotation = new Quaternion(1, 0, 0, 0);
+    private Vector3 bBoxCenter=Vector3.Zero;
 
+    // 逻辑函数
+    public static float Sigmoid(float x)
+    {
+        return 1.0f / (1.0f + float.Exp(-x));
+    }
     private void ProcessMouseMovement(float xoffset, float yoffset)
     {
         mouseXOffset += xoffset * 0.8f;
         mouseYOffset += yoffset * 0.8f;
+
+        var x= 0.5f * xoffset;
+        var y=0.5f*yoffset;
+        if(float.Abs(x)>float.Abs(y))
+        {
+            y=0.15f*y;
+        }
+        else
+        {
+            x=0.15f*x;
+        }
+        const float l=3;
+        if(x>l)
+        {
+            x=l;
+        }
+        else if(x<-l)
+        {
+            x=-l;
+        }
+        if(y>l)
+        {
+            y=l;
+        }
+        else if(y<-l)
+        {
+            y=-l;
+        }
+        Console.WriteLine($"x:{x},y:{y}");
+        var m=float.Sqrt(x * x + y * y);
+        var deltaRotation=Quaternion.CreateFromAxisAngle(new Vector3(-y, x, 0.0f), Radians(m));
+        rotation = Quaternion.Normalize(deltaRotation * rotation);
 
     }
     private void ProcessMouseScroll(float yoffset)
@@ -96,6 +135,7 @@ public partial class GlRender(GL gl) : IDisposable
 
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
+        bBoxCenter = asmGeometry.GetBBoxCenter();
         asmGeometry.CreateAsmWorldRH(1, 1, out world);
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
@@ -128,26 +168,36 @@ public partial class GlRender(GL gl) : IDisposable
 
         gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
         gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
+                                                                                   // 应用四元数旋转
+        // mat4 modelMatrix = glm::toMat4(rotationQuaternion);
 
+        // // 平移到bBox中心
+        // modelMatrix = glm::translate(modelMatrix, bBoxCenter);
 
-        // Prepare matrices
-        var xRadian = Radians(mouseXOffset);
-        var yRadian = Radians(mouseYOffset);
-        Matrix W =
-        world *
-        Matrix.CreateRotationX(yRadian) *
-        Matrix.CreateRotationY(xRadian);
-        m_VSConstantBuffer.world = W;
-        m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
+        // // 平移回到原始位置
+        // modelMatrix = glm::translate(modelMatrix, -bBoxCenter.x, -bBoxCenter.y, -bBoxCenter.z);
+
+        var modelMatrix=Matrix.CreateTranslation(bBoxCenter);
+        modelMatrix = Matrix.CreateFromQuaternion(rotation)*modelMatrix;
+        modelMatrix = Matrix.CreateTranslation(-bBoxCenter)*modelMatrix;
+        // // Prepare matrices
+        // var xRadian = Radians(mouseXOffset);
+        // var yRadian = Radians(mouseYOffset);
+        // Matrix W =
+        // world *Matrix.CreateFromQuaternion(rotation);
+        // m_VSConstantBuffer.world = W;
 
         gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
         faceShader.Use();
+        var W = modelMatrix;
+        m_VSConstantBuffer.world = W;
         if (Matrix.Invert(W, out var result))
         {
             var nm = Matrix.Transpose(result);
             ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
             faceShader.UniformMatrix3("g_WIT", normalModel);
         }
+        m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
         faceShader.SetUniform("g_World", m_VSConstantBuffer.world);
         faceShader.SetUniform("g_View", m_VSConstantBuffer.view);
         faceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
