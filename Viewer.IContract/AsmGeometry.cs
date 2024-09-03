@@ -44,6 +44,44 @@ namespace Viewer.IContract
             return id;
         }
 
+        public Vector3 GetBBoxCenter()
+        {
+            //先计算每个组件原始模型的box,然后将这些box偏移,最后获得整个组件的box
+            float[] xSpan = new float[Components.Length * 2];
+            float[] ySpan = new float[Components.Length * 2];
+            float[] zSpan = new float[Components.Length * 2];
+            for (uint i = 0; i < Components.Length; i++)
+            {
+                var comp = this.Components[i];
+                var part = this.Parts[comp.PartIndex];
+                var partBox = part.Box;
+                var newBox = new Box
+                {
+                    Min = Vector3.Transform(partBox.Min, comp.CompMatrix),
+                    Max = Vector3.Transform(partBox.Max, comp.CompMatrix)
+                };
+                xSpan[i * 2] = newBox.Min.X;
+                xSpan[i * 2 + 1] = newBox.Max.X;
+                ySpan[i * 2] = newBox.Min.Y;
+                ySpan[i * 2 + 1] = newBox.Max.Y;
+                zSpan[i * 2] = newBox.Min.Z;
+                zSpan[i * 2 + 1] = newBox.Max.Z;
+            }
+            var maxX = xSpan.Max();
+            var minX = xSpan.Min();
+            var maxY = ySpan.Max();
+            var minY = ySpan.Min();
+            var maxZ = zSpan.Max();
+            var minZ = zSpan.Min();
+
+            //计算中心点
+            var x = (maxX + minX) / 2;
+            var y = (maxY + minY) / 2;
+            var z = (maxZ + minZ) / 2;
+            var postion = new Vector3(x, y, z);
+            return postion;
+        }
+
         public void CreateAsmWorldRH(float xSize, float ySize, out Matrix4x4 world)
         {
             //先计算每个组件原始模型的box,然后将这些box偏移,最后获得整个组件的box
