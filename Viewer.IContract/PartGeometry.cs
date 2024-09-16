@@ -15,6 +15,7 @@ namespace Viewer.IContract
     {
         public UnSafeArray<Vector4> VertexArray;
         public UnSafeArray<Vector3> NormalArray;
+        public UnSafeArray<Vector4> ColorArray;
         public UnSafeArray<uint> IndexArray;
 
         public UnSafeArray<uint> FaceStartIndexArray;
@@ -31,6 +32,7 @@ namespace Viewer.IContract
 
         public PartGeometry(Vector4[] vertexArray,
             Vector3[] normalArray,
+            Vector4[] colorArray,
             uint[] indexArray,
             uint lineStartIndex,
             uint[] faceStartIndexArray,
@@ -38,6 +40,7 @@ namespace Viewer.IContract
         {
             this.VertexArray = vertexArray;
             this.NormalArray = normalArray;
+            this.ColorArray = colorArray;
             this.IndexArray = indexArray;
             this.FaceStartIndexArray = faceStartIndexArray;
             this.EdgeStartIndexArray = edgeStartIndexArray;
@@ -138,10 +141,11 @@ namespace Viewer.IContract
         }
         public static PartGeometry GetDefault()
         {
-            uint[] zero = new uint[] { 0 };
+            uint[] zero = [0];
             var result = new PartGeometry
             ([Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero],
             [Vector3.Zero, Vector3.Zero, Vector3.Zero, Vector3.Zero],
+            [Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero],
             int32Array, 0, zero, zero);
             return result;
         }

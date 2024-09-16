@@ -14,7 +14,7 @@ namespace Viewer.IContract
 
         public readonly uint Length;
 
-        public Span<T> Span => new Span<T>(Ptr, (int)Length);
+        public Span<T> Span => new(Ptr, (int)Length);
 
         public Span<T> Span2
         {

@@ -16,6 +16,7 @@ namespace Viewer.Graphic.Opengl
         private uint[] vaos;
         private uint[] vbos;
         private uint[] nbos;
+        private uint[] cbos;
         private uint[] ebos;
 
         public uint Length{ get; private set; }
@@ -49,6 +50,8 @@ namespace Viewer.Graphic.Opengl
             gl.GenBuffers(vbos);
             Span<uint> nbos = stackalloc uint[(int)parts.Length];
             gl.GenBuffers(nbos);
+            Span<uint> cbos = stackalloc uint[(int)parts.Length];
+            gl.GenBuffers(cbos);
             Span<uint> ebos = stackalloc uint[(int)parts.Length];
             gl.GenBuffers(ebos);
             for (int i = 0;i<parts.Length;i++)
@@ -77,6 +80,17 @@ namespace Viewer.Graphic.Opengl
 
                 }
 
+                gl.BindBuffer(GLEnum.ArrayBuffer, cbos[i]);
+                var colors = parts[(uint)i].ColorArray;
+                gl.BufferData(GLEnum.ArrayBuffer, sizeof(float) * 4 * colors.Length, colors.Ptr, GLEnum.StaticDraw);
+                unsafe
+                {
+                    // Configure vertex attribute pointer for normals
+                    gl.VertexAttribPointer(2, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
+                    gl.EnableVertexAttribArray(2);
+
+                }
+
                 gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
                 var indexSpan = parts[(uint)i].IndexArray;
                 gl.BufferData(GLEnum.ElementArrayBuffer, sizeof(float) * indexSpan.Length,indexSpan.Ptr, GLEnum.StaticDraw);
@@ -89,6 +103,7 @@ namespace Viewer.Graphic.Opengl
                 vaos=vaos.ToArray(),
                 vbos=vbos.ToArray(),
                 nbos=nbos.ToArray(),
+                cbos=cbos.ToArray(),
                 ebos=ebos.ToArray(),
                 Length=parts.Length,
             };

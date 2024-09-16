@@ -33,7 +33,7 @@ public partial class GlRender(GL gl) : IDisposable
 
     private KeyCode keyCode = KeyCode.None;
     private float orthoScale = 1;
-    private Quaternion rotation = new Quaternion(1, 0, 0, 0);
+    private Quaternion rotation = new(1, 0, 0, 0);
     private Vector3 bBoxCenter=Vector3.Zero;
 
     // 逻辑函数
@@ -43,8 +43,8 @@ public partial class GlRender(GL gl) : IDisposable
     }
     private void ProcessMouseMovement(float xoffset, float yoffset)
     {
-        mouseXOffset += xoffset * 0.8f;
-        mouseYOffset += yoffset * 0.8f;
+        mouseXOffset += xoffset/this.width * 0.8f;
+        mouseYOffset += yoffset/this.height * 0.8f;
 
         var x= 0.5f * xoffset;
         var y=0.5f*yoffset;
@@ -110,9 +110,6 @@ public partial class GlRender(GL gl) : IDisposable
 
         // fbo=gl.GenFramebuffer();
         // texture= gl.GenTexture();
-
-        // faceShader = new Shader(gl,"GLSL/faceShader.vert",
-        // "GLSL/faceShader.frag","GLSL/faceShader.geom");
 
         faceShader = new Shader(gl, "GLSL/faceShader.vert",
         "GLSL/faceShader.frag");
@@ -202,7 +199,7 @@ public partial class GlRender(GL gl) : IDisposable
         faceShader.SetUniform("g_View", m_VSConstantBuffer.view);
         faceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         faceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-        faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+        // faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
 
 
         for (uint i = 0; i < geometry.Components.Length;i++)
@@ -214,19 +211,19 @@ public partial class GlRender(GL gl) : IDisposable
             gl.BindVertexArray(vao);
             if (highlightType == HighlightType.Face && highlightFaceComp == i)
             {
-                if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
-                out var start, out var length))
-                {
-                    //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
-                    gl.Disable(GLEnum.PolygonOffsetFill);
-                    m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
-                    faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
-                    GLEnum.UnsignedInt, (void*)(start*sizeof(uint)));
-                    gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-                    m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
-                    faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                }
+                // if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
+                // out var start, out var length))
+                // {
+                //     //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
+                //     gl.Disable(GLEnum.PolygonOffsetFill);
+                //     m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
+                //     faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                //     gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
+                //     GLEnum.UnsignedInt, (void*)(start*sizeof(uint)));
+                //     gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
+                //     m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
+                //     faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                // }
             }
             // gl.DrawElements(GLEnum.Triangles, (uint)part.FaceIndexLength,
             // GLEnum.UnsignedInt, (void*)0);
@@ -285,9 +282,7 @@ public partial class GlRender(GL gl) : IDisposable
     {
         if (keyCode ==KeyCode.Left &&keyCode == KeyCode.Left)
         {
-            this.HighlightPrimitiveByMousePostion(x, y);
-            
-    
+            // this.HighlightPrimitiveByMousePostion(x, y);
         }
         this.keyCode &= ~keyCode;
     }
