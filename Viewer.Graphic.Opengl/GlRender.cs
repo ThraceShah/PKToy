@@ -33,51 +33,31 @@ public partial class GlRender(GL gl) : IDisposable
 
     private KeyCode keyCode = KeyCode.None;
     private float orthoScale = 1;
-    private Quaternion rotation = new(1, 0, 0, 0);
-    private Vector3 bBoxCenter=Vector3.Zero;
+    private Quaternion rotation = Quaternion.Identity;
+    private Vector3 bBoxCenter = Vector3.Zero;
 
-    // 逻辑函数
-    public static float Sigmoid(float x)
-    {
-        return 1.0f / (1.0f + float.Exp(-x));
-    }
+    private uint width;
+
+    private uint height;
+
+    private float aspectRatio;
+    private bool first = true;
+
+    private PartBuffers partBuffers;
+
+    private AsmGeometry geometry;
+
+    float lastX = 0;
+    float lastY = 0;
+
+
     private void ProcessMouseMovement(float xoffset, float yoffset)
     {
-        mouseXOffset += xoffset/this.width * 0.8f;
-        mouseYOffset += yoffset/this.height * 0.8f;
-
-        var x= 0.5f * xoffset;
-        var y=0.5f*yoffset;
-        if(float.Abs(x)>float.Abs(y))
-        {
-            y=0.15f*y;
-        }
-        else
-        {
-            x=0.15f*x;
-        }
-        const float l=3;
-        if(x>l)
-        {
-            x=l;
-        }
-        else if(x<-l)
-        {
-            x=-l;
-        }
-        if(y>l)
-        {
-            y=l;
-        }
-        else if(y<-l)
-        {
-            y=-l;
-        }
-        Console.WriteLine($"x:{x},y:{y}");
-        var m=float.Sqrt(x * x + y * y);
-        var deltaRotation=Quaternion.CreateFromAxisAngle(new Vector3(-y, x, 0.0f), Radians(m));
-        rotation = Quaternion.Normalize(deltaRotation * rotation);
-
+        var x=xoffset* 800/height;
+        var y=yoffset* 800/height;
+        var yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, Radians(x));
+        var xRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, Radians(y));
+        rotation = yRotation * xRotation * rotation;
     }
     private void ProcessMouseScroll(float yoffset)
     {
@@ -119,9 +99,6 @@ public partial class GlRender(GL gl) : IDisposable
         "GLSL/pickShader.frag");
     }
 
-    private PartBuffers partBuffers;
-
-    private AsmGeometry geometry;
 
     public void UpdateGeometry(ref AsmGeometry asmGeometry)
     {
@@ -138,26 +115,84 @@ public partial class GlRender(GL gl) : IDisposable
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry.Dispose();
         geometry = asmGeometry;
-        
+
     }
 
-    private uint width;
-
-    private uint height;
-
-    public void GLControlResize(uint width,uint height)
+    public void GLControlResize(uint width, uint height)
     {
-        this.width = width;
-        this.height = height;
-        gl.Viewport(0, 0,width,height);
+        this.width = uint.Max(width, 1);
+        this.height = uint.Max(height, 1);
+        aspectRatio =  this.width/(float)this.height;
+        gl.Viewport(0, 0, width, height);
         this.UpdateProjMatrix();
-        
     }
 
-    private bool first = true;
+    public void MouseDown(KeyCode keyCode, int x, int y)
+    {
+        lastX = x;
+        lastY = y;
+        this.keyCode |= keyCode;
+    }
+
+    public void MouseUp(KeyCode keyCode, int x, int y)
+    {
+        if (keyCode == KeyCode.Left && keyCode == KeyCode.Left)
+        {
+            // this.HighlightPrimitiveByMousePostion(x, y);
+        }
+        this.keyCode &= ~keyCode;
+    }
+
+
+    public void MouseMove(int x, int y)
+    {
+        if (this.keyCode != KeyCode.Middle &&
+        this.keyCode != KeyCode.ControlLeft)
+        {
+            return;
+        }
+
+        float xOffset = x - lastX;
+        float yOffset = lastY - y; // reversed since y-coordinates go from bottom to top
+
+        lastX = x;
+        lastY = y;
+        switch (this.keyCode)
+        {
+            case KeyCode.Middle:
+                ProcessMouseMovement(xOffset, yOffset);
+                break;
+            case KeyCode.ControlLeft:
+                m_VSConstantBuffer.translation.M14 += xOffset * 0.002f;
+                m_VSConstantBuffer.translation.M24 += yOffset * 0.002f;
+                break;
+        }
+    }
+
+    public void MouseWheel(int delta)
+    {
+        ProcessMouseScroll(delta * 0.01f);
+        UpdateProjMatrix();
+
+    }
+
+
+    public void KeyDown(KeyCode keyCode)
+    {
+        this.keyCode |= keyCode;
+
+    }
+
+    public void KeyUp(KeyCode keyCode)
+    {
+        this.keyCode &= ~keyCode;
+
+    }
+
+
     public unsafe void Render()
     {
-        if(geometry.Parts.Length==0&&first)
+        if (geometry.Parts.Length == 0 && first)
         {
             first = false;
             return;
@@ -166,29 +201,14 @@ public partial class GlRender(GL gl) : IDisposable
         gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
         gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
                                                                                    // 应用四元数旋转
-        // mat4 modelMatrix = glm::toMat4(rotationQuaternion);
-
-        // // 平移到bBox中心
-        // modelMatrix = glm::translate(modelMatrix, bBoxCenter);
-
-        // // 平移回到原始位置
-        // modelMatrix = glm::translate(modelMatrix, -bBoxCenter.x, -bBoxCenter.y, -bBoxCenter.z);
-
-        var modelMatrix=Matrix.CreateTranslation(bBoxCenter);
-        modelMatrix = Matrix.CreateFromQuaternion(rotation)*modelMatrix;
-        modelMatrix = Matrix.CreateTranslation(-bBoxCenter)*modelMatrix;
-        // // Prepare matrices
-        // var xRadian = Radians(mouseXOffset);
-        // var yRadian = Radians(mouseYOffset);
-        // Matrix W =
-        // world *Matrix.CreateFromQuaternion(rotation);
-        // m_VSConstantBuffer.world = W;
+        var modelMatrix = Matrix.CreateTranslation(bBoxCenter);
+        modelMatrix = Matrix.CreateFromQuaternion(rotation) * modelMatrix;
+        modelMatrix = Matrix.CreateTranslation(-bBoxCenter) * modelMatrix;
 
         gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
         faceShader.Use();
-        var W = modelMatrix;
-        m_VSConstantBuffer.world = W;
-        if (Matrix.Invert(W, out var result))
+        m_VSConstantBuffer.world = modelMatrix;
+        if (Matrix.Invert(modelMatrix, out var result))
         {
             var nm = Matrix.Transpose(result);
             ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
@@ -202,7 +222,7 @@ public partial class GlRender(GL gl) : IDisposable
         // faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
 
 
-        for (uint i = 0; i < geometry.Components.Length;i++)
+        for (uint i = 0; i < geometry.Components.Length; i++)
         {
             var comp = geometry.Components[i];
             var part = geometry.Parts[comp.PartIndex];
@@ -227,7 +247,7 @@ public partial class GlRender(GL gl) : IDisposable
             }
             // gl.DrawElements(GLEnum.Triangles, (uint)part.FaceIndexLength,
             // GLEnum.UnsignedInt, (void*)0);
-            gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength,GLEnum.UnsignedInt, (void*)0);
+            gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
 
         }
 
@@ -246,7 +266,7 @@ public partial class GlRender(GL gl) : IDisposable
             lineShader.SetUniform("g_Origin", comp.CompMatrix);
             partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
             gl.BindVertexArray(vao);
-            if (highlightType==HighlightType.Edge&&highlightEdgeComp == i)
+            if (highlightType == HighlightType.Edge && highlightEdgeComp == i)
             {
                 if (part.GetEdgeStartIndexAndLengthByIndexArrayIndex(highlightEdgeIndex,
                 out var start, out var length))
@@ -267,75 +287,6 @@ public partial class GlRender(GL gl) : IDisposable
 
     }
 
-    float lastX = 0;
-    float lastY = 0;
-
-
-    public void MouseDown(KeyCode keyCode, int x, int y)
-    {
-        lastX = x;
-        lastY = y;
-        this.keyCode |= keyCode;
-    }
-
-    public void MouseUp(KeyCode keyCode, int x, int y)
-    {
-        if (keyCode ==KeyCode.Left &&keyCode == KeyCode.Left)
-        {
-            // this.HighlightPrimitiveByMousePostion(x, y);
-        }
-        this.keyCode &= ~keyCode;
-    }
-
-
-    public void MouseMove(int x, int y)
-    {
-        if (this.keyCode != KeyCode.Middle &&
-        this.keyCode != KeyCode.ControlLeft)
-        {
-            return;
-        }
-        float xPos = x;
-        float yPos = y;
-
-        float xOffset = xPos - lastX;
-        float yOffset = lastY - yPos; // reversed since y-coordinates go from bottom to top
-
-        lastX = xPos;
-        lastY = yPos;
-        switch (this.keyCode)
-        {
-            case KeyCode.Middle:
-                ProcessMouseMovement(xOffset, yOffset);
-                
-                        break;
-            case KeyCode.ControlLeft:
-                m_VSConstantBuffer.translation.M14 += xOffset * 0.002f;
-                m_VSConstantBuffer.translation.M24 += yOffset * 0.002f;
-                
-                        break;
-        }
-    }
-
-    public void MouseWheel(int delta)
-    {
-        ProcessMouseScroll(delta * 0.01f);
-        UpdateProjMatrix();
-        
-    }
-
-
-    public void KeyDown(KeyCode keyCode)
-    {
-        this.keyCode |= keyCode;
-        
-    }
-
-    public void KeyUp(KeyCode keyCode)
-    {
-        this.keyCode &= ~keyCode;
-        
-    }
 
 
 
@@ -355,11 +306,9 @@ public partial class GlRender(GL gl) : IDisposable
     #region  private
     private void UpdateProjMatrix()
     {
-        var aspectRatio = float.Max(width, 1) / float.Max(height, 1);
         m_VSConstantBuffer.projection = Matrix.CreateOrthographicOffCenter(-orthoScale * aspectRatio,
         orthoScale * aspectRatio, -orthoScale, orthoScale, 0.1f, 100.0f);
 
-        
     }
 
     #endregion
