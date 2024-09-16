@@ -32,6 +32,7 @@ public unsafe class PKSession
         watch.Start();
         using var parts = new PKScopeArray<PK.PART_t>();
         err = PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
+
         var partitions = new PKScopeArray<PK.PARTITION_t>();
         err = PK.SESSION.ask_partitions(&partitions.size, &partitions.data);
         watch.Stop();

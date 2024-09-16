@@ -10,6 +10,7 @@ public class BodyGeometry
 {
     public List<Vector4> FaceVertices=[];
     public List<Vector3> Normals=[];
+    public List<Vector4> Colors=[];
     public List<uint> FaceIndices=[];
     public List<uint> EdgeIndices = [];
 
@@ -20,14 +21,18 @@ public unsafe class PKGoCallback:IDisposable
     const int CONTIN = (int)graphics_ifails_t.CONTIN;
     const int ABORT = (int)graphics_ifails_t.ABORT;
     private bool disposedValue;
-    private Dictionary<int, PartGeometry> bodyParts = [];
+    private readonly Dictionary<int, PartGeometry> bodyParts = [];
     private BodyGeometry currentBodyPart=new();
     private int currentBody=0;
     private int currentFace=0;
     private uint faceVerticesCount=0;
+    private readonly int colorTag;
     public PKGoCallback()
     {
         Frustrum.RegGoCallback(this);
+        PK.ATTDEF_t colorAttdef;
+        PKErrorCheck err = PK.ATTDEF.find("SDL/TYSA_COLOUR", &colorAttdef);
+        colorTag = colorAttdef;
     }
 
     static string FormatLineType(Span<int> lntp)
@@ -68,6 +73,7 @@ public unsafe class PKGoCallback:IDisposable
     public void GOSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
     {
         // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
+        PKErrorCheck err;
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPFT:
@@ -76,6 +82,18 @@ public unsafe class PKGoCallback:IDisposable
             {
                 uint offset=faceVerticesCount;
                 float face = *(float*)tags;
+                using var colorAttribs = new PKScopeArray<PK.ATTRIB_t>();
+                err=PK.ENTITY.ask_attribs(tags[0],colorTag, &colorAttribs.size, &colorAttribs.data);
+                var color=new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
+                if (colorAttribs.size > 0)
+                {
+                    if(colorAttribs[0] !=PK.ENTITY_t.@null)
+                    {
+                        using var colorValue = new PKScopeArray<double>();
+                        err=PK.ATTRIB.ask_doubles(colorAttribs[0],0, &colorValue.size, &colorValue.data);
+                        color = new Vector4((float)colorValue[0], (float)colorValue[1], (float)colorValue[2], 1f);
+                    }
+                }
                 int vCount=*ngeom/2;
                 double* normal=geom+vCount*3;
                 for (int i = 0; i < vCount; i++)
@@ -84,6 +102,7 @@ public unsafe class PKGoCallback:IDisposable
                     faceVerticesCount++;
                     currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
                     currentBodyPart.Normals.Add(new((float)normal[i * 3], (float)normal[i * 3 + 1], (float)normal[i * 3 + 2]));
+                    currentBodyPart.Colors.Add(color);
                 }
                 //插入strip重启索引
                 currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
@@ -136,7 +155,8 @@ public unsafe class PKGoCallback:IDisposable
                 uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
                 currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
                 bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],
-                [.. currentBodyPart.Normals], 
+                [.. currentBodyPart.Normals],
+                [.. currentBodyPart.Colors], 
                 [..currentBodyPart.FaceIndices],
                 edgeStartIndex,[],[]);
 
