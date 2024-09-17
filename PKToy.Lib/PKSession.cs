@@ -36,7 +36,7 @@ public unsafe class PKSession
         var partitions = new PKScopeArray<PK.PARTITION_t>();
         err = PK.SESSION.ask_partitions(&partitions.size, &partitions.data);
         watch.Stop();
-        Console.WriteLine($"OpenPart elapsed time:{watch.ElapsedMilliseconds} ms");
+        Console.WriteLine($"kernel load model elapsed time:{watch.ElapsedMilliseconds} ms");
         // PK.PARTITION_t partition;
         // err =PK.SESSION.ask_curr_partition(&partition);
         using var bodies = new PKScopeArray<PK.BODY_t>();
