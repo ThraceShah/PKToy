@@ -38,5 +38,11 @@
         <None Update="GLSL\pickShader.vert">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="GLSL\highlightFaceShader.frag">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="GLSL\highlightFaceShader.vert">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 </Project>

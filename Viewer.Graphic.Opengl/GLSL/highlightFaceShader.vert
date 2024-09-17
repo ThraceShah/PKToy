@@ -3,7 +3,6 @@
 precision mediump float;
 layout (location = 0) in vec4 vIn;
 layout (location = 1) in vec3 normalIn;
-layout (location = 2) in vec4 colorIn;
 
 uniform mat4 g_World; 
 uniform mat4 g_View;  
@@ -17,7 +16,6 @@ uniform mat3 g_WIT;
 
 out vec3 fs_normal;
 out vec3 fs_posW;
-out vec4 fs_color;
 
 void main()
 {
@@ -26,6 +24,5 @@ void main()
     vec4 pos=g_World*orig;
     fs_normal = normalize(g_WIT*normalIn);
     fs_posW = pos.xyz;
-    fs_color = colorIn;
     gl_Position=g_Proj*g_View*pos*g_Translation;
 }

@@ -27,9 +27,7 @@ public partial class GlRender(GL gl) : IDisposable
 
     private Shader pickShader;
 
-    private float mouseXOffset = 0;
-
-    private float mouseYOffset = 0;
+    private Shader highlightFaceShader;
 
     private KeyCode keyCode = KeyCode.None;
     private float orthoScale = 1;
@@ -49,6 +47,49 @@ public partial class GlRender(GL gl) : IDisposable
 
     float lastX = 0;
     float lastY = 0;
+
+    private uint offSrcFramebuffer;
+    private uint offSrcTexture;
+    private uint offSrcRenderbuffer;
+    private unsafe void InitOffscreenFrame()
+    {
+        // 如果已经存在 Framebuffer，先删除它
+        if (offSrcFramebuffer != 0)
+        {
+            gl.DeleteFramebuffer(offSrcFramebuffer);
+            gl.DeleteTexture(offSrcTexture);
+            gl.DeleteRenderbuffer(offSrcRenderbuffer);
+            offSrcFramebuffer = 0;
+            offSrcTexture = 0;
+            offSrcRenderbuffer = 0;
+        }
+
+        // 创建 Framebuffer 对象
+        offSrcFramebuffer = gl.GenFramebuffer();
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, offSrcFramebuffer);
+
+        // 创建纹理对象
+        offSrcTexture = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, offSrcTexture);
+        gl.TexImage2D(GLEnum.Texture2D, 0, (int)InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, offSrcTexture, 0);
+
+        // 创建 Renderbuffer 对象用于深度和模板测试
+        offSrcRenderbuffer = gl.GenRenderbuffer();
+        gl.BindRenderbuffer(RenderbufferTarget.Renderbuffer, offSrcRenderbuffer);
+        gl.RenderbufferStorage(RenderbufferTarget.Renderbuffer, GLEnum.Depth24Stencil8, width, height);
+        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, offSrcRenderbuffer);
+
+        // 检查 Framebuffer 是否完整
+        if (gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != GLEnum.FramebufferComplete)
+        {
+            throw new Exception("Framebuffer is not complete.");
+        }
+        // 解绑 Framebuffer
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+    }
 
 
     private void ProcessMouseMovement(float xoffset, float yoffset)
@@ -86,10 +127,6 @@ public partial class GlRender(GL gl) : IDisposable
 
         // 启用重启索引功能
         gl.Enable(GLEnum.PrimitiveRestart);
-        // gl.PrimitiveRestartIndex(0xFFFFFFFF); // 设置重启索引值
-
-        // fbo=gl.GenFramebuffer();
-        // texture= gl.GenTexture();
 
         faceShader = new Shader(gl, "GLSL/faceShader.vert",
         "GLSL/faceShader.frag");
@@ -97,6 +134,8 @@ public partial class GlRender(GL gl) : IDisposable
         "GLSL/lineShader.frag");
         pickShader = new Shader(gl, "GLSL/pickShader.vert",
         "GLSL/pickShader.frag");
+        highlightFaceShader = new Shader(gl, "GLSL/highlightFaceShader.vert",
+        "GLSL/highlightFaceShader.frag");
     }
 
 
@@ -104,8 +143,6 @@ public partial class GlRender(GL gl) : IDisposable
     {
         this.keyCode = KeyCode.None;
         orthoScale = 1.0f;
-        mouseXOffset = 0;
-        mouseYOffset = 0;
 
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
@@ -123,7 +160,8 @@ public partial class GlRender(GL gl) : IDisposable
         this.width = uint.Max(width, 1);
         this.height = uint.Max(height, 1);
         aspectRatio =  this.width/(float)this.height;
-        gl.Viewport(0, 0, width, height);
+        gl.Viewport(0, 0, this.width, this.height);
+        InitOffscreenFrame();
         this.UpdateProjMatrix();
     }
 
@@ -138,7 +176,7 @@ public partial class GlRender(GL gl) : IDisposable
     {
         if (keyCode == KeyCode.Left && keyCode == KeyCode.Left)
         {
-            // this.HighlightPrimitiveByMousePostion(x, y);
+            this.HighlightPrimitiveByMousePostion(x, y);
         }
         this.keyCode &= ~keyCode;
     }
@@ -204,23 +242,49 @@ public partial class GlRender(GL gl) : IDisposable
         var modelMatrix = Matrix.CreateTranslation(bBoxCenter);
         modelMatrix = Matrix.CreateFromQuaternion(rotation) * modelMatrix;
         modelMatrix = Matrix.CreateTranslation(-bBoxCenter) * modelMatrix;
+        m_VSConstantBuffer.world = modelMatrix;
+        Matrix.Invert(modelMatrix, out var result);
+        var nm = Matrix.Transpose(result);
+        ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
+
+        if (highlightType == HighlightType.Face)
+        {
+            for (uint i = 0; i < geometry.Components.Length; i++)
+            {
+                if(highlightFaceComp == i)
+                {
+                    var comp = geometry.Components[i];
+                    var part = geometry.Parts[comp.PartIndex];
+                    if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
+                    out var start, out var length))
+                    {
+                        highlightFaceShader.Use();
+                        highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
+                        highlightFaceShader.SetUniform("g_World", m_VSConstantBuffer.world);
+                        highlightFaceShader.SetUniform("g_View", m_VSConstantBuffer.view);
+                        highlightFaceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
+                        highlightFaceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
+                        highlightFaceShader.SetUniform("g_Origin", comp.CompMatrix);
+                        //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
+                        gl.Disable(GLEnum.PolygonOffsetFill);
+                        m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
+                        highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                        partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
+                        gl.BindVertexArray(vao);
+                        gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
+                        GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
+                    }
+                }
+            }
+        }
 
         gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
         faceShader.Use();
-        m_VSConstantBuffer.world = modelMatrix;
-        if (Matrix.Invert(modelMatrix, out var result))
-        {
-            var nm = Matrix.Transpose(result);
-            ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
-            faceShader.UniformMatrix3("g_WIT", normalModel);
-        }
-        m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
+        faceShader.UniformMatrix3("g_WIT", normalModel);
         faceShader.SetUniform("g_World", m_VSConstantBuffer.world);
         faceShader.SetUniform("g_View", m_VSConstantBuffer.view);
         faceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         faceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-        // faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-
 
         for (uint i = 0; i < geometry.Components.Length; i++)
         {
@@ -229,24 +293,6 @@ public partial class GlRender(GL gl) : IDisposable
             faceShader.SetUniform("g_Origin", comp.CompMatrix);
             partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
             gl.BindVertexArray(vao);
-            if (highlightType == HighlightType.Face && highlightFaceComp == i)
-            {
-                // if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
-                // out var start, out var length))
-                // {
-                //     //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
-                //     gl.Disable(GLEnum.PolygonOffsetFill);
-                //     m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
-                //     faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                //     gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
-                //     GLEnum.UnsignedInt, (void*)(start*sizeof(uint)));
-                //     gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-                //     m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
-                //     faceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                // }
-            }
-            // gl.DrawElements(GLEnum.Triangles, (uint)part.FaceIndexLength,
-            // GLEnum.UnsignedInt, (void*)0);
             gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
 
         }
@@ -287,8 +333,103 @@ public partial class GlRender(GL gl) : IDisposable
 
     }
 
+    public unsafe void Render2()
+    {
+        if (geometry.Parts.Length == 0 && first)
+        {
+            first = false;
+            return;
+        }
 
+        gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
+        gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
+                                                                                   // 应用四元数旋转
+        var modelMatrix = Matrix.CreateTranslation(bBoxCenter);
+        modelMatrix = Matrix.CreateFromQuaternion(rotation) * modelMatrix;
+        modelMatrix = Matrix.CreateTranslation(-bBoxCenter) * modelMatrix;
 
+        gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
+        highlightFaceShader.Use();
+        m_VSConstantBuffer.world = modelMatrix;
+        Matrix.Invert(modelMatrix, out var result);
+        var nm = Matrix.Transpose(result);
+        ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
+        highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
+        highlightFaceShader.SetUniform("g_World", m_VSConstantBuffer.world);
+        highlightFaceShader.SetUniform("g_View", m_VSConstantBuffer.view);
+        highlightFaceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
+        highlightFaceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
+        m_PSConstantBuffer.objColor = new Vector4(0.5f, 0.501f, 0.5f, 1f);
+        highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+
+        for (uint i = 0; i < geometry.Components.Length; i++)
+        {
+            var comp = geometry.Components[i];
+            var part = geometry.Parts[comp.PartIndex];
+            highlightFaceShader.SetUniform("g_Origin", comp.CompMatrix);
+            partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
+            gl.BindVertexArray(vao);
+            if (highlightType == HighlightType.Face && highlightFaceComp == i)
+            {
+                if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
+                out var start, out var length))
+                {
+                    highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
+                    highlightFaceShader.SetUniform("g_World", m_VSConstantBuffer.world);
+                    highlightFaceShader.SetUniform("g_View", m_VSConstantBuffer.view);
+                    highlightFaceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
+                    highlightFaceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
+
+                    //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
+                    gl.Disable(GLEnum.PolygonOffsetFill);
+                    m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
+                    highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                    gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
+                    GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
+                    gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
+                    m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
+                    highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                }
+            }
+            gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
+
+        }
+
+        gl.Disable(GLEnum.PolygonOffsetFill);
+        lineShader.Use();
+        m_PSConstantBuffer.objColor = new Vector4(0f, 0f, 0f, 1f);
+        lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+        lineShader.SetUniform("g_World", m_VSConstantBuffer.world);
+        lineShader.SetUniform("g_View", m_VSConstantBuffer.view);
+        lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
+        lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
+        for (uint i = 0; i < geometry.Components.Length; i++)
+        {
+            var comp = geometry.Components[i];
+            var part = geometry.Parts[comp.PartIndex];
+            lineShader.SetUniform("g_Origin", comp.CompMatrix);
+            partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
+            gl.BindVertexArray(vao);
+            if (highlightType == HighlightType.Edge && highlightEdgeComp == i)
+            {
+                if (part.GetEdgeStartIndexAndLengthByIndexArrayIndex(highlightEdgeIndex,
+                out var start, out var length))
+                {
+                    gl.LineWidth(2.0f);
+                    m_PSConstantBuffer.objColor = new Vector4(1f, 0f, 0f, 1f);
+                    lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                    gl.DrawElements(GLEnum.Lines, length,
+                    GLEnum.UnsignedInt, (void*)((start + part.EdgeStartIndex) * sizeof(uint)));
+                    m_PSConstantBuffer.objColor = new Vector4(0f, 0f, 0f, 1f);
+                    lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
+                    gl.LineWidth(1.0f);
+                }
+            }
+            gl.DrawElements(GLEnum.Lines, part.EdgeIndexLength,
+            GLEnum.UnsignedInt, (void*)(part.EdgeStartIndex * sizeof(uint)));
+        }
+
+    }
 
     public void Dispose()
     {
@@ -298,8 +439,9 @@ public partial class GlRender(GL gl) : IDisposable
         lineShader.Dispose();
         pickShader.Dispose();
         gl.Dispose();
-        // gl.DeleteFramebuffer(fbo);
-        // gl.DeleteTexture(texture);
+        gl.DeleteFramebuffer(offSrcFramebuffer);
+        gl.DeleteTexture(offSrcTexture);
+        gl.DeleteRenderbuffer(offSrcRenderbuffer);
 
     }
 
