@@ -55,7 +55,7 @@ public partial class MainWindow : Window
             this.GL.GLControl.UpdateGeometry(ref geometry);
             GC.Collect();
             stop.Stop();
-            Console.WriteLine(stop.ElapsedMilliseconds);
+            Console.WriteLine($"open part elapsed time:{stop.ElapsedMilliseconds} ms");
             long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
             Console.WriteLine($"after Memory Used: {after}MB");
             Console.WriteLine($"after-before={after - before}MB");
