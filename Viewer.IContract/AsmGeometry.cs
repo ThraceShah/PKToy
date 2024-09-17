@@ -31,7 +31,7 @@ namespace Viewer.IContract
             return new AsmGeometry(parts,comps);
         }
 
-        public uint GetCompFirstIdByIndex(uint compIndex)
+        public readonly uint GetCompFirstIdByIndex(uint compIndex)
         {
             uint id = 0;
             for (uint i = 0; i < compIndex;i++)
@@ -39,7 +39,14 @@ namespace Viewer.IContract
                 //FaceStartIndexArray和EdgeStartIndexArray里面最后一个元素并不代表一个面或者一条线
                 var comp = this.Components[i];
                 var part = this.Parts[comp.PartIndex];
-                id += part.FaceStartIndexArray.Length+part.EdgeStartIndexArray.Length-2;
+                if(part.EdgeStartIndexArray.Length>0)
+                {
+                    id += part.FaceStartIndexArray.Length + part.EdgeStartIndexArray.Length - 2;
+                }
+                else
+                {
+                    id += part.FaceStartIndexArray.Length + part.EdgeStartIndexArray.Length - 1;
+                }
             }
             return id;
         }

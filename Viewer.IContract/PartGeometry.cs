@@ -92,7 +92,7 @@ namespace Viewer.IContract
         private static readonly uint[] int32Array = new[] { 0u, 1u, 2u, 3u };
 
 
-        public bool GetFaceStartIndexAndLengthByIndexArrayIndex(
+        public readonly bool GetFaceStartIndexAndLengthByIndexArrayIndex(
             uint indexArrayIndex, out uint faceStartIndex,
             out uint length)
         {
@@ -117,7 +117,7 @@ namespace Viewer.IContract
         }
 
 
-        public bool GetEdgeStartIndexAndLengthByIndexArrayIndex(
+        public readonly bool GetEdgeStartIndexAndLengthByIndexArrayIndex(
             uint indexArrayIndex, out uint edgeStartIndex,
             out uint length)
         {

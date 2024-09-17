@@ -13,7 +13,8 @@ public class BodyGeometry
     public List<Vector4> Colors=[];
     public List<uint> FaceIndices=[];
     public List<uint> EdgeIndices = [];
-
+    public List<uint> FaceStartIndexArray=[];
+    public List<uint> EdgeStartIndexArray=[];
 }
 
 public unsafe class PKGoCallback:IDisposable
@@ -70,6 +71,11 @@ public unsafe class PKGoCallback:IDisposable
         Console.WriteLine($"MethodName:{methodName},<segtyp:{sgetypName}>,<tags:{tagsStr}>,<ngeom:{*ngeom}>,<lntp:{lntpStr}>");
     }
 
+    int lastFaceTag=0;
+    uint lastFaceStartIndex=0;
+    float lastFrameTag=0;
+
+
     public void GOSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
     {
         // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
@@ -96,11 +102,23 @@ public unsafe class PKGoCallback:IDisposable
                 }
                 int vCount=*ngeom/2;
                 double* normal=geom+vCount*3;
+
+                if(lastFaceTag!=tags[0])
+                {
+                    lastFaceTag=tags[0];
+                    uint faceStartIndex = (uint)currentBodyPart.FaceIndices.Count;
+                    var count = currentBodyPart.FaceStartIndexArray.Count;
+                    float frameTag = *(float*)(&count);
+                    lastFaceStartIndex=faceStartIndex;
+                    lastFrameTag=frameTag;
+                    currentBodyPart.FaceStartIndexArray.Add(faceStartIndex);
+                }
+
                 for (int i = 0; i < vCount; i++)
                 {
                     currentBodyPart.FaceIndices.Add(faceVerticesCount);
                     faceVerticesCount++;
-                    currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], face));
+                    currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], lastFrameTag));
                     currentBodyPart.Normals.Add(new((float)normal[i * 3], (float)normal[i * 3 + 1], (float)normal[i * 3 + 2]));
                     currentBodyPart.Colors.Add(color);
                 }
@@ -152,13 +170,14 @@ public unsafe class PKGoCallback:IDisposable
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
+                currentBodyPart.FaceStartIndexArray.Add((uint)currentBodyPart.FaceIndices.Count);
                 uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
                 currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
                 bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],
                 [.. currentBodyPart.Normals],
                 [.. currentBodyPart.Colors], 
                 [..currentBodyPart.FaceIndices],
-                edgeStartIndex,[],[]);
+                edgeStartIndex,[..currentBodyPart.FaceStartIndexArray],[]);
 
                 break;
             case go_segment_types_t.SGTPFA:
