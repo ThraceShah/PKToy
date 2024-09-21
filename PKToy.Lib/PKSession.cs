@@ -77,37 +77,46 @@ public unsafe class PKSession
         using var assemblies=new PKScopeArray<ASSEMBLY_t>();
         err =PK.PARTITION.ask_assemblies(partitions[0], &assemblies.size, &assemblies.data);
         Queue<PK.ASSEMBLY_t> assemblyQueue=new();
+        Queue<Matrix4x4> matrixQueue=new();
         for (int i = 0; i < assemblies.size; i++)
         {
-            assemblyQueue.Enqueue(assemblies[i]);
+            using var refInstances=new PKScopeArray<INSTANCE_t>();
+            PK.PART.ask_ref_instances(assemblies[i], &refInstances.size, &refInstances.data);
+            if(refInstances.size==0)
+            {
+                assemblyQueue.Enqueue(assemblies[i]);
+                matrixQueue.Enqueue(Matrix4x4.Identity);
+            }
         }
         Console.WriteLine($"assemblies count:{assemblies.size}");
         while(assemblyQueue.Count>0)
         {
             var assembly=assemblyQueue.Dequeue();
+            var asmMatrix=matrixQueue.Dequeue();
             using var instances=new PKScopeArray<PK.INSTANCE_t>();
             err =PK.ASSEMBLY.ask_instances(assembly, &instances.size, &instances.data);
             for (int j = 0; j < instances.size; j++)
             {
                 PK.INSTANCE.ask(instances[j], &instanceSF);
                 PK.ENTITY.ask_class(instanceSF.part, &classSF);
+                if (instanceSF.transf == PK.ENTITY_t.@null)
+                {
+                    instanceSF.transf = identityTrans;
+                }
+                PK.TRANSF.ask(instanceSF.transf, &transformSF);
+                var transPtr = (double*)&transformSF;
+                Matrix4x4 matrix;
+                var matrixPtr = (float*)&matrix;
+                for (int i = 0; i < 16; i++)
+                {
+                    matrixPtr[i] = (float)transPtr[i];
+                }
+                matrix=asmMatrix*matrix;
                 switch (classSF)
                 {
                     case PK.CLASS_t.body:
                         bodiesSet.Remove(instanceSF.part);
                         var partGeometry = goCallback.GetPartGeometry(instanceSF.part);
-                        if (instanceSF.transf == PK.ENTITY_t.@null)
-                        {
-                            instanceSF.transf = identityTrans;
-                        }
-                        PK.TRANSF.ask(instanceSF.transf, &transformSF);
-                        var transPtr=(double*)&transformSF;
-                        Matrix4x4 matrix;
-                        var matrixPtr=(float*)&matrix;
-                        for(int i=0;i<16;i++)
-                        {
-                            matrixPtr[i]=(float)transPtr[i];
-                        }
                         compGeometries.Add(new CompGeometry
                         {
                             PartIndex= (uint)bodyIndexMap[instanceSF.part],
@@ -116,6 +125,7 @@ public unsafe class PKSession
                         break;
                     case PK.CLASS_t.assembly:
                         assemblyQueue.Enqueue(instanceSF.part);
+                        matrixQueue.Enqueue(matrix);
                         break;
                     default:
                         continue;
