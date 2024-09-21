@@ -11,7 +11,7 @@ out vec4 FragColor;
 void main()
 {
 
-    vec3 lightPos=vec3(5,5,-10); 
+    vec3 lightPos=vec3(0,0,-1000); 
     vec3 lightColor=vec3(1,1,1);
         // ambient
     float ambientStrength = 0.3;
