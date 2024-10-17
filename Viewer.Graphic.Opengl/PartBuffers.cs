@@ -115,9 +115,12 @@ namespace Viewer.Graphic.Opengl
             gl.DeleteVertexArrays(vaos);
             gl.DeleteBuffers(this.vbos);
             gl.DeleteBuffers(this.nbos);
+            gl.DeleteBuffers(this.cbos);
             gl.DeleteBuffers(this.ebos);
             vaos = null;
             vbos = null;
+            nbos = null;
+            cbos = null;
             ebos = null;
             GC.SuppressFinalize(this);
         }

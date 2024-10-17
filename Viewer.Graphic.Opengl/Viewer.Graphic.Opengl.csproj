@@ -13,7 +13,7 @@
         <PackageReference Include="Silk.NET.Maths" Version="2.21.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.21.0" />
         <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.21.0" />
-        <PackageReference Include="System.Text.Json" Version="8.0.4" />
+        <PackageReference Include="System.Text.Json" Version="8.0.5" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="../Viewer.IContract/Viewer.IContract.csproj" />
