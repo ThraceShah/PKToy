@@ -211,7 +211,7 @@ public unsafe static class Frustrum
         var handle = NativeLibrary.Load(libc);
         var mallocPtr = (delegate* unmanaged[Cdecl]<ulong, void*>)NativeLibrary.GetExport(handle, "malloc");
         var freePtr = (delegate* unmanaged[Cdecl]<void*, void>)NativeLibrary.GetExport(handle, "free");
-
+        PKErrorCheck err;
         PK.SESSION.frustrum_v fru = new()
         {
             fstart = &FrustrumStart,
@@ -227,18 +227,30 @@ public unsafe static class Frustrum
             goopsg = &GOOpenSegment,
             goclsg = &GOCloseSegment
         };
-        PK.SESSION._register_frustrum(&fru);
+        err=PK.SESSION._register_frustrum(&fru);
         PK.MEMORY.frustrum_t a = new()
         {
             alloc_fn = mallocPtr,
             free_fn = freePtr
         };
-        PK.MEMORY.register_callbacks(a);
-        PK.ERROR.code_t err;
+        err = PK.MEMORY.register_callbacks(a);
+        PK.DELTA.frustrum_t deltaFru = new()
+        {
+            open_for_write_fn = &FrustrumDelta.OpenForWrite,
+            write_fn = &FrustrumDelta.Write,
+            open_for_read_fn = &FrustrumDelta.OpenForRead,
+            read_fn = &FrustrumDelta.Read,
+            delete_fn = &FrustrumDelta.Delete,
+            close_fn = &FrustrumDelta.Close,
+        };
+        err = PK.DELTA._register_callbacks(deltaFru);
         PK.SESSION.start_o_t start_options = new(true);
         err = PK.SESSION.start(&start_options);
-        err = PK.SESSION.set_unicode(PK.LOGICAL_t.@true);
-        PK.SESSION.set_roll_forward(LOGICAL_t.@true);
+        err = PK.SESSION.set_unicode(true);
+        err = PK.SESSION.set_roll_forward(true);
+        // PARTITION_t partition;
+        // err = PK.PARTITION.create_empty(&partition);
+        // err = PK.PARTITION.set_current(partition);
     }
 
 }

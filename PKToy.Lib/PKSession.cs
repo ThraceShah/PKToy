@@ -32,15 +32,12 @@ public unsafe class PKSession
         watch.Start();
         using var parts = new PKScopeArray<PK.PART_t>();
         err = PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
-
-        var partitions = new PKScopeArray<PK.PARTITION_t>();
-        err = PK.SESSION.ask_partitions(&partitions.size, &partitions.data);
         watch.Stop();
         Console.WriteLine($"kernel load model elapsed time:{watch.ElapsedMilliseconds} ms");
-        // PK.PARTITION_t partition;
-        // err =PK.SESSION.ask_curr_partition(&partition);
+        PK.PARTITION_t partition;
+        err =PK.SESSION.ask_curr_partition(&partition);
         using var bodies = new PKScopeArray<PK.BODY_t>();
-        err =PK.PARTITION.ask_bodies(partitions[0], &bodies.size, &bodies.data);
+        err =PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
         watch.Restart();
         using var goCallback=new PKGoCallback();
         Console.WriteLine("render faces");
@@ -75,7 +72,7 @@ public unsafe class PKSession
         TRANSF_sf_t transformSF;
         CLASS_t classSF;
         using var assemblies=new PKScopeArray<ASSEMBLY_t>();
-        err =PK.PARTITION.ask_assemblies(partitions[0], &assemblies.size, &assemblies.data);
+        err =PK.PARTITION.ask_assemblies(partition, &assemblies.size, &assemblies.data);
         Queue<PK.ASSEMBLY_t> assemblyQueue=new();
         Queue<Matrix4x4> matrixQueue=new();
         for (int i = 0; i < assemblies.size; i++)
