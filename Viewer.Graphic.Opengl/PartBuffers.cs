@@ -19,7 +19,7 @@ namespace Viewer.Graphic.Opengl
         private uint[] cbos;
         private uint[] ebos;
 
-        public uint Length{ get; private set; }
+        public int Length{ get; private set; }
 
         private PartBuffers()
         {
@@ -43,24 +43,24 @@ namespace Viewer.Graphic.Opengl
         public static unsafe PartBuffers GenPartBuffers(GL gl,in AsmGeometry asm)
         {
             var parts = asm.Parts;
-            Span<uint> vaos = stackalloc uint[(int)parts.Length];
+            Span<uint> vaos = stackalloc uint[parts.Length];
             gl.GenVertexArrays(vaos);
             gl.GenVertexArrays(vaos);
-            Span<uint> vbos = stackalloc uint[(int)parts.Length];
+            Span<uint> vbos = stackalloc uint[parts.Length];
             gl.GenBuffers(vbos);
-            Span<uint> nbos = stackalloc uint[(int)parts.Length];
+            Span<uint> nbos = stackalloc uint[parts.Length];
             gl.GenBuffers(nbos);
-            Span<uint> cbos = stackalloc uint[(int)parts.Length];
+            Span<uint> cbos = stackalloc uint[parts.Length];
             gl.GenBuffers(cbos);
-            Span<uint> ebos = stackalloc uint[(int)parts.Length];
+            Span<uint> ebos = stackalloc uint[parts.Length];
             gl.GenBuffers(ebos);
             for (int i = 0;i<parts.Length;i++)
             {
                 gl.BindVertexArray(vaos[i]);
 
                 gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
-                var vertices = parts[(uint)i].VertexArray;
-                gl.BufferData(GLEnum.ArrayBuffer, sizeof(float)*4*vertices.Length, vertices.Ptr, GLEnum.StaticDraw);
+                ReadOnlySpan<Vector4> vertices = parts[i].VertexArray;
+                gl.BufferData(GLEnum.ArrayBuffer, vertices, GLEnum.StaticDraw);
                 unsafe
                 {
                     // note that we update the lamp's position attribute's stride to reflect the updated buffer data
@@ -70,8 +70,8 @@ namespace Viewer.Graphic.Opengl
                 }
 
                 gl.BindBuffer(GLEnum.ArrayBuffer, nbos[i]);
-                var normals = parts[(uint)i].NormalArray;
-                gl.BufferData(GLEnum.ArrayBuffer, sizeof(float)*3*normals.Length, normals.Ptr, GLEnum.StaticDraw);
+                ReadOnlySpan<Vector3> normals = parts[i].NormalArray;
+                gl.BufferData(GLEnum.ArrayBuffer,  normals, GLEnum.StaticDraw);
                 unsafe
                 {
                     // Configure vertex attribute pointer for normals
@@ -81,8 +81,8 @@ namespace Viewer.Graphic.Opengl
                 }
 
                 gl.BindBuffer(GLEnum.ArrayBuffer, cbos[i]);
-                var colors = parts[(uint)i].ColorArray;
-                gl.BufferData(GLEnum.ArrayBuffer, sizeof(float) * 4 * colors.Length, colors.Ptr, GLEnum.StaticDraw);
+                ReadOnlySpan<Vector4> colors = parts[i].ColorArray;
+                gl.BufferData(GLEnum.ArrayBuffer,  colors, GLEnum.StaticDraw);
                 unsafe
                 {
                     // Configure vertex attribute pointer for normals
@@ -92,8 +92,8 @@ namespace Viewer.Graphic.Opengl
                 }
 
                 gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                var indexSpan = parts[(uint)i].IndexArray;
-                gl.BufferData(GLEnum.ElementArrayBuffer, sizeof(float) * indexSpan.Length,indexSpan.Ptr, GLEnum.StaticDraw);
+                ReadOnlySpan<int> indexSpan = parts[i].IndexArray;
+                gl.BufferData(GLEnum.ElementArrayBuffer, indexSpan, GLEnum.StaticDraw);
             }
             // Unbind VAO to prevent accidental modification
             gl.BindVertexArray(0);

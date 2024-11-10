@@ -11,10 +11,10 @@ public class BodyGeometry
     public List<Vector4> FaceVertices=[];
     public List<Vector3> Normals=[];
     public List<Vector4> Colors=[];
-    public List<uint> FaceIndices=[];
-    public List<uint> EdgeIndices = [];
-    public List<uint> FaceStartIndexArray=[];
-    public List<uint> EdgeStartIndexArray=[];
+    public List<int> FaceIndices=[];
+    public List<int> EdgeIndices = [];
+    public List<int> FaceStartIndexArray=[];
+    public List<int> EdgeStartIndexArray=[];
 }
 
 public unsafe class PKGoCallback:IDisposable
@@ -26,7 +26,7 @@ public unsafe class PKGoCallback:IDisposable
     private BodyGeometry currentBodyPart=new();
     private int currentBody=0;
     private int currentFace=0;
-    private uint faceVerticesCount=0;
+    private int faceVerticesCount=0;
     private readonly int colorTag;
     public PKGoCallback()
     {
@@ -72,7 +72,7 @@ public unsafe class PKGoCallback:IDisposable
     }
 
     int lastFaceTag=0;
-    uint lastFaceStartIndex=0;
+    int lastFaceStartIndex=0;
     float lastFrameTag=0;
 
 
@@ -86,7 +86,7 @@ public unsafe class PKGoCallback:IDisposable
                 break;
             case go_segment_types_t.SGTPTS:
             {
-                uint offset=faceVerticesCount;
+                int offset=faceVerticesCount;
                 float face = *(float*)tags;
                 using var colorAttribs = new PKScopeArray<PK.ATTRIB_t>();
                 err=PK.ENTITY.ask_attribs(tags[0],colorTag, &colorAttribs.size, &colorAttribs.data);
@@ -106,7 +106,7 @@ public unsafe class PKGoCallback:IDisposable
                 if(lastFaceTag!=tags[0])
                 {
                     lastFaceTag=tags[0];
-                    uint faceStartIndex = (uint)currentBodyPart.FaceIndices.Count;
+                    int faceStartIndex = currentBodyPart.FaceIndices.Count;
                     var count = currentBodyPart.FaceStartIndexArray.Count;
                     float frameTag = *(float*)(&count);
                     lastFaceStartIndex=faceStartIndex;
@@ -123,14 +123,14 @@ public unsafe class PKGoCallback:IDisposable
                     currentBodyPart.Colors.Add(color);
                 }
                 //插入strip重启索引
-                currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
-                for(uint i=1;i<*ntags;i++)
+                currentBodyPart.FaceIndices.Add(Constants.STRIPBREAK);
+                for(int i=1;i<*ntags;i++)
                 {
                     float edge = *(float*)(tags+i);
                     if(edge!=0)
                     {
-                        uint v1= (i - 1) / 2 + offset;
-                        uint v2=i/2+1+offset;
+                        int v1= (i - 1) / 2 + offset;
+                        int v2=i/2+1+offset;
                         currentBodyPart.EdgeIndices.Add(v1);
                         currentBodyPart.EdgeIndices.Add(v2);
                     }
@@ -156,7 +156,7 @@ public unsafe class PKGoCallback:IDisposable
             case go_segment_types_t.SGTPFA:
                 currentFace = *tags;
                 // //插入strip重启索引
-                // currentBodyPart.FaceIndices.Add(0xFFFFFFFF);
+                // currentBodyPart.FaceIndices.Add(Constants.STRIPBREAK);
                 break;
             default:
                 break;
@@ -170,8 +170,8 @@ public unsafe class PKGoCallback:IDisposable
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
-                currentBodyPart.FaceStartIndexArray.Add((uint)currentBodyPart.FaceIndices.Count);
-                uint edgeStartIndex = (uint)currentBodyPart.FaceIndices.Count;
+                currentBodyPart.FaceStartIndexArray.Add(currentBodyPart.FaceIndices.Count);
+                int edgeStartIndex = currentBodyPart.FaceIndices.Count;
                 currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
                 bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],
                 [.. currentBodyPart.Normals],

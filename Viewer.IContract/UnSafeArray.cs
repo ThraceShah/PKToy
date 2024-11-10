@@ -12,7 +12,7 @@ namespace Viewer.IContract
 
         public readonly unsafe T* Ptr;
 
-        public readonly uint Length;
+        public readonly long Length;
 
         public Span<T> Span => new(Ptr, (int)Length);
 

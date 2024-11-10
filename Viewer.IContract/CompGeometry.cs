@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 
 namespace Viewer.IContract
 {
-    public struct CompGeometry
+    public class CompGeometry
     {
 
         public uint PartIndex;

@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Viewer.Avalonia.Entry.ViewModels;
-using Viewer.Avalonia.Entry.Views;
+using PKToy.ViewModels;
+using PKToy.Views;
 
-namespace Viewer.Avalonia.Entry;
+namespace PKToy;
 
 public partial class App : Application
 {
@@ -19,8 +19,8 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                Width=800,
-                Height=600,
+                Width=1280,
+                Height=720,
                 DataContext = new MainWindowViewModel(),
             };
         }

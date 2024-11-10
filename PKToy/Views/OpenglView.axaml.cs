@@ -16,12 +16,12 @@ using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Silk.NET.OpenGL;
-using Viewer.Avalonia.Entry.ViewModels;
+using PKToy.ViewModels;
 using Viewer.Graphic.Opengl;
 using Viewer.IContract;
 using static System.Collections.Specialized.BitVector32;
 
-namespace Viewer.Avalonia.Entry.Views;
+namespace PKToy.Views;
 
 public partial class OpenglView : UserControl
 {

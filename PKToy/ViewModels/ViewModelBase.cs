@@ -1,6 +1,6 @@
 ﻿using ReactiveUI;
 
-namespace Viewer.Avalonia.Entry.ViewModels;
+namespace PKToy.ViewModels;
 
 public class ViewModelBase : ReactiveObject
 {

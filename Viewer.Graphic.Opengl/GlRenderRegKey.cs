@@ -26,19 +26,19 @@ namespace Viewer.Graphic.Opengl
         /// <summary>
         /// 高亮线条的索引
         /// </summary>
-        uint highlightEdgeIndex = 0;
+        int highlightEdgeIndex = 0;
         /// <summary>
         /// 高亮面的索引
         /// </summary>
-        uint highlightFaceIndex = 0;
+        int highlightFaceIndex = 0;
         /// <summary>
         /// 高亮面的component的索引
         /// </summary>
-        uint highlightFaceComp = 0;
+        int highlightFaceComp = 0;
         /// <summary>
         /// 高亮线条的component索引
         /// </summary>
-        uint highlightEdgeComp = 0;
+        int highlightEdgeComp = 0;
 
         bool computeEnd = true;
 
@@ -101,7 +101,7 @@ namespace Viewer.Graphic.Opengl
         /// <param name="x">鼠标的x位置</param>
         /// <param name="y">鼠标的y位置</param>
         /// <returns>拾取到的图元的id,如果id>0,证明拾取成功</returns>
-        private unsafe uint GetPickObjectId(int x, int y)
+        private unsafe int GetPickObjectId(int x, int y)
         {
             gl.BindFramebuffer(FramebufferTarget.Framebuffer, offSrcFramebuffer);
             // 设置视口
@@ -133,7 +133,7 @@ namespace Viewer.Graphic.Opengl
             pickShader.SetUniform("g_View", m_VSConstantBuffer.view);
             pickShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
             pickShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-            for (uint i = 0; i < geometry.Components.Length;i++)
+            for (int i = 0; i < geometry.Components.Length;i++)
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
@@ -143,11 +143,11 @@ namespace Viewer.Graphic.Opengl
                 pickShader.SetUniform("baseId",new Vector4(t,0,0,0));
                 pickShader.SetUniform("g_Origin", comp.CompMatrix);
                 gl.BindVertexArray(vao);
-                gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
+                gl.DrawElements(GLEnum.TriangleStrip, (uint)part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
             }
             gl.Disable(GLEnum.PolygonOffsetFill);
             gl.LineWidth(4.0f);
-            for (uint i = 0; i < geometry.Components.Length; i++)
+            for (int i = 0; i < geometry.Components.Length; i++)
             {
                 var comp = geometry.Components[i];
                 pickShader.SetUniform("g_Origin", comp.CompMatrix);
@@ -157,14 +157,14 @@ namespace Viewer.Graphic.Opengl
                 var part = geometry.Parts[comp.PartIndex];
                 partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                 gl.BindVertexArray(vao);
-                gl.DrawElements(GLEnum.Lines, part.EdgeIndexLength,
-                GLEnum.UnsignedInt, (void*)(part.EdgeStartIndex * sizeof(uint)));
+                gl.DrawElements(GLEnum.Lines, (uint)part.EdgeIndexLength,
+                GLEnum.UnsignedInt, (void*)(part.EdgeStartIndex * sizeof(int)));
             }
-            gl.LineWidth(1.0f);
+            gl.LineWidth(2.0f);
             //注意opengl的Texture2D坐标原点在左下角(d3d则在左上角),与winform控件坐标原点(在左上角)不同,需要进行转换
             var rgba = stackalloc byte[4];
             gl.ReadPixels(x, (int)height-y, 1, 1, GLEnum.Rgba, GLEnum.UnsignedByte, rgba);
-            uint id = *(uint*)rgba;
+            int id = *(int*)rgba;
             gl.BindFramebuffer(GLEnum.Framebuffer, 0);
             gl.Enable(GLEnum.LineSmooth);  // 启用线条平滑
             gl.Enable(GLEnum.Blend);
@@ -172,13 +172,13 @@ namespace Viewer.Graphic.Opengl
             return id;
         }
 
-        private void ConvertIdToCompIndex(uint id, out uint compIndex,
-        out uint highlightFaceIndex)
+        private void ConvertIdToCompIndex(int id, out int compIndex,
+        out int highlightFaceIndex)
         {
             compIndex = 0;
             highlightFaceIndex = 0;
             highlightType = HighlightType.None;
-            for (uint i = 0; i < geometry.Components.Length; i++)
+            for (int i = 0; i < geometry.Components.Length; i++)
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
