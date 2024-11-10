@@ -11,32 +11,37 @@ using System.Runtime.InteropServices;
 
 namespace Viewer.IContract
 {
-    public struct PartGeometry:IDisposable
+    public static class Constants
     {
-        public UnSafeArray<Vector4> VertexArray;
-        public UnSafeArray<Vector3> NormalArray;
-        public UnSafeArray<Vector4> ColorArray;
-        public UnSafeArray<uint> IndexArray;
+        public const int STRIPBREAK = -1;
+    }
+    public class PartGeometry
+    {
 
-        public UnSafeArray<uint> FaceStartIndexArray;
+        public Vector4[] VertexArray;
+        public Vector3[] NormalArray;
+        public Vector4[] ColorArray;
+        public int[] IndexArray;
 
-        public UnSafeArray<uint> EdgeStartIndexArray;
+        public int[] FaceStartIndexArray;
 
-        public uint FaceStartIndex;
-        public uint FaceIndexLength;
+        public int[] EdgeStartIndexArray;
 
-        public uint EdgeStartIndex;
-        public uint EdgeIndexLength;
+        public int FaceStartIndex;
+        public int FaceIndexLength;
+
+        public int EdgeStartIndex;
+        public int EdgeIndexLength;
         private unsafe Box box;
 
 
         public PartGeometry(Vector4[] vertexArray,
             Vector3[] normalArray,
             Vector4[] colorArray,
-            uint[] indexArray,
-            uint lineStartIndex,
-            uint[] faceStartIndexArray,
-            uint[] edgeStartIndexArray)
+            int[] indexArray,
+            int lineStartIndex,
+            int[] faceStartIndexArray,
+            int[] edgeStartIndexArray)
         {
             this.VertexArray = vertexArray;
             this.NormalArray = normalArray;
@@ -47,7 +52,7 @@ namespace Viewer.IContract
             this.FaceStartIndex = 0;
             this.FaceIndexLength = lineStartIndex;
             this.EdgeStartIndex = lineStartIndex;
-            this.EdgeIndexLength = (uint)(indexArray.Length - (int)lineStartIndex);
+            this.EdgeIndexLength = (int)(indexArray.Length - (int)lineStartIndex);
             CalBox(VertexArray.Length, IndexArray, VertexArray, out box);
         }
 
@@ -63,17 +68,17 @@ namespace Viewer.IContract
             }
         }
 
-        private static void CalBox(uint pointNum,
-        in UnSafeArray<uint> indexArray,
-        in UnSafeArray<Vector4> vertexArray, out Box box)
+        private static void CalBox(int pointNum,
+        in int[] indexArray,
+        in Vector4[] vertexArray, out Box box)
         {
             float[] xSpan = new float[pointNum];
             float[] ySpan = new float[pointNum];
             float[] zSpan = new float[pointNum];
-            for (uint i = 0; i < pointNum; i++)
+            for (int i = 0; i < pointNum; i++)
             {
                 var index = indexArray[i];
-                if(index== 0xFFFFFFFF)
+                if(index== Constants.STRIPBREAK)
                 {
                     continue;
                 }
@@ -89,12 +94,12 @@ namespace Viewer.IContract
             };
         }
 
-        private static readonly uint[] int32Array = new[] { 0u, 1u, 2u, 3u };
+        private static readonly int[] int32Array = [0, 1, 2, 3];
 
 
-        public readonly bool GetFaceStartIndexAndLengthByIndexArrayIndex(
-            uint indexArrayIndex, out uint faceStartIndex,
-            out uint length)
+        public bool GetFaceStartIndexAndLengthByIndexArrayIndex(
+            int indexArrayIndex, out int faceStartIndex,
+            out int length)
         {
             faceStartIndex = 0;
             length = 0;
@@ -104,7 +109,7 @@ namespace Viewer.IContract
             {
                 return false;
             }
-            for (uint i = 0; i < FaceStartIndexArray.Length; i++)
+            for (int i = 0; i < FaceStartIndexArray.Length; i++)
             {
                 if (FaceStartIndexArray[i] > indexArrayIndex)
                 {
@@ -117,9 +122,9 @@ namespace Viewer.IContract
         }
 
 
-        public readonly bool GetEdgeStartIndexAndLengthByIndexArrayIndex(
-            uint indexArrayIndex, out uint edgeStartIndex,
-            out uint length)
+        public bool GetEdgeStartIndexAndLengthByIndexArrayIndex(
+            int indexArrayIndex, out int edgeStartIndex,
+            out int length)
         {
             edgeStartIndex = 0;
             length = 0;
@@ -128,7 +133,7 @@ namespace Viewer.IContract
             {
                 return false;
             }
-            for (uint i = 0; i < EdgeStartIndexArray.Length; i++)
+            for (int i = 0; i < EdgeStartIndexArray.Length; i++)
             {
                 if (EdgeStartIndexArray[i] > indexArrayIndex)
                 {
@@ -141,7 +146,7 @@ namespace Viewer.IContract
         }
         public static PartGeometry GetDefault()
         {
-            uint[] zero = [0];
+            int[] zero = [0];
             var result = new PartGeometry
             ([Vector4.Zero, Vector4.Zero, Vector4.Zero, Vector4.Zero],
             [Vector3.Zero, Vector3.Zero, Vector3.Zero, Vector3.Zero],
@@ -149,15 +154,6 @@ namespace Viewer.IContract
             int32Array, 0, zero, zero);
             return result;
         }
-
-        public readonly void Dispose()
-        {
-            VertexArray.Dispose();
-            IndexArray.Dispose();
-            FaceStartIndexArray.Dispose();
-            EdgeStartIndexArray.Dispose();
-        }
-    
     }
 
 }

@@ -1,4 +1,4 @@
-﻿namespace Viewer.Avalonia.Entry.ViewModels;
+﻿namespace PKToy.ViewModels;
 
 public class OpenglViewModel : ViewModelBase
 {

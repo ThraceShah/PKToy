@@ -150,7 +150,6 @@ public partial class GlRender(GL gl) : IDisposable
         asmGeometry.CreateAsmWorldRH(1, 1, out world);
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
-        geometry.Dispose();
         geometry = asmGeometry;
 
     }
@@ -230,15 +229,17 @@ public partial class GlRender(GL gl) : IDisposable
 
     public unsafe void Render()
     {
+        gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
+        gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
+        if(geometry==null)
+        {
+            return;
+        }
         if (geometry.Parts.Length == 0 && first)
         {
             first = false;
             return;
         }
-
-        gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
-        gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
-                                                                                   // 应用四元数旋转
         var modelMatrix = Matrix.CreateTranslation(bBoxCenter);
         modelMatrix = Matrix.CreateFromQuaternion(rotation) * modelMatrix;
         modelMatrix = Matrix.CreateTranslation(-bBoxCenter) * modelMatrix;
@@ -293,7 +294,7 @@ public partial class GlRender(GL gl) : IDisposable
             faceShader.SetUniform("g_Origin", comp.CompMatrix);
             partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
             gl.BindVertexArray(vao);
-            gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
+            gl.DrawElements(GLEnum.TriangleStrip, (uint)part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
 
         }
 
@@ -305,6 +306,7 @@ public partial class GlRender(GL gl) : IDisposable
         lineShader.SetUniform("g_View", m_VSConstantBuffer.view);
         lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
+        gl.LineWidth(2.0f);
         for (uint i = 0; i < geometry.Components.Length; i++)
         {
             var comp = geometry.Components[i];
@@ -317,115 +319,17 @@ public partial class GlRender(GL gl) : IDisposable
                 if (part.GetEdgeStartIndexAndLengthByIndexArrayIndex(highlightEdgeIndex,
                 out var start, out var length))
                 {
-                    gl.LineWidth(2.0f);
+                    gl.LineWidth(4.0f);
                     m_PSConstantBuffer.objColor = new Vector4(1f, 0f, 0f, 1f);
                     lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.DrawElements(GLEnum.Lines, length,
+                    gl.DrawElements(GLEnum.Lines, (uint)length,
                     GLEnum.UnsignedInt, (void*)((start + part.EdgeStartIndex) * sizeof(uint)));
                     m_PSConstantBuffer.objColor = new Vector4(0f, 0f, 0f, 1f);
                     lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.LineWidth(1.0f);
-                }
-            }
-            gl.DrawElements(GLEnum.Lines, part.EdgeIndexLength,
-            GLEnum.UnsignedInt, (void*)(part.EdgeStartIndex * sizeof(uint)));
-        }
-
-    }
-
-    public unsafe void Render2()
-    {
-        if (geometry.Parts.Length == 0 && first)
-        {
-            first = false;
-            return;
-        }
-
-        gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
-        gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
-                                                                                   // 应用四元数旋转
-        var modelMatrix = Matrix.CreateTranslation(bBoxCenter);
-        modelMatrix = Matrix.CreateFromQuaternion(rotation) * modelMatrix;
-        modelMatrix = Matrix.CreateTranslation(-bBoxCenter) * modelMatrix;
-
-        gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-        highlightFaceShader.Use();
-        m_VSConstantBuffer.world = modelMatrix;
-        Matrix.Invert(modelMatrix, out var result);
-        var nm = Matrix.Transpose(result);
-        ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
-        highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
-        highlightFaceShader.SetUniform("g_World", m_VSConstantBuffer.world);
-        highlightFaceShader.SetUniform("g_View", m_VSConstantBuffer.view);
-        highlightFaceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
-        highlightFaceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-        m_PSConstantBuffer.objColor = new Vector4(0.5f, 0.501f, 0.5f, 1f);
-        highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-
-        for (uint i = 0; i < geometry.Components.Length; i++)
-        {
-            var comp = geometry.Components[i];
-            var part = geometry.Parts[comp.PartIndex];
-            highlightFaceShader.SetUniform("g_Origin", comp.CompMatrix);
-            partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
-            gl.BindVertexArray(vao);
-            if (highlightType == HighlightType.Face && highlightFaceComp == i)
-            {
-                if (part.GetFaceStartIndexAndLengthByIndexArrayIndex(highlightFaceIndex,
-                out var start, out var length))
-                {
-                    highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
-                    highlightFaceShader.SetUniform("g_World", m_VSConstantBuffer.world);
-                    highlightFaceShader.SetUniform("g_View", m_VSConstantBuffer.view);
-                    highlightFaceShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
-                    highlightFaceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-
-                    //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
-                    gl.Disable(GLEnum.PolygonOffsetFill);
-                    m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
-                    highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
-                    GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
-                    gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-                    m_PSConstantBuffer.objColor = new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
-                    highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                }
-            }
-            gl.DrawElements(GLEnum.TriangleStrip, part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
-
-        }
-
-        gl.Disable(GLEnum.PolygonOffsetFill);
-        lineShader.Use();
-        m_PSConstantBuffer.objColor = new Vector4(0f, 0f, 0f, 1f);
-        lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-        lineShader.SetUniform("g_World", m_VSConstantBuffer.world);
-        lineShader.SetUniform("g_View", m_VSConstantBuffer.view);
-        lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
-        lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-        for (uint i = 0; i < geometry.Components.Length; i++)
-        {
-            var comp = geometry.Components[i];
-            var part = geometry.Parts[comp.PartIndex];
-            lineShader.SetUniform("g_Origin", comp.CompMatrix);
-            partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
-            gl.BindVertexArray(vao);
-            if (highlightType == HighlightType.Edge && highlightEdgeComp == i)
-            {
-                if (part.GetEdgeStartIndexAndLengthByIndexArrayIndex(highlightEdgeIndex,
-                out var start, out var length))
-                {
                     gl.LineWidth(2.0f);
-                    m_PSConstantBuffer.objColor = new Vector4(1f, 0f, 0f, 1f);
-                    lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.DrawElements(GLEnum.Lines, length,
-                    GLEnum.UnsignedInt, (void*)((start + part.EdgeStartIndex) * sizeof(uint)));
-                    m_PSConstantBuffer.objColor = new Vector4(0f, 0f, 0f, 1f);
-                    lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    gl.LineWidth(1.0f);
                 }
             }
-            gl.DrawElements(GLEnum.Lines, part.EdgeIndexLength,
+            gl.DrawElements(GLEnum.Lines, (uint)part.EdgeIndexLength,
             GLEnum.UnsignedInt, (void*)(part.EdgeStartIndex * sizeof(uint)));
         }
 
@@ -433,7 +337,6 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void Dispose()
     {
-        geometry.Dispose();
         partBuffers?.Dispose();
         faceShader.Dispose();
         lineShader.Dispose();

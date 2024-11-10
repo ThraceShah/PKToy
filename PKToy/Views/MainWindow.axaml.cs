@@ -2,25 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Timers;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Markup.Xaml;
-using Avalonia.OpenGL;
-using Avalonia.OpenGL.Controls;
 using Avalonia.Platform.Storage;
-using Avalonia.Rendering;
-using Avalonia.Rendering.Composition;
-using Avalonia.Threading;
-using Avalonia.VisualTree;
 using PKToy.Lib;
-using Silk.NET.OpenGL;
-using Viewer.Avalonia.Entry.ViewModels;
-using Viewer.Graphic.Opengl;
 using Viewer.IContract;
 
-namespace Viewer.Avalonia.Entry.Views;
+namespace PKToy.Views;
 
 public partial class MainWindow : Window
 {
@@ -39,7 +27,7 @@ public partial class MainWindow : Window
             {
                 AllowMultiple = false,
                 Title = "选择parasolid文件",
-                FileTypeFilter = [ new FilePickerFileType("files"){Patterns = ["*.x_t","*.x_b"]} ],
+                FileTypeFilter = [new FilePickerFileType("files") { Patterns = ["*.x_t", "*.x_b"] }],
             };
             var result = await this.StorageProvider.OpenFilePickerAsync(option);
 
@@ -47,6 +35,7 @@ public partial class MainWindow : Window
             {
                 return;
             }
+
             string filename = result[0].TryGetLocalPath();
             var stop = new Stopwatch();
             stop.Start();
@@ -66,14 +55,12 @@ public partial class MainWindow : Window
     {
         base.OnKeyDown(e);
         this.GL.GLControl.GlRender.KeyDown(ConvertKeyToWinformKey(e.Key));
-
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
         this.GL.GLControl.GlRender.KeyUp(ConvertKeyToWinformKey(e.Key));
-
     }
 
     private static KeyCode ConvertKeyToWinformKey(Key key) => key switch
@@ -82,7 +69,6 @@ public partial class MainWindow : Window
         Key.RightCtrl => KeyCode.Control,
         _ => KeyCode.None,
     };
-
 }
 
 static class Extension
@@ -93,10 +79,12 @@ static class Extension
         {
             return true;
         }
+
         if (!collection.Any())
         {
             return true;
         }
+
         return false;
     }
 }

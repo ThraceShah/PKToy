@@ -11,18 +11,12 @@ using System.Runtime.InteropServices;
 namespace Viewer.IContract
 {
 
-    public struct AsmGeometry:IDisposable
+    public class AsmGeometry(PartGeometry[] parts, CompGeometry[] comps)
     {
 
-        public UnSafeArray<PartGeometry> Parts;
+        public PartGeometry[] Parts = parts;
 
-        public UnSafeArray<CompGeometry> Components;
-
-        public AsmGeometry(PartGeometry[] parts,CompGeometry[] comps)
-        {
-            this.Parts = parts;
-            this.Components = comps;
-        }
+        public CompGeometry[] Components = comps;
 
         public static AsmGeometry GetDefault()
         {
@@ -31,10 +25,10 @@ namespace Viewer.IContract
             return new AsmGeometry(parts,comps);
         }
 
-        public readonly uint GetCompFirstIdByIndex(uint compIndex)
+        public int GetCompFirstIdByIndex(int compIndex)
         {
-            uint id = 0;
-            for (uint i = 0; i < compIndex;i++)
+            int id = 0;
+            for (int i = 0; i < compIndex;i++)
             {
                 //FaceStartIndexArray和EdgeStartIndexArray里面最后一个元素并不代表一个面或者一条线
                 var comp = this.Components[i];
@@ -57,7 +51,7 @@ namespace Viewer.IContract
             float[] xSpan = new float[Components.Length * 2];
             float[] ySpan = new float[Components.Length * 2];
             float[] zSpan = new float[Components.Length * 2];
-            for (uint i = 0; i < Components.Length; i++)
+            for (int i = 0; i < Components.Length; i++)
             {
                 var comp = this.Components[i];
                 var part = this.Parts[comp.PartIndex];
@@ -95,7 +89,7 @@ namespace Viewer.IContract
             float[] xSpan = new float[Components.Length * 2];
             float[] ySpan = new float[Components.Length * 2];
             float[] zSpan = new float[Components.Length * 2];
-            for (uint i = 0; i < Components.Length; i++)
+            for (int i = 0; i < Components.Length; i++)
             {
                 var comp = this.Components[i];
                 var part = this.Parts[comp.PartIndex];
@@ -165,7 +159,7 @@ namespace Viewer.IContract
             xaxis = Vector3.Normalize(xaxis);
             Vector3 yaxis = Vector3.Cross(zaxis, xaxis);
 
-            Matrix4x4 result = new Matrix4x4(
+            Matrix4x4 result = new(
                 xaxis.X, yaxis.X, zaxis.X, 0,
                 xaxis.Y, yaxis.Y, zaxis.Y, 0,
                 xaxis.Z, yaxis.Z, zaxis.Z, 0,
@@ -174,16 +168,6 @@ namespace Viewer.IContract
             return result;
         }
 
-        public readonly void Dispose()
-        {
-            for(uint i=0;i<Parts.Length;i++)
-            {
-                var part = Parts[i];
-                part.Dispose();
-            }
-            Parts.Dispose();
-            this.Components.Dispose();
-        }
     }
 
 

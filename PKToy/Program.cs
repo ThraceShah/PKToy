@@ -2,7 +2,7 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
 
-namespace Viewer.Avalonia.Entry;
+namespace PKToy;
 
 class Program
 {
