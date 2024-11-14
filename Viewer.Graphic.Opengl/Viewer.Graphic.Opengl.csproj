@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -8,12 +8,12 @@
         <PublishAot>true</PublishAot>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Silk.NET.GLFW" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.Input.Glfw" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.Maths" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.OpenGL" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.21.0" />
-        <PackageReference Include="System.Text.Json" Version="8.0.5" />
+        <PackageReference Include="Silk.NET.GLFW" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Input.Glfw" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Maths" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.22.0" />
+        <PackageReference Include="System.Text.Json" Version="9.0.0" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="../Viewer.IContract/Viewer.IContract.csproj" />
