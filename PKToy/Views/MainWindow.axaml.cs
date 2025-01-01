@@ -41,7 +41,7 @@ public partial class MainWindow : Window
             stop.Start();
 
             PKSession.OpenPart(filename, out AsmGeometry geometry);
-            this.GL.GLControl.UpdateGeometry(ref geometry);
+            this.GL.GLControl.UpdateGeometry(geometry);
             GC.Collect();
             stop.Stop();
             Console.WriteLine($"open part elapsed time:{stop.ElapsedMilliseconds} ms");
@@ -80,11 +80,6 @@ static class Extension
             return true;
         }
 
-        if (!collection.Any())
-        {
-            return true;
-        }
-
-        return false;
+        return !collection.Any();
     }
 }

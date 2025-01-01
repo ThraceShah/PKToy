@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
+using Viewer.IContract;
 using static Viewer.Math.MathEx;
 using Matrix = System.Numerics.Matrix4x4;
 
@@ -22,24 +23,9 @@ namespace Viewer.Graphic.Opengl
     }
     public partial class GlRender
     {
-        HighlightType highlightType = HighlightType.None;
-        /// <summary>
-        /// 高亮线条的索引
-        /// </summary>
-        int highlightEdgeIndex = 0;
-        /// <summary>
-        /// 高亮面的索引
-        /// </summary>
-        int highlightFaceIndex = 0;
-        /// <summary>
-        /// 高亮面的component的索引
-        /// </summary>
-        int highlightFaceComp = 0;
-        /// <summary>
-        /// 高亮线条的component索引
-        /// </summary>
-        int highlightEdgeComp = 0;
+        private int highlightComp = -1;
 
+        private int highlightCell = -1;
         bool computeEnd = true;
 
         /// <summary>
@@ -56,22 +42,30 @@ namespace Viewer.Graphic.Opengl
             computeEnd = false;
 
             var watch = new Stopwatch();
-    
+
             var id = this.GetPickObjectId(nx, ny);
-            this.ConvertIdToCompIndex(id, out var highlightCompIndex,
-            out var highlightIndex);
-            if (highlightType == HighlightType.Edge)
+            highlightComp = -1;
+            highlightCell = -1;
+            if (id < 0)
             {
-                highlightEdgeComp = highlightCompIndex;
-                highlightEdgeIndex = highlightIndex;
+                watch.Stop();
+                computeEnd = true;
+                return;
             }
-            else if (highlightType == HighlightType.Face)
+            for (int i = 0; i < geometry.Components.Count; i++)
             {
-                highlightFaceComp = highlightCompIndex;
-                highlightFaceIndex = highlightIndex;
-            }
+                var comp = geometry.Components[i];
+                var part = geometry.Parts[comp.PartIndex];
+                highlightComp = i;
+                if (id < part.CellCount)
+                {
+                    highlightCell = id;
+                    break;
+                }
+                id -= part.CellCount;
+            };
             watch.Stop();
-            Console.WriteLine($"gpu:highlightType={Enum.GetName(highlightType)},highlightComp={highlightCompIndex},highlightIndex={highlightIndex},time={watch.ElapsedMilliseconds}ms");
+            Console.WriteLine($"gpu:highlightComp={highlightComp},highlightCell={highlightCell},time={watch.ElapsedMilliseconds}ms");
             computeEnd = true;
         }
 
@@ -111,7 +105,7 @@ namespace Viewer.Graphic.Opengl
             gl.Disable(GLEnum.Blend);
 
             // 渲染代码
-            gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha, 
+            gl.BlendFuncSeparate(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha,
             GLEnum.One, GLEnum.One);
             gl.Enable(GLEnum.DepthTest);
 
@@ -121,97 +115,64 @@ namespace Viewer.Graphic.Opengl
             var modelMatrix = Matrix.CreateTranslation(bBoxCenter);
             modelMatrix = Matrix.CreateFromQuaternion(rotation) * modelMatrix;
             modelMatrix = Matrix.CreateTranslation(-bBoxCenter) * modelMatrix;
+            m_VSConstantBuffer.world = modelMatrix;
+            Matrix.Invert(modelMatrix, out var result);
+            var nm = Matrix.Transpose(result);
+            ReadOnlySpan<float> normalModel = [nm.M11, nm.M12, nm.M13, nm.M21, nm.M22, nm.M23, nm.M31, nm.M32, nm.M33];
 
-            gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-            faceShader.Use();
             m_VSConstantBuffer.world = modelMatrix;
             pickShader.Use();
+
             gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
             // //设置深度偏移,offset = m * factor + r * units,其中，m是多边形的最大深度斜率，r是能产生显著深度变化的最小值
-            gl.PolygonOffset(2, 1f);
+            gl.PolygonOffset(2, 3f);
             pickShader.SetUniform("g_World", m_VSConstantBuffer.world);
             pickShader.SetUniform("g_View", m_VSConstantBuffer.view);
             pickShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
             pickShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-            for (int i = 0; i < geometry.Components.Length;i++)
+            for (int i = 0; i < geometry.Components.Count; i++)
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
-                partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
-                var baseId= geometry.GetCompFirstIdByIndex(i);
-                float t = *(float*)&baseId;
-                pickShader.SetUniform("baseId",new Vector4(t,0,0,0));
-                pickShader.SetUniform("g_Origin", comp.CompMatrix);
-                gl.BindVertexArray(vao);
-                gl.DrawElements(GLEnum.TriangleStrip, (uint)part.FaceIndexLength, GLEnum.UnsignedInt, (void*)0);
+                if (part is StripFaceGeometry)
+                {
+                    int compId = geometry.GetCompFirstIdByIndex(i);
+                    Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);
+                    pickShader.SetUniform("baseId", baseId);
+                    pickShader.SetUniform("g_Origin", comp.CompMatrix);
+                    partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
+                    gl.BindVertexArray(vao);
+                    gl.DrawElements(GLEnum.TriangleStrip, (uint)part.IndicesCount, GLEnum.UnsignedInt, null);
+                }
             }
             gl.Disable(GLEnum.PolygonOffsetFill);
             gl.LineWidth(4.0f);
-            for (int i = 0; i < geometry.Components.Length; i++)
+            for (int i = 0; i < geometry.Components.Count; i++)
             {
                 var comp = geometry.Components[i];
-                pickShader.SetUniform("g_Origin", comp.CompMatrix);
-                var baseId = geometry.GetCompFirstIdByIndex(i);
-                float t = *(float*)&baseId;
-                pickShader.SetUniform("baseId", new Vector4(t, 0, 0, 0));
                 var part = geometry.Parts[comp.PartIndex];
-                partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
-                gl.BindVertexArray(vao);
-                gl.DrawElements(GLEnum.Lines, (uint)part.EdgeIndexLength,
-                GLEnum.UnsignedInt, (void*)(part.EdgeStartIndex * sizeof(int)));
+                if (part is EdgeGeometry)
+                {
+                    int compId = geometry.GetCompFirstIdByIndex(i);
+                    Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);
+                    pickShader.SetUniform("baseId", baseId);
+                    pickShader.SetUniform("g_Origin", comp.CompMatrix);
+                    partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
+                    gl.BindVertexArray(vao);
+                    gl.DrawElements(GLEnum.Lines, (uint)part.IndicesCount,
+                    GLEnum.UnsignedInt, null);
+                }
             }
             gl.LineWidth(2.0f);
             //注意opengl的Texture2D坐标原点在左下角(d3d则在左上角),与winform控件坐标原点(在左上角)不同,需要进行转换
             var rgba = stackalloc byte[4];
-            gl.ReadPixels(x, (int)height-y, 1, 1, GLEnum.Rgba, GLEnum.UnsignedByte, rgba);
+            gl.ReadPixels(x, (int)height - y, 1, 1, GLEnum.Rgba, GLEnum.UnsignedByte, rgba);
             int id = *(int*)rgba;
             gl.BindFramebuffer(GLEnum.Framebuffer, 0);
             gl.Enable(GLEnum.LineSmooth);  // 启用线条平滑
             gl.Enable(GLEnum.Blend);
 
             return id;
-        }
-
-        private void ConvertIdToCompIndex(int id, out int compIndex,
-        out int highlightFaceIndex)
-        {
-            compIndex = 0;
-            highlightFaceIndex = 0;
-            highlightType = HighlightType.None;
-            for (int i = 0; i < geometry.Components.Length; i++)
-            {
-                var comp = geometry.Components[i];
-                var part = geometry.Parts[comp.PartIndex];
-                var baseId = geometry.GetCompFirstIdByIndex(i);
-                var faceMax = baseId + part.FaceStartIndexArray.Length-1;
-                var edgeMax = faceMax + part.EdgeStartIndexArray.Length-1;
-                if(part.EdgeStartIndexArray.Length==0)
-                {
-                    edgeMax ++;
-                }
-                if (id >= edgeMax)
-                {
-                    continue;
-                }
-                compIndex = i;
-                if (id <= faceMax)
-                {
-                    var j = id - baseId;
-                    highlightFaceIndex = part.FaceStartIndexArray[j];
-                    highlightType = HighlightType.Face;
-                    return;
-
-                }
-                else
-                {
-                    var edgeBaseId = baseId + part.FaceStartIndexArray.Length - 1;
-                    var j = id - edgeBaseId;
-                    highlightFaceIndex = part.EdgeStartIndexArray[j];
-                    highlightType = HighlightType.Edge;
-                    return;
-                }
-            };
-            return;
         }
 
     }
