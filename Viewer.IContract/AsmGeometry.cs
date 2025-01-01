@@ -10,37 +10,58 @@ using System.Runtime.InteropServices;
 
 namespace Viewer.IContract
 {
-
-    public class AsmGeometry(PartGeometry[] parts, CompGeometry[] comps)
+    enum GeometryType
     {
+        Surface,
+        Line,
+        Point,
+    }
 
-        public PartGeometry[] Parts = parts;
+    public record AsmGeometry
+    {
+        private readonly Dictionary<IGeometryData, int> partsMap = [];
 
-        public CompGeometry[] Components = comps;
+        private readonly List<IGeometryData> parts = [];
 
-        public static AsmGeometry GetDefault()
+        private readonly List<CompGeometry> comps = [];
+
+        public List<IGeometryData> Parts => parts;
+
+        public List<CompGeometry> Components => comps;
+
+        public void AddPart(IGeometryData part)
         {
-            var parts = new[] { PartGeometry.GetDefault() };
-            var comps = new[] { CompGeometry.GetDefault() };
-            return new AsmGeometry(parts,comps);
+            if (partsMap.ContainsKey(part))
+            {
+                return;
+            }
+            partsMap.Add(part, parts.Count);
+            parts.Add(part);
+        }
+
+        public void AddCompnent(IGeometryData part, Matrix4x4 compMatrix)
+        {
+            if (partsMap.TryGetValue(part, out var partIndex))
+            {
+                comps.Add(new CompGeometry(partIndex, compMatrix));
+            }
+            else
+            {
+                partsMap.Add(part, parts.Count);
+                comps.Add(new CompGeometry(parts.Count, compMatrix));
+                parts.Add(part);
+            }
         }
 
         public int GetCompFirstIdByIndex(int compIndex)
         {
             int id = 0;
-            for (int i = 0; i < compIndex;i++)
+            for (int i = 0; i < compIndex; i++)
             {
                 //FaceStartIndexArray和EdgeStartIndexArray里面最后一个元素并不代表一个面或者一条线
-                var comp = this.Components[i];
-                var part = this.Parts[comp.PartIndex];
-                if(part.EdgeStartIndexArray.Length>0)
-                {
-                    id += part.FaceStartIndexArray.Length + part.EdgeStartIndexArray.Length - 2;
-                }
-                else
-                {
-                    id += part.FaceStartIndexArray.Length + part.EdgeStartIndexArray.Length - 1;
-                }
+                var comp = this.comps[i];
+                var part = this.parts[comp.PartIndex];
+                id += part.CellCount;
             }
             return id;
         }
@@ -48,13 +69,13 @@ namespace Viewer.IContract
         public Vector3 GetBBoxCenter()
         {
             //先计算每个组件原始模型的box,然后将这些box偏移,最后获得整个组件的box
-            float[] xSpan = new float[Components.Length * 2];
-            float[] ySpan = new float[Components.Length * 2];
-            float[] zSpan = new float[Components.Length * 2];
-            for (int i = 0; i < Components.Length; i++)
+            float[] xSpan = new float[comps.Count * 2];
+            float[] ySpan = new float[comps.Count * 2];
+            float[] zSpan = new float[comps.Count * 2];
+            for (int i = 0; i < comps.Count; i++)
             {
-                var comp = this.Components[i];
-                var part = this.Parts[comp.PartIndex];
+                var comp = this.comps[i];
+                var part = this.parts[comp.PartIndex];
                 var partBox = part.Box;
                 var newBox = new Box
                 {
@@ -86,13 +107,13 @@ namespace Viewer.IContract
         public void CreateAsmWorldRH(float xSize, float ySize, out Matrix4x4 world)
         {
             //先计算每个组件原始模型的box,然后将这些box偏移,最后获得整个组件的box
-            float[] xSpan = new float[Components.Length * 2];
-            float[] ySpan = new float[Components.Length * 2];
-            float[] zSpan = new float[Components.Length * 2];
-            for (int i = 0; i < Components.Length; i++)
+            float[] xSpan = new float[comps.Count * 2];
+            float[] ySpan = new float[comps.Count * 2];
+            float[] zSpan = new float[comps.Count * 2];
+            for (int i = 0; i < comps.Count; i++)
             {
-                var comp = this.Components[i];
-                var part = this.Parts[comp.PartIndex];
+                var comp = this.comps[i];
+                var part = this.parts[comp.PartIndex];
                 var partBox = part.Box;
                 var newBox = new Box
                 {
@@ -151,7 +172,7 @@ namespace Viewer.IContract
             world *= Matrix4x4.CreateScale(scale);
         }
 
-        public static Matrix4x4 CreateWorldRH(Vector3 position, Vector3 forward, Vector3 up)
+        private static Matrix4x4 CreateWorldRH(Vector3 position, Vector3 forward, Vector3 up)
         {
             Vector3 zaxis = forward;
             zaxis = Vector3.Normalize(zaxis);

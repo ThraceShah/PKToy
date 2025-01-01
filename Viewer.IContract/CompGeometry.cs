@@ -11,21 +11,9 @@ using System.Runtime.InteropServices;
 
 namespace Viewer.IContract
 {
-    public class CompGeometry
+    public record CompGeometry(int PartIndex, Matrix4x4 CompMatrix)
     {
 
-        public uint PartIndex;
-
-        public Matrix4x4 CompMatrix;
-
-        public static CompGeometry GetDefault()
-        {
-            return new CompGeometry
-            {
-                PartIndex = 0,
-                CompMatrix = Matrix4x4.Identity,
-            };
-        }
     }
 
 

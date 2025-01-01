@@ -6,27 +6,24 @@ using static PK.UNCLASSED;
 
 namespace PKToy.Lib;
 
-public class BodyGeometry
-{
-    public List<Vector4> FaceVertices=[];
-    public List<Vector3> Normals=[];
-    public List<Vector4> Colors=[];
-    public List<int> FaceIndices=[];
-    public List<int> EdgeIndices = [];
-    public List<int> FaceStartIndexArray=[];
-    public List<int> EdgeStartIndexArray=[];
-}
 
-public unsafe class PKGoCallback:IDisposable
+public unsafe class PKGoCallback : IDisposable
 {
+    class BodyGeometry
+    {
+        public readonly StripFaceGeometry ShadedPart = new();
+        public readonly EdgeGeometryBuilder WireframePartBuilder = new();
+    }
+
     const int CONTIN = (int)graphics_ifails_t.CONTIN;
     const int ABORT = (int)graphics_ifails_t.ABORT;
     private bool disposedValue;
-    private readonly Dictionary<int, PartGeometry> bodyParts = [];
-    private BodyGeometry currentBodyPart=new();
-    private int currentBody=0;
-    private int currentFace=0;
-    private int faceVerticesCount=0;
+    private readonly Dictionary<int, StripFaceGeometry> shadedParts = [];
+    private readonly Dictionary<int, EdgeGeometry> wireframeParts = [];
+    private BodyGeometry currentBodyPart = new();
+    private int currentBody = 0;
+    private int currentFace = 0;
+    private int faceVerticesCount = 0;
     private readonly int colorTag;
     public PKGoCallback()
     {
@@ -65,15 +62,16 @@ public unsafe class PKGoCallback:IDisposable
 
     static void PrintSegmentParams(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, [CallerMemberName] string methodName = "")
     {
-        string? sgetypName=Enum.GetName((go_segment_types_t)(*segtyp));
+        string? sgetypName = Enum.GetName((go_segment_types_t)(*segtyp));
+
         string tagsStr = FormatTags(new Span<int>(tags, *ntags));
         string lntpStr = FormatLineType(new Span<int>(lntp, *nlntp));
         Console.WriteLine($"MethodName:{methodName},<segtyp:{sgetypName}>,<tags:{tagsStr}>,<ngeom:{*ngeom}>,<lntp:{lntpStr}>");
     }
 
-    int lastFaceTag=0;
-    int lastFaceStartIndex=0;
-    float lastFrameTag=0;
+    int lastFaceTag = 0;
+    int lastFaceStartIndex = 0;
+    float lastFrameTag = 0;
 
 
     public void GOSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
@@ -85,57 +83,59 @@ public unsafe class PKGoCallback:IDisposable
             case go_segment_types_t.SGTPFT:
                 break;
             case go_segment_types_t.SGTPTS:
-            {
-                int offset=faceVerticesCount;
-                float face = *(float*)tags;
-                using var colorAttribs = new PKScopeArray<PK.ATTRIB_t>();
-                err=PK.ENTITY.ask_attribs(tags[0],colorTag, &colorAttribs.size, &colorAttribs.data);
-                var color=new Vector4(0.5882353f, 0.5882353f, 0.5882353f, 1f);
-                if (colorAttribs.size > 0)
                 {
-                    if(colorAttribs[0] !=PK.ENTITY_t.@null)
+                    float face = *(float*)tags;
+                    using var colorAttribs = new PKScopeArray<PK.ATTRIB_t>();
+                    err = PK.ENTITY.ask_attribs(tags[0], colorTag, &colorAttribs.size, &colorAttribs.data);
+                    Span<byte> colorRef = [150, 150, 150, 255];
+                    Span<uint> color = MemoryMarshal.Cast<byte, uint>(colorRef);
+                    if (colorAttribs.size > 0)
                     {
-                        using var colorValue = new PKScopeArray<double>();
-                        err=PK.ATTRIB.ask_doubles(colorAttribs[0],0, &colorValue.size, &colorValue.data);
-                        color = new Vector4((float)colorValue[0], (float)colorValue[1], (float)colorValue[2], 1f);
+                        if (colorAttribs[0] != PK.ENTITY_t.@null)
+                        {
+                            using var colorValue = new PKScopeArray<double>();
+                            err = PK.ATTRIB.ask_doubles(colorAttribs[0], 0, &colorValue.size, &colorValue.data);
+                            var colorSpan = colorValue.AsSpan;
+                            colorRef[0] = (byte)(colorValue[0] * 255);
+                            colorRef[1] = (byte)(colorValue[1] * 255);
+                            colorRef[2] = (byte)(colorValue[2] * 255);
+                        }
                     }
-                }
-                int vCount=*ngeom/2;
-                double* normal=geom+vCount*3;
+                    int vCount = *ngeom / 2;
+                    double* normal = geom + vCount * 3;
 
-                if(lastFaceTag!=tags[0])
-                {
-                    lastFaceTag=tags[0];
-                    int faceStartIndex = currentBodyPart.FaceIndices.Count;
-                    var count = currentBodyPart.FaceStartIndexArray.Count;
-                    float frameTag = *(float*)(&count);
-                    lastFaceStartIndex=faceStartIndex;
-                    lastFrameTag=frameTag;
-                    currentBodyPart.FaceStartIndexArray.Add(faceStartIndex);
-                }
 
-                for (int i = 0; i < vCount; i++)
-                {
-                    currentBodyPart.FaceIndices.Add(faceVerticesCount);
-                    faceVerticesCount++;
-                    currentBodyPart.FaceVertices.Add(new((float)geom[i * 3], (float)geom[i * 3 + 1], (float)geom[i * 3 + 2], lastFrameTag));
-                    currentBodyPart.Normals.Add(new((float)normal[i * 3], (float)normal[i * 3 + 1], (float)normal[i * 3 + 2]));
-                    currentBodyPart.Colors.Add(color);
-                }
-                //插入strip重启索引
-                currentBodyPart.FaceIndices.Add(Constants.STRIPBREAK);
-                for(int i=1;i<*ntags;i++)
-                {
-                    float edge = *(float*)(tags+i);
-                    if(edge!=0)
+                    for (int i = 0; i < vCount; i++)
                     {
-                        int v1= (i - 1) / 2 + offset;
-                        int v2=i/2+1+offset;
-                        currentBodyPart.EdgeIndices.Add(v1);
-                        currentBodyPart.EdgeIndices.Add(v2);
+                        currentBodyPart.ShadedPart.InsertNextPoint(geom + i * 3, normal + i * 3, color[0]);
                     }
+                    currentBodyPart.ShadedPart.InsertNextStrip();
+                    if (lastFaceTag != tags[0])
+                    {
+                        lastFaceTag = tags[0];
+                        currentBodyPart.ShadedPart.InsertNextCell();
+                    }
+
+                    int lastEdge = 0;
+                    for (int i = 1; i < *ntags; i++)
+                    {
+                        // float edge = *(float*)(tags + i);
+                        int edgeTag = *(int*)(tags + i);
+                        if (edgeTag != 0)
+                        {
+                            int v1 = (i - 1) / 2;
+                            int v2 = i / 2 + 1;
+                            currentBodyPart.WireframePartBuilder.InsertNextPoint(geom + v1 * 3);
+                            currentBodyPart.WireframePartBuilder.InsertNextPoint(geom + v2 * 3);
+                            if (lastEdge != edgeTag)
+                            {
+                                lastEdge = edgeTag;
+                                currentBodyPart.WireframePartBuilder.InsertNextEdge();
+                            }
+                        }
+                    }
+
                 }
-            }
                 break;
             default:
                 break;
@@ -170,15 +170,8 @@ public unsafe class PKGoCallback:IDisposable
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPBY:
-                currentBodyPart.FaceStartIndexArray.Add(currentBodyPart.FaceIndices.Count);
-                int edgeStartIndex = currentBodyPart.FaceIndices.Count;
-                currentBodyPart.FaceIndices.AddRange(currentBodyPart.EdgeIndices);
-                bodyParts[currentBody] = new PartGeometry([.. currentBodyPart.FaceVertices],
-                [.. currentBodyPart.Normals],
-                [.. currentBodyPart.Colors], 
-                [..currentBodyPart.FaceIndices],
-                edgeStartIndex,[..currentBodyPart.FaceStartIndexArray],[]);
-
+                shadedParts[currentBody] = currentBodyPart.ShadedPart;
+                wireframeParts[currentBody] = currentBodyPart.WireframePartBuilder.Build();
                 break;
             case go_segment_types_t.SGTPFA:
                 break;
@@ -188,9 +181,14 @@ public unsafe class PKGoCallback:IDisposable
         *ifail = CONTIN;
     }
 
-    public PartGeometry GetPartGeometry(int partId)
+    public IGeometryData GetShadedGeometry(int partId)
     {
-        return bodyParts[partId];
+        return shadedParts[partId];
+    }
+
+    public IGeometryData GetWireframeGeometry(int partId)
+    {
+        return wireframeParts[partId];
     }
 
     protected virtual void Dispose(bool disposing)

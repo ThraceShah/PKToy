@@ -23,7 +23,7 @@ public unsafe static class Frustrum
         {
             Span<byte> buffer1 = stackalloc byte[2];
             file.Read(buffer1);
-            if(buffer1[0] == 0x2A && buffer1[1] == 0x2A)
+            if (buffer1[0] == 0x2A && buffer1[1] == 0x2A)
             {
                 var sb = new StringBuilder();
                 Span<byte> buffer = stackalloc byte[1];
@@ -70,7 +70,7 @@ public unsafe static class Frustrum
         }
     }
 
-    static Dictionary<int, PSFile> open_files = new Dictionary<int, PSFile>();
+    static Dictionary<int, PSFile> open_files = [];
     static int next_file_id = 0;
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
@@ -104,14 +104,14 @@ public unsafe static class Frustrum
         switch ((file_guise_tokens_t)(*guise))
         {
             case file_guise_tokens_t.FFCSCH:
-            {
-                name_str = Path.Combine(AppContext.BaseDirectory, $"pschema/{name_str}.s_t");
-                break;
-            }
+                {
+                    name_str = Path.Combine(AppContext.BaseDirectory, $"pschema/{name_str}.s_t");
+                    break;
+                }
             default:
-            {
-                break;
-            }
+                {
+                    break;
+                }
         }
         *ifail = FR_unspecified;
         *strid = -1;
@@ -189,7 +189,7 @@ public unsafe static class Frustrum
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void GOOpenSegment(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, int* ifail)
     {
-        
+
         goCallback?.GOOpenSegment(segtyp, ntags, tags, ngeom, geom, nlntp, lntp, ifail);
     }
 
@@ -227,7 +227,7 @@ public unsafe static class Frustrum
             goopsg = &GOOpenSegment,
             goclsg = &GOCloseSegment
         };
-        err=PK.SESSION._register_frustrum(&fru);
+        err = PK.SESSION._register_frustrum(&fru);
         PK.MEMORY.frustrum_t a = new()
         {
             alloc_fn = mallocPtr,

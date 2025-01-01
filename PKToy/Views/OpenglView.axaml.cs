@@ -64,7 +64,7 @@ public partial class OpenglView : UserControl
         };
         this.PointerReleased += (sender, args) =>
         {
-            if (args.GetCurrentPoint(this).Properties.PointerUpdateKind==PointerUpdateKind.MiddleButtonReleased)
+            if (args.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.MiddleButtonReleased)
             {
                 // 记录当前坐标
                 var p = args.GetPosition(this);
@@ -89,7 +89,7 @@ public partial class OpenglView : UserControl
         this.PointerWheelChanged += (sender, args) =>
         {
             var p = args.GetCurrentPoint(this);
-            GLControl.GlRender.MouseWheel((int)args.Delta.Y*100);
+            GLControl.GlRender.MouseWheel((int)args.Delta.Y * 100);
         };
 
     }
@@ -111,7 +111,7 @@ public class OpenGlPageControl : OpenGlControlBase
     bool updateSize = false;
 
     double scale = 1;
-    public GlRender GlRender{ get; private set; }
+    public GlRender GlRender { get; private set; }
     readonly Stopwatch sw = new();
 
     public void ResetWatch()
@@ -121,7 +121,7 @@ public class OpenGlPageControl : OpenGlControlBase
 
     protected override unsafe void OnOpenGlInit(GlInterface gl)
     {
-        if(inited is false)
+        if (inited is false)
         {
             var _gl = GL.GetApi(gl.GetProcAddress);
             GlRender = new GlRender(_gl);
@@ -146,12 +146,12 @@ public class OpenGlPageControl : OpenGlControlBase
             leftReleased = false;
             this.GlRender.MouseUp(KeyCode.Left, nx, ny);
         }
-        if(updateAsm)
+        if (updateAsm)
         {
             updateAsm = false;
-            GlRender.UpdateGeometry(ref asmGeometry);
+            GlRender.UpdateGeometry(asmGeometry);
         }
-        if(updateSize)
+        if (updateSize)
         {
             updateSize = false;
             GlRender.GLControlResize(width, height);
@@ -160,7 +160,7 @@ public class OpenGlPageControl : OpenGlControlBase
         this.RequestNextFrameRendering();
     }
 
-    public unsafe void UpdateGeometry(ref AsmGeometry geometry)
+    public unsafe void UpdateGeometry(AsmGeometry geometry)
     {
         this.asmGeometry = geometry;
         this.updateAsm = true;
@@ -173,8 +173,8 @@ public class OpenGlPageControl : OpenGlControlBase
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
-        this.width = (uint)(e.NewSize.Width*this.scale);
-        this.height = (uint)(e.NewSize.Height*this.scale);
+        this.width = (uint)(e.NewSize.Width * this.scale);
+        this.height = (uint)(e.NewSize.Height * this.scale);
         updateSize = true;
         ResetWatch();
     }
@@ -191,7 +191,7 @@ public class OpenGlPageControl : OpenGlControlBase
     int nx = 0;
     int ny = 0;
     bool leftReleased = false;
-    public void LeftReleased(int nx,int ny)
+    public void LeftReleased(int nx, int ny)
     {
         this.nx = nx;
         this.ny = ny;
