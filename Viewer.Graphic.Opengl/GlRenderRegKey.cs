@@ -42,7 +42,7 @@ namespace Viewer.Graphic.Opengl
             computeEnd = false;
 
             var watch = new Stopwatch();
-
+            watch.Start();
             var id = this.GetPickObjectId(nx, ny);
             highlightComp = -1;
             highlightCell = -1;

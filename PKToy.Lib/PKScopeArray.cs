@@ -9,9 +9,9 @@ public unsafe ref struct PKScopeArray<T> where T : unmanaged
 
     public ref T this[int index] => ref data[index];
 
-    public readonly Span<T> AsSpan => new(data, size);
+    public readonly Span<T> Span => new(data, size);
 
-    public readonly ReadOnlySpan<T> AsReadOnlySpan => new(data, size);
+    public readonly ReadOnlySpan<T> ReadOnlySpan => new(data, size);
 
     public void Dispose()
     {
@@ -31,7 +31,7 @@ public unsafe ref struct PKFacetResult
     {
         fixed (PK.TOPOL.facet_r_t* ptr = &data)
         {
-            PKErrorCheck err = PK.TOPOL.facet_r_f(ptr);
+            PK.TOPOL.facet_r_f(ptr);
         }
     }
 }

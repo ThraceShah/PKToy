@@ -199,6 +199,15 @@ public unsafe static class Frustrum
         goCallback?.GOCloseSegment(segtyp, ntags, tags, ngeom, geom, nlntp, lntp, ifail);
     }
 
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static unsafe PK.ERROR.code_t ErrorHandler(PK.ERROR_sf_t* error)
+    {
+        string? functionName = Marshal.PtrToStringAnsi((nint)error->function);
+        string? errCodeName = Marshal.PtrToStringAnsi((nint)error->code_token);
+        Console.WriteLine($"Error in {functionName} with code {errCodeName},err arg number:{error->argument_number},err arg index:{error->argument_index},err entity:{error->entity.Value}");
+        return error->code;
+    }
+
 
 
     public static void InitializeParasolidFrustrum()
@@ -244,13 +253,13 @@ public unsafe static class Frustrum
             close_fn = &FrustrumDelta.Close,
         };
         err = PK.DELTA._register_callbacks(deltaFru);
+
+        PK.ERROR.frustrum_t errFru = new(&ErrorHandler);
+        err = PK.ERROR._register_callbacks(errFru);
         PK.SESSION.start_o_t start_options = new(true);
         err = PK.SESSION.start(&start_options);
         err = PK.SESSION.set_unicode(true);
         err = PK.SESSION.set_roll_forward(true);
-        // PARTITION_t partition;
-        // err = PK.PARTITION.create_empty(&partition);
-        // err = PK.PARTITION.set_current(partition);
     }
 
 }
