@@ -10,17 +10,38 @@ public unsafe class PKSession
     public static void Init()
     {
         Frustrum.InitializeParasolidFrustrum();
+        PK.SESSION.smp_o_t smpOptions = new(true);
+        PK.SESSION.set_smp(&smpOptions);
+        PK.SESSION.smp_r_t smpResult;
+        PK.SESSION.ask_smp(&smpResult);
     }
+
+    public static void CallRenderFacet(Span<PK.BODY_t> bodies)
+    {
+        var watch = new Stopwatch();
+        watch.Start();
+        PK.TOPOL.render_facet_o_t facetOptions = new(true);
+        facetOptions.go_option.go_normals = facet_go_normals_t.yes_c;
+        facetOptions.go_option.go_edges = facet_go_edges_t.yes_c;
+        facetOptions.go_option.go_strips = facet_go_strips_t.yes_c;
+        facetOptions.go_option.go_max_facets_per_strip = 65535;
+        facetOptions.go_option.go_interleaved = facet_go_interleaved_t.yes_c;
+        PK.TOPOL.render_facet(bodies.Length, (TOPOL_t*)Unsafe.AsPointer(ref bodies[0]), null, 0, &facetOptions);
+        watch.Stop();
+        Console.WriteLine($"render facet elapsed time:{watch.ElapsedMilliseconds} ms");
+        return;
+    }
+
 
     public static void OpenPart(string partName, out AsmGeometry geometry)
     {
         PKErrorCheck err;
         PK.PART.receive_o_t receive_options = new(true);
-        if (Path.GetExtension(partName) == ".x_t")
+        if (Path.GetExtension(partName).Equals(".x_t", StringComparison.OrdinalIgnoreCase))
         {
             receive_options.transmit_format = PK.transmit_format_t.text_c;
         }
-        else if (Path.GetExtension(partName) == ".x_b")
+        else if (Path.GetExtension(partName).Equals(".x_b", StringComparison.OrdinalIgnoreCase))
         {
             receive_options.transmit_format = PK.transmit_format_t.binary_c;
         }
@@ -32,24 +53,17 @@ public unsafe class PKSession
         watch.Start();
         using var parts = new PKScopeArray<PK.PART_t>();
         err = PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
-        watch.Stop();
-        Console.WriteLine($"kernel load model elapsed time:{watch.ElapsedMilliseconds} ms");
         PK.PARTITION_t partition;
         err = PK.SESSION.ask_curr_partition(&partition);
         using var bodies = new PKScopeArray<PK.BODY_t>();
         err = PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
+        watch.Stop();
+        Console.WriteLine($"kernel load model elapsed time:{watch.ElapsedMilliseconds} ms");
+
         watch.Restart();
         using var goCallback = new PKGoCallback();
         Console.WriteLine("render faces");
-        PK.TOPOL.render_facet_o_t facet_options = new(true);
-        facet_options.go_option.go_normals = facet_go_normals_t.yes_c;
-        facet_options.go_option.go_edges = facet_go_edges_t.yes_c;
-        facet_options.go_option.go_strips = facet_go_strips_t.yes_c;
-        facet_options.go_option.go_max_facets_per_strip = 65535;
-        err = PK.TOPOL.render_facet(bodies.size, (TOPOL_t*)bodies.data, null, 0, &facet_options);
-        watch.Stop();
-        Console.WriteLine($"render facet elapsed time:{watch.ElapsedMilliseconds} ms");
-        watch.Restart();
+        CallRenderFacet(bodies.AsSpan);
         var bodiesSet = new HashSet<PK.BODY_t>();
         for (int i = 0; i < bodies.size; i++)
         {
