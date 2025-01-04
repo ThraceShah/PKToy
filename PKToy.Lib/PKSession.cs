@@ -35,7 +35,8 @@ public unsafe class PKSession
 
     public static void OpenPart(string partName, out AsmGeometry geometry)
     {
-        PKErrorCheck err;
+        PK.POINT_t point;
+        PK.VERTEX.ask_point(0, &point);
         PK.PART.receive_o_t receive_options = new(true);
         if (Path.GetExtension(partName).Equals(".x_t", StringComparison.OrdinalIgnoreCase))
         {
@@ -52,18 +53,18 @@ public unsafe class PKSession
         var watch = new Stopwatch();
         watch.Start();
         using var parts = new PKScopeArray<PK.PART_t>();
-        err = PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
+        PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
         PK.PARTITION_t partition;
-        err = PK.SESSION.ask_curr_partition(&partition);
+        PK.SESSION.ask_curr_partition(&partition);
         using var bodies = new PKScopeArray<PK.BODY_t>();
-        err = PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
+        PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
         watch.Stop();
         Console.WriteLine($"kernel load model elapsed time:{watch.ElapsedMilliseconds} ms");
 
         watch.Restart();
         using var goCallback = new PKGoCallback();
         Console.WriteLine("render faces");
-        CallRenderFacet(bodies.AsSpan);
+        CallRenderFacet(bodies.Span);
         var bodiesSet = new HashSet<PK.BODY_t>();
         for (int i = 0; i < bodies.size; i++)
         {
@@ -78,7 +79,7 @@ public unsafe class PKSession
         TRANSF_sf_t transformSF;
         CLASS_t classSF;
         using var assemblies = new PKScopeArray<ASSEMBLY_t>();
-        err = PK.PARTITION.ask_assemblies(partition, &assemblies.size, &assemblies.data);
+        PK.PARTITION.ask_assemblies(partition, &assemblies.size, &assemblies.data);
         Queue<PK.ASSEMBLY_t> assemblyQueue = new();
         Queue<Matrix4x4> matrixQueue = new();
         for (int i = 0; i < assemblies.size; i++)
@@ -97,7 +98,7 @@ public unsafe class PKSession
             var assembly = assemblyQueue.Dequeue();
             var asmMatrix = matrixQueue.Dequeue();
             using var instances = new PKScopeArray<PK.INSTANCE_t>();
-            err = PK.ASSEMBLY.ask_instances(assembly, &instances.size, &instances.data);
+            PK.ASSEMBLY.ask_instances(assembly, &instances.size, &instances.data);
             for (int j = 0; j < instances.size; j++)
             {
                 PK.INSTANCE.ask(instances[j], &instanceSF);

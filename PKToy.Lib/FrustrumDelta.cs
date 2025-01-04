@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using PK;
 using static PK.DELTA;
 
+namespace PKToy.Lib;
 public static unsafe class FrustrumDelta
 {
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

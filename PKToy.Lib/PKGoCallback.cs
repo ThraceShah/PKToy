@@ -42,7 +42,7 @@ public unsafe class PKGoCallback : IDisposable
     {
         Frustrum.RegGoCallback(this);
         PK.ATTDEF_t colorAttdef;
-        PKErrorCheck err = PK.ATTDEF.find("SDL/TYSA_COLOUR", &colorAttdef);
+        PK.ATTDEF.find("SDL/TYSA_COLOUR", &colorAttdef);
         colorTag = colorAttdef;
     }
 
@@ -134,7 +134,6 @@ public unsafe class PKGoCallback : IDisposable
         // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
         var curParams = threadIds[Environment.CurrentManagedThreadId];
 
-        PKErrorCheck err;
         switch ((go_segment_types_t)(*segtyp))
         {
             case go_segment_types_t.SGTPFT:
@@ -143,7 +142,7 @@ public unsafe class PKGoCallback : IDisposable
                 {
                     float face = *(float*)tags;
                     using var colorAttribs = new PKScopeArray<PK.ATTRIB_t>();
-                    err = PK.ENTITY.ask_attribs(tags[0], colorTag, &colorAttribs.size, &colorAttribs.data);
+                    PK.ENTITY.ask_attribs(tags[0], colorTag, &colorAttribs.size, &colorAttribs.data);
                     Span<byte> colorRef = [150, 150, 150, 255];
                     Span<uint> color = MemoryMarshal.Cast<byte, uint>(colorRef);
                     if (colorAttribs.size > 0)
@@ -151,8 +150,8 @@ public unsafe class PKGoCallback : IDisposable
                         if (colorAttribs[0] != PK.ENTITY_t.@null)
                         {
                             using var colorValue = new PKScopeArray<double>();
-                            err = PK.ATTRIB.ask_doubles(colorAttribs[0], 0, &colorValue.size, &colorValue.data);
-                            var colorSpan = colorValue.AsSpan;
+                            PK.ATTRIB.ask_doubles(colorAttribs[0], 0, &colorValue.size, &colorValue.data);
+                            var colorSpan = colorValue.Span;
                             colorRef[0] = (byte)(colorValue[0] * 255);
                             colorRef[1] = (byte)(colorValue[1] * 255);
                             colorRef[2] = (byte)(colorValue[2] * 255);
