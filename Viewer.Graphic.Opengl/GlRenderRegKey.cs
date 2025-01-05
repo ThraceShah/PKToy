@@ -134,7 +134,7 @@ namespace Viewer.Graphic.Opengl
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
-                if (part is StripFaceGeometry)
+                if (part is StripFacePartGeometry || part is StripFaceGeometry)
                 {
                     int compId = geometry.GetCompFirstIdByIndex(i);
                     Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);
