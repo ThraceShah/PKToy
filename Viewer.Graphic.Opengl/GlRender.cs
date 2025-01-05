@@ -257,7 +257,7 @@ public partial class GlRender(GL gl) : IDisposable
             out var start, out var length))
             {
                 gl.Disable(GLEnum.PolygonOffsetFill);
-                if (highlightPart is StripFaceGeometry)
+                if (highlightPart is StripFacePartGeometry || highlightPart is StripFaceGeometry)
                 {
                     highlightFaceShader.Use();
                     highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
@@ -309,14 +309,13 @@ public partial class GlRender(GL gl) : IDisposable
         {
             var comp = geometry.Components[i];
             var part = geometry.Parts[comp.PartIndex];
-            if (part is StripFaceGeometry)
+            if (part is StripFacePartGeometry || part is StripFaceGeometry)
             {
                 faceShader.SetUniform("g_Origin", comp.CompMatrix);
                 partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
                 gl.BindVertexArray(vao);
                 gl.DrawElements(GLEnum.TriangleStrip, (uint)part.IndicesCount, GLEnum.UnsignedInt, null);
             }
-
         }
 
         // gl.Disable(GLEnum.PolygonOffsetFill);
