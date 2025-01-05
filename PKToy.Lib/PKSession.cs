@@ -34,7 +34,7 @@ public unsafe class PKSession
     }
 
 
-    public static void OpenPart(string partName, out AsmGeometry geometry)
+    public static AsmGeometry OpenPart(string partName)
     {
         PK.POINT_t point;
         PK.VERTEX.ask_point(0, &point);
@@ -136,7 +136,6 @@ public unsafe class PKSession
 
             }
         }
-        geometry = asmGeom;
         Console.WriteLine($"bodiesSet count:{bodiesSet.Count}");
         foreach (var body in bodiesSet)
         {
@@ -147,5 +146,6 @@ public unsafe class PKSession
         }
         watch.Stop();
         Console.WriteLine($"get part geometry elapsed time:{watch.ElapsedMilliseconds} ms");
+        return asmGeom;
     }
 }

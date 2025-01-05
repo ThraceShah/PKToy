@@ -170,7 +170,7 @@ public class StripFaceGeometry : IGeometryData
 
 }
 
-public class TagStripFace()
+public class StripFace
 {
     private readonly List<Vector4> points = [];
     private readonly List<Vector3> normals = [];
@@ -180,11 +180,6 @@ public class TagStripFace()
     public List<Vector3> Normals => normals;
     public List<uint> Colors => colors;
     public List<int> Indices => indices;
-
-    public ReadOnlySpan<Vector4> PointsSpan => points.ToArray();
-    public ReadOnlySpan<Vector3> NormalsSpan => normals.ToArray();
-    public ReadOnlySpan<uint> ColorsSpan => colors.ToArray();
-    public ReadOnlySpan<int> IndicesSpan => indices.ToArray();
     public int IndicesCount => indices.Count;
 
     public unsafe void InsertNextPoint(Vector3 point, Vector3 normal, uint color)
@@ -209,17 +204,17 @@ public class TagStripFace()
     }
 
 }
-public unsafe class StripFacePartGeometry : IGeometryData
+public unsafe class StripFacePart : IGeometryData
 {
-    private readonly Dictionary<int, TagStripFace> faces = [];
-    public Dictionary<int, TagStripFace> TagFaces => faces;
+    private readonly Dictionary<int, StripFace> tagFaces = [];
+    public Dictionary<int, StripFace> TagFaces => tagFaces;
 
-    private Dictionary<int, int> tagIndexMap = [];
+    private readonly Dictionary<int, int> tagIndexMap = [];
     public Dictionary<int, int> TagIndexMap => tagIndexMap;
-    private Dictionary<int, int> indexTagMap = [];
+    private readonly Dictionary<int, int> indexTagMap = [];
     public Dictionary<int, int> IndexTagMap => indexTagMap;
 
-    private bool modified = false;
+    public bool IsModified { get; private set; }
 
 
     public Box Box
@@ -228,7 +223,7 @@ public unsafe class StripFacePartGeometry : IGeometryData
         {
             Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
             Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
-            foreach (var face in faces.Values)
+            foreach (var face in tagFaces.Values)
             {
                 foreach (var point in face.Points)
                 {
@@ -244,7 +239,7 @@ public unsafe class StripFacePartGeometry : IGeometryData
         }
     }
 
-    public int CellCount => faces.Count;
+    public int CellCount => tagFaces.Count;
 
     private int indicesCount = 0;
     public int IndicesCount => indicesCount;
@@ -260,8 +255,8 @@ public unsafe class StripFacePartGeometry : IGeometryData
             return false;
         }
         var tag = indexTagMap[cellIndex];
-        var target = faces[tag];
-        foreach (var face in faces.Values)
+        var target = tagFaces[tag];
+        foreach (var face in tagFaces.Values)
         {
             if (face == target)
             {
@@ -275,9 +270,9 @@ public unsafe class StripFacePartGeometry : IGeometryData
 
     public void Modified()
     {
-        modified = true;
-        indicesCount = faces.Values.Sum(f => f.IndicesCount);
-        verticesCount = faces.Values.Sum(f => f.Points.Count);
+        IsModified = true;
+        indicesCount = tagFaces.Values.Sum(f => f.IndicesCount);
+        verticesCount = tagFaces.Values.Sum(f => f.Points.Count);
     }
 
     public void UpdateCells()
@@ -285,7 +280,7 @@ public unsafe class StripFacePartGeometry : IGeometryData
         tagIndexMap.Clear();
         indexTagMap.Clear();
         int index = 0;
-        foreach (var tag in faces.Keys)
+        foreach (var tag in tagFaces.Keys)
         {
             tagIndexMap[tag] = index;
             indexTagMap[index] = tag;
@@ -295,13 +290,14 @@ public unsafe class StripFacePartGeometry : IGeometryData
 
     public UnSafeArray<Vector4> GetPoints()
     {
+        IsModified = false;
         var array = new UnSafeArray<Vector4>(verticesCount);
         var arraySpan = array.Span;
         int start = 0;
         int index = 0;
         tagIndexMap.Clear();
         indexTagMap.Clear();
-        foreach (var pair in faces)
+        foreach (var pair in tagFaces)
         {
             var face = pair.Value;
             var points = PrivateAccessor.GetListInternalArray(face.Points).AsSpan();
@@ -325,7 +321,7 @@ public unsafe class StripFacePartGeometry : IGeometryData
         var array = new UnSafeArray<Vector3>(verticesCount);
         var arraySpan = array.Span;
         int start = 0;
-        foreach (var face in faces.Values)
+        foreach (var face in tagFaces.Values)
         {
             var normals = PrivateAccessor.GetListInternalArray(face.Normals).AsSpan();
             normals[..face.Normals.Count].CopyTo(arraySpan[start..]);
@@ -339,7 +335,7 @@ public unsafe class StripFacePartGeometry : IGeometryData
         var array = new UnSafeArray<uint>(verticesCount);
         var arraySpan = array.Span;
         int start = 0;
-        foreach (var face in faces.Values)
+        foreach (var face in tagFaces.Values)
         {
             var colors = PrivateAccessor.GetListInternalArray(face.Colors).AsSpan();
             colors[..face.Colors.Count].CopyTo(arraySpan[start..]);
@@ -353,7 +349,7 @@ public unsafe class StripFacePartGeometry : IGeometryData
         var array = new UnSafeArray<int>(IndicesCount);
         int i = 0;
         int pointStart = 0;
-        foreach (var face in faces.Values)
+        foreach (var face in tagFaces.Values)
         {
             foreach (var index in face.Indices)
             {
@@ -374,89 +370,204 @@ public unsafe class StripFacePartGeometry : IGeometryData
 
 }
 
-
-public class StripEdgeGeometry : IGeometryData
+public class Edge(List<Vector4> points, List<int> indices)
 {
-    private readonly List<Vector4> points = [];
-    private readonly List<int> indices = [];
-    private readonly List<int> cells = [];
-    private Box? box;
-
     public List<Vector4> Points => points;
     public List<int> Indices => indices;
-    public List<int> Cells => cells;
+    public int IndicesCount => indices.Count;
+
+}
+
+public class EdgeBuilder
+{
+    private readonly Dictionary<Vector4, int> pointIndexMap = [];
+    private readonly List<Vector4> points = [];
+    private readonly List<int> indices = [];
+
+    public Edge Build()
+    {
+        return new Edge(points, indices);
+    }
+
+    public unsafe void InsertNextPoint(Vector3 point)
+    {
+        var point4 = new Vector4(point, 0);
+        if (pointIndexMap.TryGetValue(point4, out var index))
+        {
+            indices.Add(index);
+        }
+        else
+        {
+            points.Add(point4);
+            index = points.Count - 1;
+            indices.Add(index);
+            pointIndexMap.Add(point4, index);
+        }
+    }
+
+    public unsafe void InsertNextPoint(double* point)
+    {
+        var point4 = new Vector4((float)point[0], (float)point[1], (float)point[2], 0);
+        if (pointIndexMap.TryGetValue(point4, out var index))
+        {
+            indices.Add(index);
+        }
+        else
+        {
+            points.Add(point4);
+            index = points.Count - 1;
+            indices.Add(index);
+            pointIndexMap.Add(point4, index);
+        }
+    }
+
+}
+
+public unsafe class EdgePart : IGeometryData
+{
+    private readonly Dictionary<int, Edge> tagEdges = [];
+    public Dictionary<int, Edge> TagEdges => tagEdges;
+
+    private readonly Dictionary<int, int> tagIndexMap = [];
+    public Dictionary<int, int> TagIndexMap => tagIndexMap;
+    private readonly Dictionary<int, int> indexTagMap = [];
+    public Dictionary<int, int> IndexTagMap => indexTagMap;
+
+    public bool IsModified { get; private set; }
 
     public Box Box
     {
         get
         {
-            box ??= CalBox();
-            return box.Value;
+            Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
+            Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
+            foreach (var edge in tagEdges.Values)
+            {
+                foreach (var point in edge.Points)
+                {
+                    min = Vector4.Min(min, point);
+                    max = Vector4.Max(max, point);
+                }
+            }
+            return new Box
+            {
+                Min = new Vector3(min.X, min.Y, min.Z),
+                Max = new Vector3(max.X, max.Y, max.Z),
+            };
         }
     }
-    private Box CalBox()
+
+    public int CellCount => tagEdges.Count;
+
+    private int indicesCount = 0;
+    public int IndicesCount => indicesCount;
+
+    private int verticesCount = 0;
+
+    public bool GetCellGeometryRange(int cellIndex, out int startCell, out int length)
     {
-        Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
-        Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
-        foreach (var point in points)
+        startCell = 0;
+        length = 0;
+        if (indexTagMap.ContainsKey(cellIndex) == false)
         {
-            min = Vector4.Min(min, point);
-            max = Vector4.Max(max, point);
-        }
-        return new Box
-        {
-            Min = new Vector3(min.X, min.Y, min.Z),
-            Max = new Vector3(max.X, max.Y, max.Z),
-        };
-    }
-
-
-
-    public ReadOnlySpan<Vector4> PointsSpan => points.ToArray();
-    public ReadOnlySpan<int> IndicesSpan => indices.ToArray();
-    public ReadOnlySpan<int> CellsSpan => cells.ToArray();
-    public int CellCount => cells.Count;
-    public int IndicesCount => indices.Count;
-
-    public bool GetCellGeometryRange(int cell, out int startIndex, out int length)
-    {
-        if (cell < 0 || cell >= cells.Count)
-        {
-            startIndex = 0;
-            length = 0;
             return false;
         }
-        startIndex = cells[cell];
-        if (cell + 1 >= cells.Count)
+        var tag = indexTagMap[cellIndex];
+        var target = tagEdges[tag];
+        foreach (var edge in tagEdges.Values)
         {
-            length = indices.Count - startIndex;
-            return true;
+            if (edge == target)
+            {
+                break;
+            }
+            startCell += edge.IndicesCount;
         }
-        length = cells[cell + 1] - startIndex;
+        length = target.IndicesCount;
         return true;
     }
 
-    public void InsertNextCell()
+    public void Modified()
     {
-        indices.Add(Constants.STRIPBREAK);
-        cells.Add(indices.Count);
+        IsModified = true;
+        var edges = tagEdges.Values;
+        indicesCount = edges.Sum(f => f.IndicesCount);
+        verticesCount = edges.Sum(f => f.Points.Count);
     }
 
-    public unsafe void InsertNextPoint(Vector3 point)
+    public void UpdateCells()
     {
-        int id = cells.Count;
-        points.Add(new Vector4(point, *(float*)&id));
-        indices.Add(points.Count - 1);
+        tagIndexMap.Clear();
+        indexTagMap.Clear();
+        int index = 0;
+        foreach (var tag in tagEdges.Keys)
+        {
+            tagIndexMap[tag] = index;
+            indexTagMap[index] = tag;
+            index++;
+        }
     }
 
-    public unsafe void InsertNextPoint(double* point)
+    public UnSafeArray<Vector4> GetPoints()
     {
-        int id = cells.Count;
-        points.Add(new Vector4((float)point[0], (float)point[1], (float)point[2], *(float*)&id));
-        indices.Add(points.Count - 1);
+        IsModified = false;
+        var array = new UnSafeArray<Vector4>(verticesCount);
+        var arraySpan = array.Span;
+        int start = 0;
+        int index = 0;
+        tagIndexMap.Clear();
+        indexTagMap.Clear();
+        foreach (var pair in tagEdges)
+        {
+            var edge = pair.Value;
+            var points = PrivateAccessor.GetListInternalArray(edge.Points).AsSpan();
+            var edgePoints = arraySpan[start..];
+            points[..edge.Points.Count].CopyTo(edgePoints);
+            start += edge.Points.Count;
+            foreach (ref var point in edgePoints)
+            {
+                point.W = *(float*)&index;
+            }
+            var tag = pair.Key;
+            tagIndexMap[tag] = index;
+            indexTagMap[index] = tag;
+            index++;
+        }
+        return array;
     }
 
+    public UnSafeArray<int> GetIndices()
+    {
+        var array = new UnSafeArray<int>(IndicesCount);
+        int i = 0;
+        int pointStart = 0;
+        foreach (var edge in tagEdges.Values)
+        {
+            foreach (var index in edge.Indices)
+            {
+                array[i] = index + pointStart;
+                i++;
+            }
+            pointStart += edge.Points.Count;
+        }
+        return array;
+    }
 
+}
+
+public class EdgePartBuilder
+{
+    private readonly Dictionary<int, EdgeBuilder> tagEdgeBuilders = [];
+    public Dictionary<int, EdgeBuilder> TagEdgeBuilders => tagEdgeBuilders;
+
+    public EdgePart Build()
+    {
+        var part = new EdgePart();
+        foreach (var pair in tagEdgeBuilders)
+        {
+            part.TagEdges[pair.Key] = pair.Value.Build();
+        }
+        return part;
+    }
 }
 
 public class EdgeGeometry(List<Vector4> points, List<int> indices, List<int> cells) : IGeometryData
@@ -518,27 +629,6 @@ public class EdgeGeometry(List<Vector4> points, List<int> indices, List<int> cel
         return true;
     }
 
-    public void InsertNextCell()
-    {
-        indices.Add(Constants.STRIPBREAK);
-        cells.Add(indices.Count);
-    }
-
-    public unsafe void InsertNextPoint(Vector3 point)
-    {
-        int id = cells.Count;
-        points.Add(new Vector4(point, *(float*)&id));
-        indices.Add(points.Count - 1);
-    }
-
-    public unsafe void InsertNextPoint(double* point)
-    {
-        int id = cells.Count;
-        points.Add(new Vector4((float)point[0], (float)point[1], (float)point[2], *(float*)&id));
-        indices.Add(points.Count - 1);
-    }
-
-
 }
 
 public class EdgeGeometryBuilder
@@ -596,63 +686,3 @@ public class EdgeGeometryBuilder
 }
 
 
-public class VertexGeometry : IGeometryData
-{
-    private readonly List<Vector4> points = [];
-    private Box? box;
-    public List<Vector4> Points => points;
-    public Box Box
-    {
-        get
-        {
-            box ??= CalBox();
-            return box.Value;
-        }
-    }
-
-    private Box CalBox()
-    {
-        Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
-        Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
-        foreach (var point in points)
-        {
-            min = Vector4.Min(min, point);
-            max = Vector4.Max(max, point);
-        }
-        return new Box
-        {
-            Min = new Vector3(min.X, min.Y, min.Z),
-            Max = new Vector3(max.X, max.Y, max.Z),
-        };
-    }
-
-    public ReadOnlySpan<Vector4> PointsSpan => points.ToArray();
-    public int CellCount => points.Count;
-    public int IndicesCount => points.Count;
-
-    public bool GetCellGeometryRange(int cell, out int startIndex, out int length)
-    {
-        if (cell < 0 || cell >= points.Count)
-        {
-            startIndex = 0;
-            length = 0;
-            return false;
-        }
-        startIndex = cell;
-        length = 1;
-        return true;
-    }
-
-    public unsafe void InsertNextPoint(Vector3 point)
-    {
-        int id = points.Count;
-        points.Add(new Vector4(point, *(float*)&id));
-    }
-
-    public unsafe void InsertNextPoint(double* point)
-    {
-        int id = points.Count;
-        points.Add(new Vector4((float)point[0], (float)point[1], (float)point[1], *(float*)&id));
-    }
-
-}

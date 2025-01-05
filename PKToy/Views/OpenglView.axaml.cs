@@ -149,7 +149,11 @@ public class OpenGlPageControl : OpenGlControlBase
         if (updateAsm)
         {
             updateAsm = false;
+            var watch = new Stopwatch();
+            watch.Start();
             GlRender.UpdateGeometry(asmGeometry);
+            watch.Stop();
+            Console.WriteLine($"gpu:update geometry time={watch.ElapsedMilliseconds}ms");
         }
         if (updateSize)
         {

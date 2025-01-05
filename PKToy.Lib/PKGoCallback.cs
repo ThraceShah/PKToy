@@ -15,20 +15,14 @@ public unsafe class PKGoCallback : IDisposable
 
     class BodyGeometry
     {
-        public readonly StripFacePartGeometry Shaded = new();
-        public readonly EdgeGeometryBuilder WireframePartBuilder = new();
+        public readonly StripFacePart Shaded = new();
+        public readonly EdgePart Wire = new();
     }
 
     class Params
     {
         public int currentBody = 0;
-        public int currentFace = 0;
-        public int faceVerticesCount = 0;
-        public int lastFaceTag = 0;
-        public int lastFaceStartIndex = 0;
-        public float lastFrameTag = 0;
         public BodyGeometry curBody = new();
-
     }
 
     private bool disposedValue;
@@ -36,8 +30,8 @@ public unsafe class PKGoCallback : IDisposable
     private readonly HashSet<IGeometryData> gottenGeometries = [];
     private readonly ConcurrentDictionary<int, Params> threadIds = new();
 
-    private readonly ConcurrentDictionary<int, StripFacePartGeometry> shadedParts = [];
-    private readonly ConcurrentDictionary<int, EdgeGeometry> wireframeParts = [];
+    private readonly ConcurrentDictionary<int, StripFacePart> shadedParts = [];
+    private readonly ConcurrentDictionary<int, EdgePart> wireframeParts = [];
     private readonly int colorTag;
     public PKGoCallback()
     {
@@ -97,12 +91,8 @@ public unsafe class PKGoCallback : IDisposable
             case go_segment_types_t.SGTPBY:
                 curParams.currentBody = *tags;
                 curParams.curBody = new BodyGeometry();
-                curParams.faceVerticesCount = 0;
                 break;
             case go_segment_types_t.SGTPFA:
-                curParams.currentFace = *tags;
-                // //插入strip重启索引
-                // currentBodyPart.FaceIndices.Add(Constants.STRIPBREAK);
                 break;
             default:
                 break;
@@ -120,7 +110,7 @@ public unsafe class PKGoCallback : IDisposable
         {
             case go_segment_types_t.SGTPBY:
                 shadedParts.TryAdd(curParams.currentBody, curParams.curBody.Shaded);
-                wireframeParts.TryAdd(curParams.currentBody, curParams.curBody.WireframePartBuilder.Build());
+                wireframeParts.TryAdd(curParams.currentBody, curParams.curBody.Wire);
                 break;
             case go_segment_types_t.SGTPFA:
                 break;
@@ -163,7 +153,7 @@ public unsafe class PKGoCallback : IDisposable
 
                     if (curParams.curBody.Shaded.TagFaces.ContainsKey(faceTag) == false)
                     {
-                        curParams.curBody.Shaded.TagFaces.Add(faceTag, new TagStripFace());
+                        curParams.curBody.Shaded.TagFaces.Add(faceTag, new StripFace());
                     }
                     var tagStripFace = curParams.curBody.Shaded.TagFaces[faceTag];
                     for (int i = 0; i < vCount; i++)
@@ -171,25 +161,32 @@ public unsafe class PKGoCallback : IDisposable
                         tagStripFace.InsertNextPoint(geom + i * 3, normal + i * 3, color[0]);
                     }
                     tagStripFace.InsertNextStrip();
-                    int lastEdge = 0;
+                    var tagEdgeBuilderMap = new Dictionary<int, EdgeBuilder>();
                     for (int i = 1; i < *ntags; i++)
                     {
-                        // float edge = *(float*)(tags + i);
                         int edgeTag = *(int*)(tags + i);
-                        if (edgeTag != 0)
+                        if (edgeTag == 0)
                         {
-                            int v1 = (i - 1) / 2;
-                            int v2 = i / 2 + 1;
-                            curParams.curBody.WireframePartBuilder.InsertNextPoint(geom + v1 * 3);
-                            curParams.curBody.WireframePartBuilder.InsertNextPoint(geom + v2 * 3);
-                            if (lastEdge != edgeTag)
-                            {
-                                lastEdge = edgeTag;
-                                curParams.curBody.WireframePartBuilder.InsertNextEdge();
-                            }
+                            continue;
                         }
+                        if (curParams.curBody.Wire.TagEdges.ContainsKey(edgeTag))
+                        {
+                            continue;
+                        }
+                        if (tagEdgeBuilderMap.ContainsKey(edgeTag) == false)
+                        {
+                            tagEdgeBuilderMap.Add(edgeTag, new EdgeBuilder());
+                        }
+                        var tagEdgeBuilder = tagEdgeBuilderMap[edgeTag];
+                        int v1 = (i - 1) / 2;
+                        int v2 = i / 2 + 1;
+                        tagEdgeBuilder.InsertNextPoint(geom + v1 * 3);
+                        tagEdgeBuilder.InsertNextPoint(geom + v2 * 3);
                     }
-
+                    foreach (var (edgeTag, edgeBuilder) in tagEdgeBuilderMap)
+                    {
+                        curParams.curBody.Wire.TagEdges.Add(edgeTag, edgeBuilder.Build());
+                    }
                 }
                 break;
             default:
@@ -211,7 +208,12 @@ public unsafe class PKGoCallback : IDisposable
 
     public IGeometryData GetWireframeGeometry(int partId)
     {
-        return wireframeParts[partId];
+        var part = wireframeParts[partId];
+        if (gottenGeometries.Add(part))
+        {
+            part.Modified();
+        }
+        return part;
     }
 
     protected virtual void Dispose(bool disposing)
