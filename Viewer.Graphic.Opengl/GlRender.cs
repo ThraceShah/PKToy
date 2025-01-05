@@ -257,7 +257,7 @@ public partial class GlRender(GL gl) : IDisposable
             out var start, out var length))
             {
                 gl.Disable(GLEnum.PolygonOffsetFill);
-                if (highlightPart is StripFacePartGeometry || highlightPart is StripFaceGeometry)
+                if (highlightPart is StripFacePart || highlightPart is StripFaceGeometry)
                 {
                     highlightFaceShader.Use();
                     highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
@@ -274,7 +274,7 @@ public partial class GlRender(GL gl) : IDisposable
                     gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
                     GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
                 }
-                else if (highlightPart is EdgeGeometry)
+                else if (highlightPart is EdgePart || highlightPart is EdgeGeometry)
                 {
                     lineShader.Use();
                     m_PSConstantBuffer.objColor = new Vector4(1.0f, 0f, 0f, 1f);
@@ -309,7 +309,7 @@ public partial class GlRender(GL gl) : IDisposable
         {
             var comp = geometry.Components[i];
             var part = geometry.Parts[comp.PartIndex];
-            if (part is StripFacePartGeometry || part is StripFaceGeometry)
+            if (part is StripFacePart || part is StripFaceGeometry)
             {
                 faceShader.SetUniform("g_Origin", comp.CompMatrix);
                 partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
@@ -332,7 +332,7 @@ public partial class GlRender(GL gl) : IDisposable
         {
             var comp = geometry.Components[i];
             var part = geometry.Parts[comp.PartIndex];
-            if (part is EdgeGeometry)
+            if (part is EdgePart || part is EdgeGeometry)
             {
                 lineShader.SetUniform("g_Origin", comp.CompMatrix);
                 partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);

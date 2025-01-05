@@ -56,7 +56,7 @@ namespace Viewer.Graphic.Opengl
             gl.GenBuffers(ebos);
             for (int i = 0; i < parts.Count; i++)
             {
-                if (parts[i] is StripFacePartGeometry stripFace)
+                if (parts[i] is StripFacePart stripFace)
                 {
                     gl.BindVertexArray(vaos[i]);
 
@@ -161,6 +161,27 @@ namespace Viewer.Graphic.Opengl
                     ReadOnlySpan<int> indexSpan = wireframePart.IndicesSpan;
                     gl.BufferData(GLEnum.ElementArrayBuffer, indexSpan, GLEnum.StaticDraw);
                 }
+                else if (parts[i] is EdgePart edgePart)
+                {
+                    gl.BindVertexArray(vaos[i]);
+
+                    gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
+
+                    using var vertices = edgePart.GetPoints();
+                    gl.BufferData(GLEnum.ArrayBuffer, vertices.ReadOnlySpan, GLEnum.StaticDraw);
+                    unsafe
+                    {
+                        // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+                        gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
+                        gl.EnableVertexAttribArray(0);
+
+                    }
+
+                    gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
+                    using var indices = edgePart.GetIndices();
+                    gl.BufferData(GLEnum.ElementArrayBuffer, indices.ReadOnlySpan, GLEnum.StaticDraw);
+                }
+
             }
             // Unbind VAO to prevent accidental modification
             gl.BindVertexArray(0);

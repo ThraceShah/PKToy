@@ -40,7 +40,7 @@ public partial class MainWindow : Window
             var stop = new Stopwatch();
             stop.Start();
 
-            PKSession.OpenPart(filename, out AsmGeometry geometry);
+            var geometry = PKSession.OpenPart(filename);
             this.GL.GLControl.UpdateGeometry(geometry);
             GC.Collect();
             stop.Stop();
