@@ -344,8 +344,7 @@ public partial class GlRender(GL gl) : IDisposable
                 lineShader.SetUniform("g_Origin", comp.CompMatrix);
                 partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                 gl.BindVertexArray(vao);
-                gl.DrawElements(GLEnum.Lines, (uint)part.IndicesCount,
-                GLEnum.UnsignedInt, (void*)0);
+                gl.DrawElements(GLEnum.Lines, (uint)part.IndicesCount, GLEnum.UnsignedInt, (void*)0);
                 // gl.DrawArrays(GLEnum.Lines, 0, (uint)part.IndicesCount);
             }
         }

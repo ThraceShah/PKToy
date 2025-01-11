@@ -167,7 +167,7 @@ namespace Viewer.Graphic.Opengl
 
                     gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
 
-                    using var vertices = edgePart.GetPoints();
+                    var vertices = edgePart.GetPoints();
                     gl.BufferData(GLEnum.ArrayBuffer, vertices.ReadOnlySpan, GLEnum.StaticDraw);
                     unsafe
                     {
@@ -178,7 +178,7 @@ namespace Viewer.Graphic.Opengl
                     }
 
                     gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                    using var indices = edgePart.GetIndices();
+                    var indices = edgePart.GetIndices();
                     gl.BufferData(GLEnum.ElementArrayBuffer, indices.ReadOnlySpan, GLEnum.StaticDraw);
                 }
 
