@@ -1,6 +1,11 @@
 ﻿using System;
 using Avalonia;
+using Avalonia.OpenGL;
+using Avalonia.Platform;
 using Avalonia.ReactiveUI;
+using Avalonia.Win32;
+using Silk.NET.OpenGL;
+using Avalonia.Win32.OpenGl.Angle;
 
 namespace PKToy;
 
@@ -17,7 +22,10 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            .UseSkia()
+            .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Wgl] })
             .WithInterFont()
             .LogToTrace()
             .UseReactiveUI();
 }
+

@@ -1,6 +1,5 @@
-#version 300 es
+#version 330 core
 
-precision mediump float;
 layout(location = 0) in vec4 vIn;
 layout(location = 1) in vec3 normalIn;
 layout(location = 2) in uint colorIn;

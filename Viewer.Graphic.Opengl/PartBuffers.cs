@@ -26,7 +26,7 @@ namespace Viewer.Graphic.Opengl
 
         }
 
-        public bool GetPartBuffer(uint partIndex, out uint vao, out uint ebo)
+        public bool GetPartBuffer(int partIndex, out uint vao, out uint ebo)
         {
             if (partIndex < Length)
             {
@@ -43,16 +43,16 @@ namespace Viewer.Graphic.Opengl
         public static unsafe PartBuffers GenPartBuffers(GL gl, in AsmGeometry asm)
         {
             var parts = asm.Parts;
-            Span<uint> vaos = stackalloc uint[parts.Count];
+            var vaos = new uint[parts.Count];
             gl.GenVertexArrays(vaos);
             gl.GenVertexArrays(vaos);
-            Span<uint> vbos = stackalloc uint[parts.Count];
+            var vbos = new uint[parts.Count];
             gl.GenBuffers(vbos);
-            Span<uint> nbos = stackalloc uint[parts.Count];
+            var nbos = new uint[parts.Count];
             gl.GenBuffers(nbos);
-            Span<uint> cbos = stackalloc uint[parts.Count];
+            var cbos = new uint[parts.Count];
             gl.GenBuffers(cbos);
-            Span<uint> ebos = stackalloc uint[parts.Count];
+            var ebos = new uint[parts.Count];
             gl.GenBuffers(ebos);
             for (int i = 0; i < parts.Count; i++)
             {
@@ -188,11 +188,11 @@ namespace Viewer.Graphic.Opengl
             var partBuffers = new PartBuffers
             {
                 gl = gl,
-                vaos = vaos.ToArray(),
-                vbos = vbos.ToArray(),
-                nbos = nbos.ToArray(),
-                cbos = cbos.ToArray(),
-                ebos = ebos.ToArray(),
+                vaos = vaos,
+                vbos = vbos,
+                nbos = nbos,
+                cbos = cbos,
+                ebos = ebos,
                 Length = parts.Count,
             };
             return partBuffers;
