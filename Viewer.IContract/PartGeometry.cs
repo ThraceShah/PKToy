@@ -13,7 +13,6 @@ using System.Runtime.InteropServices;
 namespace Viewer.IContract;
 public static class Constants
 {
-    //public const int STRIPBREAK = -1;
     public const int STRIPBREAK = -1;
 }
 
@@ -72,130 +71,54 @@ public interface IGeometryData
 
     int IndicesCount { get; }
 }
-
-public class StripFaceGeometry : IGeometryData
-{
-    private readonly List<Vector4> points = [];
-    private readonly List<Vector3> normals = [];
-    private readonly List<uint> colors = [];
-    private readonly List<int> indices = [];
-    private readonly List<int> cells = [];
-    private Box? box;
-
-    public List<Vector4> Points => points;
-    public List<Vector3> Normals => normals;
-    public List<uint> Colors => colors;
-    public List<int> Indices => indices;
-    public List<int> Cells => cells;
-    public Box Box
-    {
-        get
-        {
-            box ??= CalBox();
-            return box.Value;
-        }
-    }
-
-    private Box CalBox()
-    {
-        Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
-        Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
-        foreach (var point in points)
-        {
-            min = Vector4.Min(min, point);
-            max = Vector4.Max(max, point);
-        }
-        return new Box
-        {
-            Min = new Vector3(min.X, min.Y, min.Z),
-            Max = new Vector3(max.X, max.Y, max.Z),
-        };
-    }
-
-    public ReadOnlySpan<Vector4> PointsSpan => points.ToArray();
-    public ReadOnlySpan<Vector3> NormalsSpan => normals.ToArray();
-    public ReadOnlySpan<uint> ColorsSpan => colors.ToArray();
-    public ReadOnlySpan<int> IndicesSpan => indices.ToArray();
-    public ReadOnlySpan<int> CellsSpan => cells.ToArray();
-    public int CellCount => cells.Count;
-    public int IndicesCount => indices.Count;
-
-
-    public bool GetCellGeometryRange(int cell, out int startIndex, out int length)
-    {
-        if (cell < 0 || cell >= cells.Count)
-        {
-            startIndex = 0;
-            length = 0;
-            return false;
-        }
-        if (cell == 0)
-        {
-            startIndex = 0;
-            length = cells[0];
-            return true;
-        }
-        startIndex = cells[cell - 1];
-        length = cells[cell] - startIndex;
-        return true;
-    }
-
-
-    public void InsertNextCell()
-    {
-        cells.Add(indices.Count);
-    }
-
-    public void InsertNextStrip()
-    {
-        indices.Add(Constants.STRIPBREAK);
-    }
-
-    public unsafe void InsertNextPoint(Vector3 point, Vector3 normal, uint color)
-    {
-        int id = cells.Count;
-        points.Add(new Vector4(point, *(float*)&id));
-        normals.Add(normal);
-        colors.Add(color);
-        indices.Add(points.Count - 1);
-    }
-
-    public unsafe void InsertNextPoint(double* point, double* normal, uint color)
-    {
-        int id = cells.Count;
-        points.Add(new Vector4((float)point[0], (float)point[1], (float)point[2], *(float*)&id));
-        normals.Add(new Vector3((float)normal[0], (float)normal[1], (float)normal[2]));
-        colors.Add(color);
-        indices.Add(points.Count - 1);
-    }
-
-}
-
 public class StripFace
 {
-    private readonly List<Vector4> points = [];
+    private uint color = 0xFFFFFFFF;
+    private readonly List<Vector3> points = [];
     private readonly List<Vector3> normals = [];
-    private readonly List<uint> colors = [];
     private readonly List<int> indices = [];
-    public List<Vector4> Points => points;
+    public List<Vector3> Points => points;
     public List<Vector3> Normals => normals;
-    public List<uint> Colors => colors;
     public List<int> Indices => indices;
     public int IndicesCount => indices.Count;
+    public uint Color => color;
 
-    public unsafe void InsertNextPoint(Vector3 point, Vector3 normal, uint color)
+    public void SetColor(uint color)
     {
-        points.Add(new Vector4(point, 0));
+        this.color = color;
+    }
+
+    public void SetColor(byte r, byte g, byte b, byte a)
+    {
+        color = (uint)(r | (g << 8) | (b << 16) | (a << 24));
+    }
+
+    public void SetColor(Vector4 color)
+    {
+        SetColor((byte)(color.X * 255), (byte)(color.Y * 255), (byte)(color.Z * 255), (byte)(color.W * 255));
+    }
+
+    public void SetColor(float r, float g, float b, float a)
+    {
+        SetColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255), (byte)(a * 255));
+    }
+
+    public void SetColor(double r, double g, double b, double a)
+    {
+        SetColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255), (byte)(a * 255));
+    }
+
+    public unsafe void InsertNextPoint(Vector3 point, Vector3 normal)
+    {
+        points.Add(point);
         normals.Add(normal);
-        colors.Add(color);
         indices.Add(points.Count - 1);
     }
 
-    public unsafe void InsertNextPoint(double* point, double* normal, uint color)
+    public unsafe void InsertNextPoint(double* point, double* normal)
     {
-        points.Add(new Vector4((float)point[0], (float)point[1], (float)point[2], 0));
+        points.Add(new Vector3((float)point[0], (float)point[1], (float)point[2]));
         normals.Add(new Vector3((float)normal[0], (float)normal[1], (float)normal[2]));
-        colors.Add(color);
         indices.Add(points.Count - 1);
     }
 
@@ -205,6 +128,25 @@ public class StripFace
     }
 
 }
+
+
+public readonly ref struct StripFacePartOutput(UnSafeArray<Vector3> points, UnSafeArray<Vector3> normals, UnSafeArray<uint> colors, UnSafeArray<int> indices, UnSafeArray<int> indicesCells)
+{
+    public UnSafeArray<Vector3> Points => points;
+    public UnSafeArray<Vector3> Normals => normals;
+    public UnSafeArray<uint> Colors => colors;
+    public UnSafeArray<int> Indices => indices;
+    public UnSafeArray<int> IndicesCells => indicesCells;
+    public readonly void Dispose()
+    {
+        points.Dispose();
+        normals.Dispose();
+        colors.Dispose();
+        indices.Dispose();
+        indicesCells.Dispose();
+    }
+}
+
 public unsafe class StripFacePart : IGeometryData
 {
     private readonly Dictionary<int, StripFace> tagFaces = [];
@@ -222,20 +164,20 @@ public unsafe class StripFacePart : IGeometryData
     {
         get
         {
-            Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
-            Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
+            Vector3 min = new(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new(float.MinValue, float.MinValue, float.MinValue);
             foreach (var face in tagFaces.Values)
             {
                 foreach (var point in face.Points)
                 {
-                    min = Vector4.Min(min, point);
-                    max = Vector4.Max(max, point);
+                    min = Vector3.Min(min, point);
+                    max = Vector3.Max(max, point);
                 }
             }
             return new Box
             {
-                Min = new Vector3(min.X, min.Y, min.Z),
-                Max = new Vector3(max.X, max.Y, max.Z),
+                Min = min,
+                Max = max,
             };
         }
     }
@@ -276,104 +218,63 @@ public unsafe class StripFacePart : IGeometryData
         verticesCount = tagFaces.Values.Sum(f => f.Points.Count);
     }
 
-    public void UpdateCells()
-    {
-        tagIndexMap.Clear();
-        indexTagMap.Clear();
-        int index = 0;
-        foreach (var tag in tagFaces.Keys)
-        {
-            tagIndexMap[tag] = index;
-            indexTagMap[index] = tag;
-            index++;
-        }
-    }
-
-    public UnSafeArray<Vector4> GetPoints()
+    public StripFacePartOutput Update()
     {
         IsModified = false;
-        var array = new UnSafeArray<Vector4>(verticesCount);
-        var arraySpan = array.Span;
-        int start = 0;
-        int index = 0;
         tagIndexMap.Clear();
         indexTagMap.Clear();
+
+        var points = new UnSafeArray<Vector3>(verticesCount);
+        var pointsSpan = points.Span;
+        var indices = new UnSafeArray<int>(indicesCount);
+        var indicesCells = new UnSafeArray<int>(verticesCount);
+        var normals = new UnSafeArray<Vector3>(verticesCount);
+        var normalsSpan = normals.Span;
+        var colors = new UnSafeArray<uint>(verticesCount);
+
+        int i = 0;
+        int pointsStart = 0;
+        int cell = 0;
         foreach (var pair in tagFaces)
         {
             var face = pair.Value;
-            var points = PrivateAccessor.GetListInternalArray(face.Points).AsSpan();
-            var facePoints = arraySpan[start..];
-            points[..face.Points.Count].CopyTo(facePoints);
-            start += face.Points.Count;
-            foreach (ref var point in facePoints)
-            {
-                point.W = *(float*)&index;
-            }
-            var tag = pair.Key;
-            tagIndexMap[tag] = index;
-            indexTagMap[index] = tag;
-            index++;
-        }
-        return array;
-    }
+            var srcFacePoints = PrivateAccessor.GetListInternalArray(face.Points).AsSpan();
+            srcFacePoints[..face.Points.Count].CopyTo(pointsSpan[pointsStart..]);
 
-    public UnSafeArray<Vector3> GetNormals()
-    {
-        var array = new UnSafeArray<Vector3>(verticesCount);
-        var arraySpan = array.Span;
-        int start = 0;
-        foreach (var face in tagFaces.Values)
-        {
-            var normals = PrivateAccessor.GetListInternalArray(face.Normals).AsSpan();
-            normals[..face.Normals.Count].CopyTo(arraySpan[start..]);
-            start += face.Normals.Count;
-        }
-        return array;
-    }
+            var srcNormals = PrivateAccessor.GetListInternalArray(face.Normals).AsSpan();
+            srcNormals[..face.Normals.Count].CopyTo(normalsSpan[pointsStart..]);
 
-    public UnSafeArray<uint> GetColors()
-    {
-        var array = new UnSafeArray<uint>(verticesCount);
-        var arraySpan = array.Span;
-        int start = 0;
-        foreach (var face in tagFaces.Values)
-        {
-            var colors = PrivateAccessor.GetListInternalArray(face.Colors).AsSpan();
-            colors[..face.Colors.Count].CopyTo(arraySpan[start..]);
-            start += face.Colors.Count;
-        }
-        return array;
-    }
-
-    public UnSafeArray<int> GetIndices()
-    {
-        var array = new UnSafeArray<int>(IndicesCount);
-        int i = 0;
-        int pointStart = 0;
-        foreach (var face in tagFaces.Values)
-        {
             foreach (var index in face.Indices)
             {
                 if (index == Constants.STRIPBREAK)
                 {
-                    array[i] = Constants.STRIPBREAK;
+                    indices[i] = Constants.STRIPBREAK;
                 }
                 else
                 {
-                    array[i] = index + pointStart;
+                    indices[i] = index + pointsStart;
                 }
                 i++;
             }
-            pointStart += face.Points.Count;
+            indicesCells.Slice(pointsStart, face.Points.Count).Fill(cell);
+            colors.Slice(pointsStart, face.Points.Count).Fill(face.Color);
+
+            pointsStart += face.Points.Count;
+
+            var tag = pair.Key;
+            tagIndexMap[tag] = cell;
+            indexTagMap[cell] = tag;
+            cell++;
         }
-        return array;
+
+        return new StripFacePartOutput(points, normals, colors, indices, indicesCells);
     }
 
 }
 
-public class Edge(List<Vector4> points, List<int> indices)
+public class Edge(List<Vector3> points, List<int> indices)
 {
-    public List<Vector4> Points => points;
+    public List<Vector3> Points => points;
     public List<int> Indices => indices;
     public int IndicesCount => indices.Count;
 
@@ -381,8 +282,8 @@ public class Edge(List<Vector4> points, List<int> indices)
 
 public class EdgeBuilder
 {
-    private readonly Dictionary<Vector4, int> pointIndexMap = [];
-    private readonly List<Vector4> points = [];
+    private readonly Dictionary<Vector3, int> pointIndexMap = [];
+    private readonly List<Vector3> points = [];
     private readonly List<int> indices = [];
 
     public Edge Build()
@@ -392,23 +293,22 @@ public class EdgeBuilder
 
     public unsafe void InsertNextPoint(Vector3 point)
     {
-        var point4 = new Vector4(point, 0);
-        if (pointIndexMap.TryGetValue(point4, out var index))
+        if (pointIndexMap.TryGetValue(point, out var index))
         {
             indices.Add(index);
         }
         else
         {
-            points.Add(point4);
+            points.Add(point);
             index = points.Count - 1;
             indices.Add(index);
-            pointIndexMap.Add(point4, index);
+            pointIndexMap.Add(point, index);
         }
     }
 
     public unsafe void InsertNextPoint(double* point)
     {
-        var point4 = new Vector4((float)point[0], (float)point[1], (float)point[2], 0);
+        var point4 = new Vector3((float)point[0], (float)point[1], (float)point[2]);
         if (pointIndexMap.TryGetValue(point4, out var index))
         {
             indices.Add(index);
@@ -422,6 +322,19 @@ public class EdgeBuilder
         }
     }
 
+}
+
+public readonly ref struct EdgePartOutput(UnSafeArray<Vector3> points, UnSafeArray<int> indices, UnSafeArray<int> indicesCells)
+{
+    public UnSafeArray<Vector3> Points => points;
+    public UnSafeArray<int> Indices => indices;
+    public UnSafeArray<int> IndicesCells => indicesCells;
+    public readonly void Dispose()
+    {
+        points.Dispose();
+        indices.Dispose();
+        indicesCells.Dispose();
+    }
 }
 
 public unsafe class EdgePart : IGeometryData
@@ -440,20 +353,20 @@ public unsafe class EdgePart : IGeometryData
     {
         get
         {
-            Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
-            Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
+            Vector3 min = new(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new(float.MinValue, float.MinValue, float.MinValue);
             foreach (var edge in tagEdges.Values)
             {
                 foreach (var point in edge.Points)
                 {
-                    min = Vector4.Min(min, point);
-                    max = Vector4.Max(max, point);
+                    min = Vector3.Min(min, point);
+                    max = Vector3.Max(max, point);
                 }
             }
             return new Box
             {
-                Min = new Vector3(min.X, min.Y, min.Z),
-                Max = new Vector3(max.X, max.Y, max.Z),
+                Min = min,
+                Max = max,
             };
         }
     }
@@ -495,62 +408,42 @@ public unsafe class EdgePart : IGeometryData
         verticesCount = edges.Sum(f => f.Points.Count);
     }
 
-    public void UpdateCells()
-    {
-        tagIndexMap.Clear();
-        indexTagMap.Clear();
-        int index = 0;
-        foreach (var tag in tagEdges.Keys)
-        {
-            tagIndexMap[tag] = index;
-            indexTagMap[index] = tag;
-            index++;
-        }
-    }
-
-    public UnSafeArray<Vector4> GetPoints()
+    public EdgePartOutput Update()
     {
         IsModified = false;
-        var array = new UnSafeArray<Vector4>(verticesCount);
-        var arraySpan = array.Span;
-        int start = 0;
-        int index = 0;
         tagIndexMap.Clear();
         indexTagMap.Clear();
+        var points = new UnSafeArray<Vector3>(verticesCount);
+        var indices = new UnSafeArray<int>(indicesCount);
+        var indicesCells = new UnSafeArray<int>(verticesCount);
+
+        var pointsSpan = points.Span;
+        int pointsStart = 0;
+        int i = 0;
+        int cell = 0;
         foreach (var pair in tagEdges)
         {
             var edge = pair.Value;
-            var points = PrivateAccessor.GetListInternalArray(edge.Points).AsSpan();
-            var edgePoints = arraySpan[start..];
-            points[..edge.Points.Count].CopyTo(edgePoints);
-            start += edge.Points.Count;
-            foreach (ref var point in edgePoints)
-            {
-                point.W = *(float*)&index;
-            }
-            var tag = pair.Key;
-            tagIndexMap[tag] = index;
-            indexTagMap[index] = tag;
-            index++;
-        }
-        return array;
-    }
+            var edgeSrcPoints = PrivateAccessor.GetListInternalArray(edge.Points).AsSpan();
+            var edgePoints = pointsSpan[pointsStart..];
+            edgeSrcPoints[..edge.Points.Count].CopyTo(edgePoints);
 
-    public UnSafeArray<int> GetIndices()
-    {
-        var array = new UnSafeArray<int>(IndicesCount);
-        int i = 0;
-        int pointStart = 0;
-        foreach (var edge in tagEdges.Values)
-        {
             foreach (var index in edge.Indices)
             {
-                array[i] = index + pointStart;
+                indices[i] = index + pointsStart;
                 i++;
             }
-            pointStart += edge.Points.Count;
+            indicesCells.Slice(pointsStart, edge.Points.Count).Fill(cell);
+
+            pointsStart += edge.Points.Count;
+            var tag = pair.Key;
+            tagIndexMap[tag] = cell;
+            indexTagMap[cell] = tag;
+            cell++;
         }
-        return array;
+
+        return new EdgePartOutput(points, indices, indicesCells);
+
     }
 
 }
@@ -570,120 +463,3 @@ public class EdgePartBuilder
         return part;
     }
 }
-
-public class EdgeGeometry(List<Vector4> points, List<int> indices, List<int> cells) : IGeometryData
-{
-    private Box? box;
-
-    public List<Vector4> Points => points;
-    public List<int> Indices => indices;
-    public List<int> Cells => cells;
-
-    public Box Box
-    {
-        get
-        {
-            box ??= CalBox();
-            return box.Value;
-        }
-    }
-    private Box CalBox()
-    {
-        Vector4 min = new(float.MaxValue, float.MaxValue, float.MaxValue, float.MinValue);
-        Vector4 max = new(float.MinValue, float.MinValue, float.MinValue, float.MaxValue);
-        foreach (var point in points)
-        {
-            min = Vector4.Min(min, point);
-            max = Vector4.Max(max, point);
-        }
-        return new Box
-        {
-            Min = new Vector3(min.X, min.Y, min.Z),
-            Max = new Vector3(max.X, max.Y, max.Z),
-        };
-    }
-
-
-
-    public ReadOnlySpan<Vector4> PointsSpan => points.ToArray();
-    public ReadOnlySpan<int> IndicesSpan => indices.ToArray();
-    public ReadOnlySpan<int> CellsSpan => cells.ToArray();
-    public int CellCount => cells.Count;
-    public int IndicesCount => indices.Count;
-
-    public bool GetCellGeometryRange(int cell, out int startIndex, out int length)
-    {
-        if (cell < 0 || cell >= cells.Count)
-        {
-            startIndex = 0;
-            length = 0;
-            return false;
-        }
-        if (cell == 0)
-        {
-            startIndex = 0;
-            length = cells[0];
-            return true;
-        }
-        startIndex = cells[cell - 1];
-        length = cells[cell] - startIndex;
-        return true;
-    }
-
-}
-
-public class EdgeGeometryBuilder
-{
-    private readonly Dictionary<Vector4, int> pointIndexMap = [];
-    private readonly List<Vector4> points = [];
-    private readonly List<int> indices = [];
-    private readonly List<int> cells = [];
-
-    public EdgeGeometry Build()
-    {
-        return new EdgeGeometry(points, indices, cells);
-    }
-
-    public void InsertNextEdge()
-    {
-        cells.Add(indices.Count);
-    }
-
-    public unsafe void InsertNextPoint(Vector3 point)
-    {
-        int id = cells.Count;
-        var point4 = new Vector4(point, *(float*)&id);
-        if (pointIndexMap.TryGetValue(point4, out var index))
-        {
-            indices.Add(index);
-        }
-        else
-        {
-            points.Add(point4);
-            index = points.Count - 1;
-            indices.Add(index);
-            pointIndexMap.Add(point4, index);
-        }
-    }
-
-    public unsafe void InsertNextPoint(double* point)
-    {
-        int id = cells.Count;
-        var point4 = new Vector4((float)point[0], (float)point[1], (float)point[2], *(float*)&id);
-        if (pointIndexMap.TryGetValue(point4, out var index))
-        {
-            indices.Add(index);
-        }
-        else
-        {
-            points.Add(point4);
-            index = points.Count - 1;
-            indices.Add(index);
-            pointIndexMap.Add(point4, index);
-        }
-    }
-
-
-}
-
-

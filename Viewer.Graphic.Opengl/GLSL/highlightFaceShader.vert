@@ -1,7 +1,7 @@
 #version 330 core
 
 layout(location = 0) in vec4 vIn;
-layout(location = 1) in vec3 normalIn;
+layout(location = 2) in vec3 normalIn;
 
 uniform mat4 g_World;
 uniform mat4 g_View;

@@ -1,9 +1,9 @@
 #version 300 es
 
 precision mediump float;
-layout(location = 0) in vec4 vIn;
-layout(location = 1) in vec3 normalIn;
-layout(location = 2) in uint colorIn;
+layout(location = 0) in vec3 vIn;
+layout(location = 2) in vec3 normalIn;
+layout(location = 3) in uint colorIn;
 
 uniform mat4 g_World;
 uniform mat4 g_View;

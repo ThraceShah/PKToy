@@ -19,6 +19,7 @@ namespace Viewer.Graphic.Opengl
         private uint[] nbos;
         private uint[] cbos;
         private uint[] ebos;
+        private uint[] ibos;
 
         public int Length { get; private set; }
 
@@ -55,128 +56,57 @@ namespace Viewer.Graphic.Opengl
             gl.GenBuffers(cbos);
             var ebos = new uint[parts.Count];
             gl.GenBuffers(ebos);
+            var ibos = new uint[parts.Count];
+            gl.GenBuffers(ibos);
             for (int i = 0; i < parts.Count; i++)
             {
                 if (parts[i] is StripFacePart stripFace)
                 {
+                    using var partOut = stripFace.Update();
                     gl.BindVertexArray(vaos[i]);
 
                     gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
-                    using var vertices = stripFace.GetPoints();
-                    gl.BufferData(GLEnum.ArrayBuffer, vertices.ReadOnlySpan, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-                        gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
-                        gl.EnableVertexAttribArray(0);
+                    gl.BufferData(GLEnum.ArrayBuffer, partOut.Points.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.VertexAttribPointer(0, 3, GLEnum.Float, false, 3 * sizeof(float), 0);
+                    gl.EnableVertexAttribArray(0);
 
-                    }
+                    gl.BindBuffer(GLEnum.ArrayBuffer, ibos[i]);
+                    gl.BufferData(GLEnum.ArrayBuffer, partOut.IndicesCells.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.VertexAttribPointer(1, 1, GLEnum.Float, false, sizeof(float), 0);
+                    gl.EnableVertexAttribArray(1);
 
                     gl.BindBuffer(GLEnum.ArrayBuffer, nbos[i]);
-                    using var normals = stripFace.GetNormals();
-                    gl.BufferData(GLEnum.ArrayBuffer, normals.ReadOnlySpan, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // Configure vertex attribute pointer for normals
-                        gl.VertexAttribPointer(1, 3, GLEnum.Float, false, 3 * sizeof(float), 0);
-                        gl.EnableVertexAttribArray(1);
-
-                    }
+                    gl.BufferData(GLEnum.ArrayBuffer, partOut.Normals.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.VertexAttribPointer(2, 3, GLEnum.Float, false, 3 * sizeof(float), 0);
+                    gl.EnableVertexAttribArray(2);
 
                     gl.BindBuffer(GLEnum.ArrayBuffer, cbos[i]);
-                    using var colors = stripFace.GetColors();
-                    gl.BufferData(GLEnum.ArrayBuffer, colors.ReadOnlySpan, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // Configure vertex attribute pointer for normals
-                        gl.VertexAttribPointer(2, 1, GLEnum.Float, false, sizeof(float), 0);
-                        gl.EnableVertexAttribArray(2);
-
-                    }
+                    gl.BufferData(GLEnum.ArrayBuffer, partOut.Colors.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.VertexAttribPointer(3, 1, GLEnum.Float, false, sizeof(float), 0);
+                    gl.EnableVertexAttribArray(3);
 
                     gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                    using var indices = stripFace.GetIndices();
-                    gl.BufferData(GLEnum.ElementArrayBuffer, indices.ReadOnlySpan, GLEnum.StaticDraw);
-                }
-                else if (parts[i] is StripFaceGeometry shadedPart)
-                {
-                    gl.BindVertexArray(vaos[i]);
-
-                    gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
-                    ReadOnlySpan<Vector4> vertices = shadedPart.PointsSpan;
-                    gl.BufferData(GLEnum.ArrayBuffer, vertices, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-                        gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
-                        gl.EnableVertexAttribArray(0);
-
-                    }
-
-                    gl.BindBuffer(GLEnum.ArrayBuffer, nbos[i]);
-                    ReadOnlySpan<Vector3> normals = shadedPart.NormalsSpan;
-                    gl.BufferData(GLEnum.ArrayBuffer, normals, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // Configure vertex attribute pointer for normals
-                        gl.VertexAttribPointer(1, 3, GLEnum.Float, false, 3 * sizeof(float), 0);
-                        gl.EnableVertexAttribArray(1);
-
-                    }
-
-                    gl.BindBuffer(GLEnum.ArrayBuffer, cbos[i]);
-                    ReadOnlySpan<uint> colors = shadedPart.ColorsSpan;
-                    gl.BufferData(GLEnum.ArrayBuffer, colors, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // Configure vertex attribute pointer for normals
-                        gl.VertexAttribPointer(2, 1, GLEnum.UnsignedInt, false, sizeof(uint), 0);
-                        gl.EnableVertexAttribArray(2);
-
-                    }
-
-                    gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                    ReadOnlySpan<int> indexSpan = shadedPart.IndicesSpan;
-                    gl.BufferData(GLEnum.ElementArrayBuffer, indexSpan, GLEnum.StaticDraw);
-                }
-                else if (parts[i] is EdgeGeometry wireframePart)
-                {
-                    gl.BindVertexArray(vaos[i]);
-
-                    gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
-                    ReadOnlySpan<Vector4> vertices = wireframePart.PointsSpan;
-                    gl.BufferData(GLEnum.ArrayBuffer, vertices, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-                        gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
-                        gl.EnableVertexAttribArray(0);
-
-                    }
-
-                    gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                    ReadOnlySpan<int> indexSpan = wireframePart.IndicesSpan;
-                    gl.BufferData(GLEnum.ElementArrayBuffer, indexSpan, GLEnum.StaticDraw);
+                    gl.BufferData(GLEnum.ElementArrayBuffer, partOut.Indices.ReadOnlySpan, GLEnum.StaticDraw);
                 }
                 else if (parts[i] is EdgePart edgePart)
                 {
+                    using var partOut = edgePart.Update();
+
                     gl.BindVertexArray(vaos[i]);
 
                     gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
 
-                    using var vertices = edgePart.GetPoints();
-                    gl.BufferData(GLEnum.ArrayBuffer, vertices.ReadOnlySpan, GLEnum.StaticDraw);
-                    unsafe
-                    {
-                        // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-                        gl.VertexAttribPointer(0, 4, GLEnum.Float, false, 4 * sizeof(float), 0);
-                        gl.EnableVertexAttribArray(0);
+                    gl.BufferData(GLEnum.ArrayBuffer, partOut.Points.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.VertexAttribPointer(0, 3, GLEnum.Float, false, 3 * sizeof(float), 0);
+                    gl.EnableVertexAttribArray(0);
 
-                    }
+                    gl.BindBuffer(GLEnum.ArrayBuffer, ibos[i]);
+                    gl.BufferData(GLEnum.ArrayBuffer, partOut.IndicesCells.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.VertexAttribPointer(1, 1, GLEnum.Float, false, sizeof(float), 0);
+                    gl.EnableVertexAttribArray(1);
 
                     gl.BindBuffer(GLEnum.ElementArrayBuffer, ebos[i]);
-                    using var indices = edgePart.GetIndices();
-                    gl.BufferData(GLEnum.ElementArrayBuffer, indices.ReadOnlySpan, GLEnum.StaticDraw);
+                    gl.BufferData(GLEnum.ElementArrayBuffer, partOut.Indices.ReadOnlySpan, GLEnum.StaticDraw);
                 }
 
             }
@@ -190,6 +120,7 @@ namespace Viewer.Graphic.Opengl
                 nbos = nbos,
                 cbos = cbos,
                 ebos = ebos,
+                ibos = ibos,
                 Length = parts.Count,
             };
             return partBuffers;
@@ -202,11 +133,13 @@ namespace Viewer.Graphic.Opengl
             gl.DeleteBuffers(this.nbos);
             gl.DeleteBuffers(this.cbos);
             gl.DeleteBuffers(this.ebos);
+            gl.DeleteBuffers(this.ibos);
             vaos = null;
             vbos = null;
             nbos = null;
             cbos = null;
             ebos = null;
+            ibos = null;
             GC.SuppressFinalize(this);
         }
     }

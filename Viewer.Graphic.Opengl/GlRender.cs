@@ -271,7 +271,7 @@ public partial class GlRender(GL gl) : IDisposable
             {
                 // gl.Disable(GLEnum.PolygonOffsetFill);
                 gl.PolygonOffset(1, 0.5f);
-                if (highlightPart is StripFacePart || highlightPart is StripFaceGeometry)
+                if (highlightPart is StripFacePart)
                 {
                     highlightFaceShader.Use();
                     highlightFaceShader.UniformMatrix3("g_WIT", normalModel);
@@ -281,14 +281,14 @@ public partial class GlRender(GL gl) : IDisposable
                     highlightFaceShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
                     highlightFaceShader.SetUniform("g_Origin", highlightComp.CompMatrix);
                     //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
-                    m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
+                    m_PSConstantBuffer.objColor = new Vector4(1f, 1f, 0f, 1f);
                     highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
                     partBuffers.GetPartBuffer(highlightComp.PartIndex, out var vao, out var ebo);
                     gl.BindVertexArray(vao);
                     gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
                     GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
                 }
-                else if (highlightPart is EdgePart || highlightPart is EdgeGeometry)
+                else if (highlightPart is EdgePart)
                 {
                     lineShader.Use();
                     m_PSConstantBuffer.objColor = new Vector4(1.0f, 0f, 0f, 1f);
@@ -322,7 +322,7 @@ public partial class GlRender(GL gl) : IDisposable
         {
             var comp = geometry.Components[i];
             var part = geometry.Parts[comp.PartIndex];
-            if (part is StripFacePart || part is StripFaceGeometry)
+            if (part is StripFacePart)
             {
                 faceShader.SetUniform("g_Origin", comp.CompMatrix);
                 partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
@@ -345,7 +345,7 @@ public partial class GlRender(GL gl) : IDisposable
         {
             var comp = geometry.Components[i];
             var part = geometry.Parts[comp.PartIndex];
-            if (part is EdgePart || part is EdgeGeometry)
+            if (part is EdgePart)
             {
                 lineShader.SetUniform("g_Origin", comp.CompMatrix);
                 partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
