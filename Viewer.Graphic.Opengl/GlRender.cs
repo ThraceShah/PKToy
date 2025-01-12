@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Silk.NET.Core.Contexts;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -118,27 +119,38 @@ public partial class GlRender(GL gl) : IDisposable
         gl.Enable(GLEnum.CullFace);
         gl.CullFace(GLEnum.Back);
         gl.Enable(GLEnum.DepthTest);
+        gl.DepthFunc(GLEnum.Less);
         gl.Enable(GLEnum.LineSmooth);  // 启用线条平滑
-        gl.Enable(GLEnum.Blend);
-        gl.BlendFunc(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha);
         gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
-        //设置深度偏移,offset = m * factor + r * units,其中，m是多边形的最大深度斜率，r是能产生显著深度变化的最小值
+        // 设置深度偏移,offset = m * factor + r * units,其中，m是多边形的最大深度斜率，r是能产生显著深度变化的最小值
         gl.PolygonOffset(1, 0.5f);
 
+        gl.Enable(GLEnum.Blend);
+        gl.BlendFunc(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha);
 
         // 启用重启索引功能
         gl.Enable(GLEnum.PrimitiveRestart);
 
-        faceShader = new Shader(gl, "GLSL/faceShader.vert",
-        "GLSL/faceShader.frag");
-        lineShader = new Shader(gl, "GLSL/lineShader.vert",
-        "GLSL/lineShader.frag");
-        pickShader = new Shader(gl, "GLSL/pickShader.vert",
-        "GLSL/pickShader.frag");
-        highlightFaceShader = new Shader(gl, "GLSL/highlightFaceShader.vert",
-        "GLSL/highlightFaceShader.frag");
-    }
+        var dir = "GLSL";
+        var version = Marshal.PtrToStringAnsi((nint)gl.GetString(GLEnum.Version));
+        if (version.Contains("OpenGL ES"))
+        {
+            dir = "GLSL_ES";
+        }
+        else
+        {
+            gl.PrimitiveRestartIndex(uint.MaxValue);
+        }
+        faceShader = new Shader(gl, $"{dir}/faceShader.vert",
+        $"{dir}/faceShader.frag");
+        lineShader = new Shader(gl, $"{dir}/lineShader.vert",
+        $"{dir}/lineShader.frag");
+        pickShader = new Shader(gl, $"{dir}/pickShader.vert",
+        $"{dir}/pickShader.frag");
+        highlightFaceShader = new Shader(gl, $"{dir}/highlightFaceShader.vert",
+        $"{dir}/highlightFaceShader.frag");
 
+    }
 
     public void UpdateGeometry(AsmGeometry asmGeometry)
     {
@@ -147,7 +159,8 @@ public partial class GlRender(GL gl) : IDisposable
 
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
-        bBoxCenter = asmGeometry.GetBBoxCenter();
+        // bBoxCenter = asmGeometry.GetBBoxCenter();
+        bBoxCenter = new(0, 0, 0);
         asmGeometry.CreateAsmWorldRH(1, 1, out world);
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
@@ -256,7 +269,8 @@ public partial class GlRender(GL gl) : IDisposable
             if (highlightPart.GetCellGeometryRange(highlightCell,
             out var start, out var length))
             {
-                gl.Disable(GLEnum.PolygonOffsetFill);
+                // gl.Disable(GLEnum.PolygonOffsetFill);
+                gl.PolygonOffset(1, 0.5f);
                 if (highlightPart is StripFacePart || highlightPart is StripFaceGeometry)
                 {
                     highlightFaceShader.Use();
@@ -269,7 +283,7 @@ public partial class GlRender(GL gl) : IDisposable
                     //去除高亮面的深度值加值,使得有多个面重叠的情况下,高亮面总是显示在最上面
                     m_PSConstantBuffer.objColor = new Vector4(1f, 0.501f, 0f, 1f);
                     highlightFaceShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
-                    partBuffers.GetPartBuffer((uint)highlightComp.PartIndex, out var vao, out var ebo);
+                    partBuffers.GetPartBuffer(highlightComp.PartIndex, out var vao, out var ebo);
                     gl.BindVertexArray(vao);
                     gl.DrawElements(GLEnum.TriangleStrip, (uint)length,
                     GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
@@ -284,9 +298,9 @@ public partial class GlRender(GL gl) : IDisposable
                     lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
                     lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
                     lineShader.SetUniform("g_Origin", highlightComp.CompMatrix);
-                    gl.LineWidth(4.0f);
+                    gl.LineWidth(3.0f);
 
-                    partBuffers.GetPartBuffer((uint)highlightComp.PartIndex, out var vao, out var ebo);
+                    partBuffers.GetPartBuffer(highlightComp.PartIndex, out var vao, out var ebo);
                     gl.BindVertexArray(vao);
                     gl.DrawElements(GLEnum.Lines, (uint)length,
                     GLEnum.UnsignedInt, (void*)(start * sizeof(uint)));
@@ -294,10 +308,9 @@ public partial class GlRender(GL gl) : IDisposable
             }
         }
 
-
         gl.Enable(GLEnum.PolygonOffsetFill);//开启深度偏移
                                             //设置深度偏移,offset = m * factor + r * units,其中，m是多边形的最大深度斜率，r是能产生显著深度变化的最小值
-        gl.PolygonOffset(2, 2f);
+        gl.PolygonOffset(2, 3f);
         faceShader.Use();
         faceShader.UniformMatrix3("g_WIT", normalModel);
         faceShader.SetUniform("g_World", m_VSConstantBuffer.world);
@@ -312,14 +325,14 @@ public partial class GlRender(GL gl) : IDisposable
             if (part is StripFacePart || part is StripFaceGeometry)
             {
                 faceShader.SetUniform("g_Origin", comp.CompMatrix);
-                partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
+                partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                 gl.BindVertexArray(vao);
                 gl.DrawElements(GLEnum.TriangleStrip, (uint)part.IndicesCount, GLEnum.UnsignedInt, null);
             }
         }
 
-        // gl.Disable(GLEnum.PolygonOffsetFill);
-        gl.PolygonOffset(2, 1f);
+        gl.Disable(GLEnum.PolygonOffsetFill);
+        // gl.PolygonOffset(2, 1f);
         lineShader.Use();
         m_PSConstantBuffer.objColor = new Vector4(0f, 0f, 0f, 1f);
         lineShader.SetUniform("objectColor", m_PSConstantBuffer.objColor);
@@ -327,7 +340,7 @@ public partial class GlRender(GL gl) : IDisposable
         lineShader.SetUniform("g_View", m_VSConstantBuffer.view);
         lineShader.SetUniform("g_Proj", m_VSConstantBuffer.projection);
         lineShader.SetUniform("g_Translation", m_VSConstantBuffer.translation);
-        gl.LineWidth(4.0f);
+        gl.LineWidth(1.5f);
         for (int i = 0; i < geometry.Components.Count; i++)
         {
             var comp = geometry.Components[i];
@@ -335,10 +348,9 @@ public partial class GlRender(GL gl) : IDisposable
             if (part is EdgePart || part is EdgeGeometry)
             {
                 lineShader.SetUniform("g_Origin", comp.CompMatrix);
-                partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
+                partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                 gl.BindVertexArray(vao);
-                gl.DrawElements(GLEnum.Lines, (uint)part.IndicesCount,
-                GLEnum.UnsignedInt, null);
+                gl.DrawElements(GLEnum.Lines, (uint)part.IndicesCount, GLEnum.UnsignedInt, (void*)0);
             }
         }
 
@@ -374,7 +386,7 @@ public partial class GlRender(GL gl) : IDisposable
     private void UpdateProjMatrix()
     {
         m_VSConstantBuffer.projection = Matrix.CreateOrthographicOffCenter(-orthoScale * aspectRatio,
-        orthoScale * aspectRatio, -orthoScale, orthoScale, 0.1f, 100.0f);
+        orthoScale * aspectRatio, -orthoScale, orthoScale, 0.1f, 1000.0f);
 
     }
 

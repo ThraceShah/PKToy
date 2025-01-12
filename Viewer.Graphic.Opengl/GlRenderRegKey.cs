@@ -63,7 +63,8 @@ namespace Viewer.Graphic.Opengl
                     break;
                 }
                 id -= part.CellCount;
-            };
+            }
+            ;
             watch.Stop();
             Console.WriteLine($"gpu:highlightComp={highlightComp},highlightCell={highlightCell},time={watch.ElapsedMilliseconds}ms");
             computeEnd = true;
@@ -140,7 +141,7 @@ namespace Viewer.Graphic.Opengl
                     Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);
                     pickShader.SetUniform("baseId", baseId);
                     pickShader.SetUniform("g_Origin", comp.CompMatrix);
-                    partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
+                    partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                     gl.BindVertexArray(vao);
                     gl.DrawElements(GLEnum.TriangleStrip, (uint)part.IndicesCount, GLEnum.UnsignedInt, null);
                 }
@@ -157,7 +158,7 @@ namespace Viewer.Graphic.Opengl
                     Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);
                     pickShader.SetUniform("baseId", baseId);
                     pickShader.SetUniform("g_Origin", comp.CompMatrix);
-                    partBuffers.GetPartBuffer((uint)comp.PartIndex, out var vao, out var ebo);
+                    partBuffers.GetPartBuffer(comp.PartIndex, out var vao, out var ebo);
                     gl.BindVertexArray(vao);
                     gl.DrawElements(GLEnum.Lines, (uint)part.IndicesCount,
                     GLEnum.UnsignedInt, null);

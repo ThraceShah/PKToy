@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -12,6 +13,52 @@ namespace PKToy.Views;
 
 public partial class MainWindow : Window
 {
+    AsmGeometry CreateCubeLine()
+    {
+        var cube = new AsmGeometry();
+        // var points = new List<Vector3>
+        // {
+        //     new Vector3(0, 0, 0),
+        //     new Vector3(1, 0, 0),
+        //     new Vector3(1, 1, 0),
+        //     new Vector3(0, 1, 0),
+        //     new Vector3(0, 0, 1),
+        //     new Vector3(1, 0, 1),
+        //     new Vector3(1, 1, 1),
+        //     new Vector3(0, 1, 1),
+        // };
+        // var edgeIndices = new List<int>
+        // {
+        //     0, 1, 1, 2, 2, 3, 3, 0,
+        //     4, 5, 5, 6, 6, 7, 7, 4,
+        //     0, 4, 1, 5, 2, 6, 3, 7,
+        // };
+        var points = new List<Vector3>
+        {
+            new Vector3(0, 0, 0),
+            new Vector3(1, 0, 0),
+            new Vector3(1, 1, 0),
+            new Vector3(0, 1, 0),
+        };
+        var edgeIndices = new List<int>
+        {
+            0, 1, 1, 2, 2, 3, 3, 0
+        };
+
+        var edgePartBuilder = new EdgePartBuilder();
+        for (int i = 0; i < edgeIndices.Count; i += 2)
+        {
+            var edgeBuilder = new EdgeBuilder();
+            edgeBuilder.InsertNextPoint(points[edgeIndices[i]]);
+            edgeBuilder.InsertNextPoint(points[edgeIndices[i + 1]]);
+            edgePartBuilder.TagEdgeBuilders.Add(i / 2, edgeBuilder);
+        }
+        var edgePart = edgePartBuilder.Build();
+        edgePart.Modified();
+        cube.AddPart(edgePart);
+        cube.AddCompnent(edgePart, Matrix4x4.Identity);
+        return cube;
+    }
     public MainWindow()
     {
         InitializeComponent();
@@ -48,6 +95,11 @@ public partial class MainWindow : Window
             long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
             Console.WriteLine($"after Memory Used: {after}MB");
             Console.WriteLine($"after-before={after - before}MB");
+        };
+        this.CubeBtn.Click += (sender, args) =>
+        {
+            var cube = CreateCubeLine();
+            this.GL.GLControl.UpdateGeometry(cube);
         };
     }
 

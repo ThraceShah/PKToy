@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 namespace Viewer.IContract;
 public static class Constants
 {
+    //public const int STRIPBREAK = -1;
     public const int STRIPBREAK = -1;
 }
 

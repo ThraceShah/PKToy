@@ -36,8 +36,6 @@ public unsafe class PKSession
 
     public static AsmGeometry OpenPart(string partName)
     {
-        PK.POINT_t point;
-        PK.VERTEX.ask_point(0, &point);
         PK.PART.receive_o_t receive_options = new(true);
         if (Path.GetExtension(partName).Equals(".x_t", StringComparison.OrdinalIgnoreCase))
         {
