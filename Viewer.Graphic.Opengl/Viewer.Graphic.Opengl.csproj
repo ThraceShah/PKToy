@@ -8,11 +8,8 @@
         <PublishAot>true</PublishAot>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Silk.NET.GLFW" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.Input.Glfw" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.Maths" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.OpenGL" Version="2.21.0" />
-        <PackageReference Include="Silk.NET.Windowing.Glfw" Version="2.21.0" />
+        <PackageReference Include="Silk.NET.Maths" Version="2.22.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
         <PackageReference Include="System.Text.Json" Version="8.0.5" />
     </ItemGroup>
     <ItemGroup>
@@ -20,29 +17,13 @@
         <ProjectReference Include="../Viewer.Math/Viewer.Math.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <None Update="GLSL\faceShader.frag">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <None Update="GLSL\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
-        <None Update="GLSL\faceShader.vert">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="GLSL\lineShader.frag">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="GLSL\lineShader.vert">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="GLSL\pickShader.frag">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="GLSL\pickShader.vert">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="GLSL\highlightFaceShader.frag">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
-        <None Update="GLSL\highlightFaceShader.vert">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </ItemGroup>
+    <ItemGroup>
+        <None Update="GLSL_ES\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 </Project>

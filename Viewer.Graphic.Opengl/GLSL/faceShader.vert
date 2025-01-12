@@ -1,9 +1,8 @@
-#version 300 es
+#version 330 core
 
-precision mediump float;
 layout(location = 0) in vec4 vIn;
 layout(location = 1) in vec3 normalIn;
-layout(location = 2) in uint colorIn;
+layout(location = 2) in float colorIn;
 
 uniform mat4 g_World;
 uniform mat4 g_View;
@@ -15,7 +14,7 @@ uniform mat3 g_WIT;
 
 out vec3 fs_normal;
 out vec3 fs_posW;
-flat out uint fs_color;
+flat out float fs_color;
 
 void main()
 {
