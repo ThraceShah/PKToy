@@ -1,6 +1,7 @@
 #version 330 core
 
-layout(location = 0) in vec4 vIn;
+layout(location = 0) in vec3 vIn;
+layout(location = 1) in float id;
 
 uniform mat4 g_World;
 uniform mat4 g_View;
@@ -16,7 +17,7 @@ void main()
     vec3 posL = vIn.xyz;
     vec4 orig = g_Origin * vec4(posL, 1.0);
     vec4 pos = g_World * orig;
-    uint value = floatBitsToUint(vIn.w) + floatBitsToUint(baseId.x);
+    uint value = floatBitsToUint(id) + floatBitsToUint(baseId.x);
     float a = float((value / 16777216u) % 256u) / 255.0;
     float b = float((value / 65536u) % 256u) / 255.0;
     float g = float((value / 256u) % 256u) / 255.0;

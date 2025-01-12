@@ -1,6 +1,6 @@
 #version 330 core
 
-layout(location = 0) in vec4 vIn;
+layout(location = 0) in vec3 vIn;
 
 uniform mat4 g_World;
 uniform mat4 g_View;

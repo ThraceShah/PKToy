@@ -156,9 +156,10 @@ public unsafe class PKGoCallback : IDisposable
                         curParams.curBody.Shaded.TagFaces.Add(faceTag, new StripFace());
                     }
                     var tagStripFace = curParams.curBody.Shaded.TagFaces[faceTag];
+                    tagStripFace.SetColor(color[0]);
                     for (int i = 0; i < vCount; i++)
                     {
-                        tagStripFace.InsertNextPoint(geom + i * 3, normal + i * 3, color[0]);
+                        tagStripFace.InsertNextPoint(geom + i * 3, normal + i * 3);
                     }
                     tagStripFace.InsertNextStrip();
                     var tagEdgeBuilderMap = new Dictionary<int, EdgeBuilder>();

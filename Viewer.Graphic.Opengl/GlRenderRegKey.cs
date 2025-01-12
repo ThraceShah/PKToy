@@ -135,7 +135,7 @@ namespace Viewer.Graphic.Opengl
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
-                if (part is StripFacePart || part is StripFaceGeometry)
+                if (part is StripFacePart)
                 {
                     int compId = geometry.GetCompFirstIdByIndex(i);
                     Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);
@@ -152,7 +152,7 @@ namespace Viewer.Graphic.Opengl
             {
                 var comp = geometry.Components[i];
                 var part = geometry.Parts[comp.PartIndex];
-                if (part is EdgePart || part is EdgeGeometry)
+                if (part is EdgePart)
                 {
                     int compId = geometry.GetCompFirstIdByIndex(i);
                     Vector4 baseId = new(*(float*)(&compId), 0, 0, 0);

@@ -11,12 +11,12 @@ internal class Shader : IDisposable
     private readonly uint _handle;
     private readonly GL _gl;
 
-    public Shader(GL gl, string vertexPath, string fragmentPath,string geometryPath=null)
+    public Shader(GL gl, string vertexPath, string fragmentPath, string geometryPath = null)
     {
         _gl = gl;
         var dir = AppContext.BaseDirectory;
-        vertexPath = Path.Combine(dir, vertexPath);
-        fragmentPath = Path.Combine(dir, fragmentPath);
+        vertexPath = Path.GetFullPath(Path.Combine(dir, vertexPath));
+        fragmentPath = Path.GetFullPath(Path.Combine(dir, fragmentPath));
         Console.WriteLine(vertexPath);
         Console.WriteLine(fragmentPath);
         //Load the individual shaders.
@@ -29,7 +29,7 @@ internal class Shader : IDisposable
         _gl.AttachShader(_handle, vertex);
         if (geometryPath != null)
         {
-            geometryPath = Path.Combine(dir, geometryPath);
+            geometryPath = Path.GetFullPath(Path.Combine(dir, geometryPath));
             geometry = LoadShader(ShaderType.GeometryShader, geometryPath);
             _gl.AttachShader(_handle, geometry);
         }
@@ -104,7 +104,7 @@ internal class Shader : IDisposable
         {
             throw new Exception($"{name} uniform not found on shader.");
         }
-        _gl.Uniform4(location,value);
+        _gl.Uniform4(location, value);
     }
 
     public void UniformMatrix3(string name, ReadOnlySpan<float> value)
