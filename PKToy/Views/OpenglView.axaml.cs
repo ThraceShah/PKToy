@@ -85,6 +85,7 @@ public partial class OpenglView : UserControl
             var p = args.GetPosition(this);
             args.Handled = true;
             GLControl.GlRender.MouseMove((int)p.X, (int)p.Y);
+            GLControl.Hover((int)(p.X * scale), (int)(p.Y * scale));
         };
         this.PointerWheelChanged += (sender, args) =>
         {
@@ -141,6 +142,7 @@ public class OpenGlPageControl : OpenGlControlBase
         }
         //执行opengl相关操作的函数，必须在OnOpenGlRender或OnOpenGlInit内执行
         //包括使用Dispatcher.UIThread.Post到主线程执行opengl相关的函数都不行，具体原因还不清楚，可能是上下文错误
+        this.GlRender.Hover(hoverX, hoverY);
         if (leftReleased)
         {
             leftReleased = false;
@@ -201,6 +203,14 @@ public class OpenGlPageControl : OpenGlControlBase
         this.ny = ny;
         leftReleased = true;
         ResetWatch();
+    }
+
+    int hoverX = 0;
+    int hoverY = 0;
+    public void Hover(int x, int y)
+    {
+        hoverX = x;
+        hoverY = y;
     }
 
 }

@@ -23,17 +23,39 @@ namespace Viewer.Graphic.Opengl
     }
     public partial class GlRender
     {
+        public bool EnableHover { get; set; } = true;
         private int highlightComp = -1;
 
         private int highlightCell = -1;
         bool computeEnd = true;
+
+        private int lastHoverX = 0;
+        private int lastHoverY = 0;
+
+        public void Hover(int x, int y)
+        {
+            if (geometry == null || geometry.Components.Count == 0)
+            {
+                return;
+            }
+            if (EnableHover && keyCode == KeyCode.None)
+            {
+                if (x != lastHoverX || y != lastHoverY)
+                {
+                    lastHoverX = x;
+                    lastHoverY = y;
+                    HighlightPrimitiveByMousePostion(x, y);
+                }
+
+            }
+        }
 
         /// <summary>
         /// 离屏渲染拾取图元
         /// </summary>
         /// <param name="nx"></param>
         /// <param name="ny"></param>
-        private void HighlightPrimitiveByMousePostion(int nx, int ny)
+        public void HighlightPrimitiveByMousePostion(int nx, int ny)
         {
             if (computeEnd is false)
             {
