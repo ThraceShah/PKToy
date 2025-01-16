@@ -47,8 +47,8 @@ public partial class GlRender(GL gl) : IDisposable
 
     private AsmGeometry geometry;
 
-    float lastX = 0;
-    float lastY = 0;
+    int lastX = 0;
+    int lastY = 0;
 
     private uint offSrcFramebuffer;
     private uint offSrcTexture;
@@ -154,6 +154,8 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void UpdateGeometry(AsmGeometry asmGeometry)
     {
+        var hover = EnableHover;
+        EnableHover = false;
         this.keyCode = KeyCode.None;
         orthoScale = 1.0f;
 
@@ -165,7 +167,7 @@ public partial class GlRender(GL gl) : IDisposable
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry = asmGeometry;
-
+        EnableHover = hover;
     }
 
     public void GLControlResize(uint width, uint height)
@@ -187,9 +189,12 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void MouseUp(KeyCode keyCode, int x, int y)
     {
-        if (keyCode == KeyCode.Left && keyCode == KeyCode.Left)
+        if (keyCode == KeyCode.Left)
         {
-            this.HighlightPrimitiveByMousePostion(x, y);
+            if (geometry != null && geometry.Parts.Count > 0)
+            {
+                this.HighlightPrimitiveByMousePostion(x, y);
+            }
         }
         this.keyCode &= ~keyCode;
     }
@@ -198,7 +203,7 @@ public partial class GlRender(GL gl) : IDisposable
     public void MouseMove(int x, int y)
     {
         if (this.keyCode != KeyCode.Middle &&
-        this.keyCode != KeyCode.ControlLeft)
+        this.keyCode != KeyCode.ControlLeft && EnableHover == false)
         {
             return;
         }
@@ -212,12 +217,13 @@ public partial class GlRender(GL gl) : IDisposable
         {
             case KeyCode.Middle:
                 ProcessMouseMovement(xOffset, yOffset);
-                break;
+                return;
             case KeyCode.ControlLeft:
                 m_VSConstantBuffer.translation.M14 += xOffset * 0.002f;
                 m_VSConstantBuffer.translation.M24 += yOffset * 0.002f;
-                break;
+                return;
         }
+
     }
 
     public void MouseWheel(int delta)
@@ -242,6 +248,7 @@ public partial class GlRender(GL gl) : IDisposable
 
     public unsafe void Render()
     {
+
         gl.ClearColor(0.3725f, 0.6196f, 0.6275f, 1.0f);
         gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit); // also clear the depth buffer now!
         if (geometry == null)
