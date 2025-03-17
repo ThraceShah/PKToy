@@ -28,5 +28,6 @@
 	<ItemGroup>
 		<ProjectReference Include="../Viewer.Graphic.Opengl/Viewer.Graphic.Opengl.csproj" />
 		<ProjectReference Include="..\PKToy.Lib\PKToy.Lib.csproj" />
+		<ProjectReference Include="..\PKToy.Exchange.Step2Mid\PKToy.Exchange.Step2Mid.csproj" />
 	</ItemGroup>
 </Project>
