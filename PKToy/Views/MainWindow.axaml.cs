@@ -6,6 +6,7 @@ using System.Numerics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using PKToy.Exchange.Step2Mid;
 using PKToy.Lib;
 using Viewer.IContract;
 
@@ -73,8 +74,10 @@ public partial class MainWindow : Window
             var option = new FilePickerOpenOptions
             {
                 AllowMultiple = false,
-                Title = "选择parasolid文件",
-                FileTypeFilter = [new FilePickerFileType("files") { Patterns = ["*.x_t", "*.x_b"] }],
+                Title = "选择文件",
+                FileTypeFilter = [new FilePickerFileType("pk files") { Patterns = ["*.x_t", "*.x_b"] },
+                new FilePickerFileType("step files") { Patterns = ["*.step","*.stp"] },
+                ],
             };
             var result = await this.StorageProvider.OpenFilePickerAsync(option);
 
@@ -87,14 +90,22 @@ public partial class MainWindow : Window
             var stop = new Stopwatch();
             stop.Start();
 
-            var geometry = PKSession.OpenPart(filename);
-            this.GL.GLControl.UpdateGeometry(geometry);
-            GC.Collect();
-            stop.Stop();
-            Console.WriteLine($"open part elapsed time:{stop.ElapsedMilliseconds} ms");
-            long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
-            Console.WriteLine($"after Memory Used: {after}MB");
-            Console.WriteLine($"after-before={after - before}MB");
+            var extension = System.IO.Path.GetExtension(filename).ToLower();
+            if (extension is ".x_t" or ".x_b")
+            {
+                var geometry = PKSession.OpenPart(filename);
+                this.GL.GLControl.UpdateGeometry(geometry);
+                GC.Collect();
+                stop.Stop();
+                Console.WriteLine($"open part elapsed time:{stop.ElapsedMilliseconds} ms");
+                long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+                Console.WriteLine($"after Memory Used: {after}MB");
+                Console.WriteLine($"after-before={after - before}MB");
+            }
+            else if (extension is ".step" or ".stp")
+            {
+                var geometry = Step2Mid.ResolveStep2Mid(filename);
+            }
         };
         this.CubeBtn.Click += (sender, args) =>
         {
