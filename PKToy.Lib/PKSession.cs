@@ -1,6 +1,7 @@
 
 using System.Diagnostics;
 using System.Numerics;
+using System.Text;
 using Viewer.IContract;
 
 namespace PKToy.Lib;
@@ -14,7 +15,8 @@ public unsafe class PKSession
         PK.SESSION.set_smp(&smpOptions);
         PK.SESSION.smp_r_t smpResult;
         PK.SESSION.ask_smp(&smpResult);
-        PrivateAccessor.Init();
+        Viewer.IContract.PrivateAccessor.Init();
+        PKToy.Exchange.PrivateAccessor.Init();
     }
 
     public static void CallRenderFacet(Span<PK.BODY_t> bodies)
@@ -51,16 +53,25 @@ public unsafe class PKSession
         }
         var watch = new Stopwatch();
         watch.Start();
+        PK.PARTITION_t curPartition;
+        PK.SESSION.ask_curr_partition(&curPartition);
+        PK.PARTITION_t newPartition;
+        PK.PARTITION.create_empty(&newPartition);
+        PK.PARTITION.set_current(newPartition);
+
         using var parts = new PKScopeArray<PK.PART_t>();
         PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
-        PK.PARTITION_t partition;
-        PK.SESSION.ask_curr_partition(&partition);
+        var asmGeom = OpenPartition(newPartition);
+        PK.PARTITION.set_current(curPartition);
+        return asmGeom;
+    }
+
+    public static AsmGeometry OpenPartition(PK.PARTITION_t partition)
+    {
+        var watch = new Stopwatch();
+        watch.Start();
         using var bodies = new PKScopeArray<PK.BODY_t>();
         PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
-        watch.Stop();
-        Console.WriteLine($"kernel load model elapsed time:{watch.ElapsedMilliseconds} ms");
-
-        watch.Restart();
         using var goCallback = new PKGoCallback();
         Console.WriteLine("render faces");
         CallRenderFacet(bodies.Span);
@@ -145,5 +156,24 @@ public unsafe class PKSession
         watch.Stop();
         Console.WriteLine($"get part geometry elapsed time:{watch.ElapsedMilliseconds} ms");
         return asmGeom;
+    }
+
+    public static AsmGeometry OpenStep(string stepName)
+    {
+        var watch = new Stopwatch();
+        watch.Start();
+        var partition = PKToy.Exchange.StepLoader.LoadStep(stepName);
+        watch.Stop();
+        Console.WriteLine($"load step to pk elapsed time:{watch.ElapsedMilliseconds} ms");
+        return OpenPartition(partition);
+    }
+
+    public static void SavePart(string partName, PK.PARTITION_t partition)
+    {
+        var parts = new PKScopeArray<PK.PART_t>();
+        PK.SESSION.ask_parts(&parts.size, &parts.data);
+        PK.PART.transmit_o_t transmitOptions = new(true);
+        transmitOptions.transmit_format = PK.transmit_format_t.text_c;
+        PK.PART.transmit(parts.size, parts.data, partName, &transmitOptions);
     }
 }

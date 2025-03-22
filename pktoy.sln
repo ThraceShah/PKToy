@@ -13,9 +13,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Viewer.Math", "Viewer.Math\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Viewer.Graphic.Opengl", "Viewer.Graphic.Opengl\Viewer.Graphic.Opengl.csproj", "{EED4B3AF-9EA9-4AA2-A21F-073414304217}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PKToy.Exchange.Midlayer", "PKToy.Exchange.Midlayer\PKToy.Exchange.Midlayer.csproj", "{D0B9BFED-B21F-43F5-BDBD-44FA8BB78FA4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exchange.Midlayer", "Exchange.Midlayer\Exchange.Midlayer.csproj", "{D0B9BFED-B21F-43F5-BDBD-44FA8BB78FA4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PKToy.Exchange.Step2Mid", "PKToy.Exchange.Step2Mid\PKToy.Exchange.Step2Mid.csproj", "{BFEE741B-C738-4BF5-BE7E-0C93A022C78C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exchange.Step2Mid", "Exchange.Step2Mid\Exchange.Step2Mid.csproj", "{BFEE741B-C738-4BF5-BE7E-0C93A022C78C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PKToy.Exchange", "PKToy.Exchange\PKToy.Exchange.csproj", "{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,6 +113,18 @@ Global
 		{BFEE741B-C738-4BF5-BE7E-0C93A022C78C}.Release|x64.Build.0 = Release|Any CPU
 		{BFEE741B-C738-4BF5-BE7E-0C93A022C78C}.Release|x86.ActiveCfg = Release|Any CPU
 		{BFEE741B-C738-4BF5-BE7E-0C93A022C78C}.Release|x86.Build.0 = Release|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Debug|x64.Build.0 = Debug|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Debug|x86.Build.0 = Debug|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Release|x64.ActiveCfg = Release|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Release|x64.Build.0 = Release|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Release|x86.ActiveCfg = Release|Any CPU
+		{F64D56BE-D3D3-4B70-BDCF-F9F9502B0558}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
