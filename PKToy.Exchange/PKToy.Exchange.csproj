@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Exchange.Midlayer\Exchange.Midlayer.csproj" />
+    <ProjectReference Include="..\Exchange.Step2Mid\Exchange.Step2Mid.csproj" />
+    <Reference Include="../lib/pskernel_net.dll" />
+  </ItemGroup>
+
+</Project>

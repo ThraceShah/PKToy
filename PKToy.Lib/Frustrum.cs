@@ -15,19 +15,26 @@ public unsafe static class Frustrum
     const int FR_close_fail = (int)frustrum_ifails_t.FR_close_fail;
     const string end_of_header_s = "**END_OF_HEADER";
 
-    class PSFile(string name) : IDisposable
+    class PSFile : IDisposable
     {
-        private readonly BinaryReader file = new(new FileStream(name, FileMode.Open, FileAccess.Read), Encoding.ASCII);
-
+        private readonly FileStream fileStream;
+        private readonly BinaryReader reader;
+        private readonly BinaryWriter writer;
+        public PSFile(string name)
+        {
+            fileStream = new(name, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            reader = new(fileStream, Encoding.ASCII);
+            writer = new(fileStream, Encoding.ASCII);
+        }
         public void SkipHeader()
         {
             Span<byte> buffer1 = stackalloc byte[2];
-            file.Read(buffer1);
+            reader.Read(buffer1);
             if (buffer1[0] == 0x2A && buffer1[1] == 0x2A)
             {
                 var sb = new StringBuilder();
                 Span<byte> buffer = stackalloc byte[1];
-                while (file.Read(buffer) > 0)
+                while (reader.Read(buffer) > 0)
                 {
                     if (buffer[0] == (byte)'\n')
                     {
@@ -46,7 +53,7 @@ public unsafe static class Frustrum
             }
             else
             {
-                file.BaseStream.Seek(0, SeekOrigin.Begin);
+                reader.BaseStream.Seek(0, SeekOrigin.Begin);
             }
         }
 
@@ -55,18 +62,26 @@ public unsafe static class Frustrum
         {
             *ifail = FR_no_errors;
             *n_read = 0;
-            if (file.BaseStream.Position == file.BaseStream.Length)
+            if (reader.BaseStream.Position == reader.BaseStream.Length)
             {
                 *ifail = FR_end_of_file;
                 return;
             }
             var span = new Span<byte>(buffer, max);
-            *n_read = file.Read(span);
+            *n_read = reader.Read(span);
+        }
+
+        public unsafe void Write(int nchars, byte* buffer, int* ifail)
+        {
+            *ifail = FR_no_errors;
+            writer.Write(new Span<byte>(buffer, nchars));
         }
 
         public void Dispose()
         {
-            file.Dispose();
+            reader.Dispose();
+            writer.Dispose();
+            fileStream.Dispose();
         }
     }
 
@@ -129,16 +144,22 @@ public unsafe static class Frustrum
     public static unsafe void FrustrumFileOpenWrite(int* guise, int* format, byte* name, int* namlen, byte* pd2hdr, int* pd2len, int* strid, int* ifail)
     {
         PrintParameters(guise, format, name, namlen, pd2hdr, pd2len, strid, ifail);
-        // Dummy Function - we don't ever write
-        *strid = 1;
+        var name_str = new string((sbyte*)name, 0, *namlen, Encoding.UTF8);
+        var file = new PSFile(name_str);
+        open_files[next_file_id] = file;
+        *strid = next_file_id;
+        ++next_file_id;
         *ifail = FR_no_errors;
     }
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FrustrumFileWrite(int* guise, int* strid, int* nchars, byte* buffer, int* ifail)
     {
-        // PrintParameters(guise, strid, nchars, buffer, ifail);
-        // Dummy Function - we don't ever write
-        *ifail = FR_no_errors;
+        *ifail = FR_unspecified;
+        if (open_files.TryGetValue(*strid, out var file))
+        {
+            *ifail = FR_no_errors;
+            file.Write(*nchars, buffer, ifail);
+        }
     }
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FrustrumFileRead(int* guise, int* strid, int* nmax, byte* buffer, int* nactual, int* ifail)

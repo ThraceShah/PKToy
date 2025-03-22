@@ -1,5 +1,5 @@
 ﻿
-namespace PKToy.Exchange.Midlayer;
+namespace Exchange.Midlayer;
 
 public record struct ImpId(int Id = 0)
 {
@@ -13,27 +13,20 @@ public record struct ExpId(int Id = 0)
     public static implicit operator int(ExpId expId) => expId.Id;
 }
 
-public struct Vector3
+public struct Vector3D(double x, double y, double z)
 {
-    public double X;
-    public double Y;
-    public double Z;
-
-    public Vector3(double x, double y, double z)
-    {
-        X = x;
-        Y = y;
-        Z = z;
-    }
+    public double X = x;
+    public double Y = y;
+    public double Z = z;
 }
 
 public struct Axis3D
 {
-    public Vector3 Location;
+    public Vector3D Location;
 
-    public Vector3 Axis;
+    public Vector3D Axis;
 
-    public Vector3 RefDir;
+    public Vector3D RefDir;
 }
 
 public interface IMidObj
@@ -42,27 +35,26 @@ public interface IMidObj
     public ExpId ExpId { get; set; }
 }
 
-public interface IGeoObj : IMidObj { }
+public interface IGeoObj : IMidObj;
 
-public interface IPointObj : IGeoObj { }
+public interface IPointObj : IGeoObj;
 
-public interface ICurveObj : IGeoObj { }
-
-public interface ISurfaceObj : IGeoObj { }
+public interface ICurveObj : IGeoObj;
+public interface ISurfaceObj : IGeoObj;
 
 public class PointObj : IPointObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
-    public Vector3 Position { get; set; }
+    public Vector3D Position { get; set; }
 }
 
 public class LineObj : ICurveObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
-    public Vector3 Location { get; set; }
-    public Vector3 Axis { get; set; }
+    public Vector3D Location { get; set; }
+    public Vector3D Axis { get; set; }
 }
 
 public class PlaneObj : ISurfaceObj
@@ -72,7 +64,7 @@ public class PlaneObj : ISurfaceObj
     public Axis3D BasisSet { get; set; }
 }
 
-public interface ITopoObj : IMidObj { }
+public interface ITopoObj : IMidObj;
 
 public class VertexObj : ITopoObj
 {
@@ -111,15 +103,18 @@ public class FaceObj : ITopoObj
     public ExpId ExpId { get; set; }
     public LoopObj[]? Loops { get; set; }
     public ISurfaceObj? Surf { get; set; }
+    public bool Sence { get; set; } = true;
 }
 
-public interface IShellObj : ITopoObj { }
+public interface IShellObj : ITopoObj;
 
 public class FaceShellObj : IShellObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
     public FaceObj[]? Faces { get; set; }
+    public bool Closed { get; set; } = false;
+    public bool Oriented { get; set; } = true;
 }
 
 public class WireShellObj : IShellObj
@@ -129,8 +124,17 @@ public class WireShellObj : IShellObj
     public EdgeObj[]? Edges { get; set; }
 }
 
+public class VertexShellObj : IShellObj
+{
+    public ImpId ImpId { get; set; }
+    public ExpId ExpId { get; set; }
+    public VertexObj? Vertex { get; set; }
+}
+
+
 public interface IRegionObj : ITopoObj
 {
+    public IShellObj[]? Shells { get; }
 }
 
 public class SolidRegionObj : IRegionObj
@@ -138,6 +142,7 @@ public class SolidRegionObj : IRegionObj
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
     public FaceShellObj[]? Shells { get; set; }
+    IShellObj[]? IRegionObj.Shells => Shells;
 }
 
 public class VoidRegionObj : IRegionObj
@@ -156,6 +161,7 @@ public class BoundRegionObj : IRegionObj
 
 public interface IBodyObj : ITopoObj
 {
+    public IRegionObj[]? Regions { get; set; }
 }
 
 public class SolidBodyObj : IBodyObj

@@ -6,7 +6,6 @@ using System.Numerics;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
-using PKToy.Exchange.Step2Mid;
 using PKToy.Lib;
 using Viewer.IContract;
 
@@ -89,23 +88,23 @@ public partial class MainWindow : Window
             string filename = result[0].TryGetLocalPath();
             var stop = new Stopwatch();
             stop.Start();
-
             var extension = System.IO.Path.GetExtension(filename).ToLower();
             if (extension is ".x_t" or ".x_b")
             {
                 var geometry = PKSession.OpenPart(filename);
                 this.GL.GLControl.UpdateGeometry(geometry);
-                GC.Collect();
-                stop.Stop();
-                Console.WriteLine($"open part elapsed time:{stop.ElapsedMilliseconds} ms");
-                long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
-                Console.WriteLine($"after Memory Used: {after}MB");
-                Console.WriteLine($"after-before={after - before}MB");
             }
             else if (extension is ".step" or ".stp")
             {
-                var geometry = Step2Mid.ResolveStep2Mid(filename);
+                var geometry = PKSession.OpenStep(filename);
+                this.GL.GLControl.UpdateGeometry(geometry);
             }
+            GC.Collect();
+            stop.Stop();
+            Console.WriteLine($"open part elapsed time:{stop.ElapsedMilliseconds} ms");
+            long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+            Console.WriteLine($"after Memory Used: {after}MB");
+            Console.WriteLine($"after-before={after - before}MB");
         };
         this.CubeBtn.Click += (sender, args) =>
         {

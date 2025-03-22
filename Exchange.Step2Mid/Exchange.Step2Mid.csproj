@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\PKToy.Exchange.Midlayer\PKToy.Exchange.Midlayer.csproj" />
+    <ProjectReference Include="..\Exchange.Midlayer\Exchange.Midlayer.csproj" />
     <Reference Include="../lib/ap203.dll" />
     <Reference Include="../lib/StepCodeDotNet.Base.dll" />
   </ItemGroup>
@@ -10,6 +10,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- <NoWarn>CS8619</NoWarn> -->
   </PropertyGroup>
 
 </Project>

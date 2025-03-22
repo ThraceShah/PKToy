@@ -22,6 +22,7 @@
   </ItemGroup>  
   <ItemGroup>
     <ProjectReference Include="..\Viewer.IContract\Viewer.IContract.csproj" />
+    <ProjectReference Include="..\PKToy.Exchange\PKToy.Exchange.csproj" />
   </ItemGroup>  
   <ItemGroup>
     <None Update="pschema\**\*">

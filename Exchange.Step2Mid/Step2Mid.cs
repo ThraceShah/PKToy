@@ -1,8 +1,8 @@
-﻿using PKToy.Exchange.Midlayer;
+﻿using Exchange.Midlayer;
 using StepCodeDotNet.Base;
 using StepCodeDotNet.Gen.ap203;
 
-namespace PKToy.Exchange.Step2Mid;
+namespace Exchange.Step2Mid;
 
 public class Step2Mid
 {
@@ -80,7 +80,7 @@ public class Step2Mid
         foreach (var stepPoint in stepPoints)
         {
             var midPoint = midMgr.GetOrCreateMidObj<PointObj>(stepPoint.line_id);
-            midPoint.Position = new Vector3(stepPoint.coordinates[0], stepPoint.coordinates[1], stepPoint.coordinates[2]);
+            midPoint.Position = new Vector3D(stepPoint.coordinates[0], stepPoint.coordinates[1], stepPoint.coordinates[2]);
         }
     }
 
@@ -92,8 +92,8 @@ public class Step2Mid
             {
                 case ILine stepLine:
                     var midLine = midMgr.GetOrCreateMidObj<LineObj>(stepLine.line_id);
-                    midLine.Location = new Vector3(stepLine.pnt.coordinates[0], stepLine.pnt.coordinates[1], stepLine.pnt.coordinates[2]);
-                    midLine.Axis = new Vector3(stepLine.dir.orientation.direction_ratios[0], stepLine.dir.orientation.direction_ratios[1], stepLine.dir.orientation.direction_ratios[2]);
+                    midLine.Location = new Vector3D(stepLine.pnt.coordinates[0], stepLine.pnt.coordinates[1], stepLine.pnt.coordinates[2]);
+                    midLine.Axis = new Vector3D(stepLine.dir.orientation.direction_ratios[0], stepLine.dir.orientation.direction_ratios[1], stepLine.dir.orientation.direction_ratios[2]);
                     break;
                 default:
                     break;
@@ -111,9 +111,9 @@ public class Step2Mid
                     var midPlane = midMgr.GetOrCreateMidObj<PlaneObj>(stepPlane.line_id);
                     var basisSet = new Axis3D();
                     var planePos = stepPlane.position;
-                    basisSet.Location = new Vector3(planePos.location.coordinates[0], planePos.location.coordinates[1], planePos.location.coordinates[2]);
-                    basisSet.Axis = new Vector3(planePos.axis.direction_ratios[0], planePos.axis.direction_ratios[1], planePos.axis.direction_ratios[2]);
-                    basisSet.RefDir = new Vector3(planePos.ref_direction.direction_ratios[0], planePos.ref_direction.direction_ratios[1], planePos.ref_direction.direction_ratios[2]);
+                    basisSet.Location = new Vector3D(planePos.location.coordinates[0], planePos.location.coordinates[1], planePos.location.coordinates[2]);
+                    basisSet.Axis = new Vector3D(planePos.axis.direction_ratios[0], planePos.axis.direction_ratios[1], planePos.axis.direction_ratios[2]);
+                    basisSet.RefDir = new Vector3D(planePos.ref_direction.direction_ratios[0], planePos.ref_direction.direction_ratios[1], planePos.ref_direction.direction_ratios[2]);
                     midPlane.BasisSet = basisSet;
                     break;
                 default:
@@ -175,8 +175,9 @@ public class Step2Mid
         foreach (var stepFace in stepFaces)
         {
             var midFace = midMgr.GetOrCreateMidObj<FaceObj>(stepFace.line_id);
-            midFace.Loops = stepFace.bounds.Select(bound => midMgr.GetMidObj<LoopObj>(bound.bound.line_id)).ToArray();
+            midFace.Loops = [.. stepFace.bounds.Select(bound => midMgr.GetMidObj<LoopObj>(bound.bound.line_id))];
             midFace.Surf = midMgr.GetMidObj<ISurfaceObj>(stepFace.face_geometry.line_id);
+            midFace.Sence = stepFace.same_sense;
         }
     }
 
@@ -185,13 +186,61 @@ public class Step2Mid
         foreach (var stepFaceShell in stepFaceShells)
         {
             var midFaceShell = midMgr.GetOrCreateMidObj<FaceShellObj>(stepFaceShell.line_id);
-            midFaceShell.Faces = stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id)).ToArray();
+            switch (stepFaceShell)
+            {
+                case IOriented_open_shell stepOrientedOpenShell:
+                    midFaceShell.Closed = false;
+                    midFaceShell.Oriented = stepOrientedOpenShell.orientation;
+                    midFaceShell.Faces = [.. stepOrientedOpenShell.open_shell_element.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    break;
+                case IOriented_closed_shell stepOrientedClosedShell:
+                    midFaceShell.Closed = true;
+                    midFaceShell.Oriented = stepOrientedClosedShell.orientation;
+                    midFaceShell.Faces = [.. stepOrientedClosedShell.closed_shell_element.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    break;
+                case IOpen_shell stepOpenShell:
+                    midFaceShell.Closed = false;
+                    midFaceShell.Oriented = true;
+                    midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    break;
+                case IClosed_shell stepClosedShell:
+                    midFaceShell.Closed = true;
+                    midFaceShell.Oriented = true;
+                    midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    break;
+
+            }
         }
     }
 
     private static void ResolveManifoldSolids(List<IManifold_solid_brep> stepManifoldSolids, MidMgr midMgr)
     {
-
+        foreach (var stepManifoldSolid in stepManifoldSolids)
+        {
+            var solidBody = midMgr.GetOrCreateMidObj<SolidBodyObj>(stepManifoldSolid.line_id);
+            var regions = new List<IRegionObj>();
+            var solidRegion = midMgr.CreateMidObj<SolidRegionObj>();
+            var solidShell = midMgr.GetOrCreateMidObj<FaceShellObj>(stepManifoldSolid.outer.line_id);
+            solidRegion.Shells = [solidShell];
+            var voidRegion = midMgr.CreateMidObj<VoidRegionObj>();
+            var voidShell = midMgr.CreateMidObj<FaceShellObj>();
+            voidShell.Closed = solidShell.Closed;
+            voidShell.Oriented = !solidShell.Oriented;
+            voidShell.Faces = solidShell.Faces;
+            voidRegion.Shells = [voidShell];
+            regions.Add(voidRegion);
+            regions.Add(solidRegion);
+            if (stepManifoldSolid is IBrep_with_voids stepBrepWithVoids)
+            {
+                foreach (var stepShell in stepBrepWithVoids.voids)
+                {
+                    var boundRegion = midMgr.CreateMidObj<BoundRegionObj>();
+                    boundRegion.Shells = [midMgr.GetOrCreateMidObj<FaceShellObj>(stepShell.line_id)];
+                    regions.Add(boundRegion);
+                }
+            }
+            solidBody.Regions = [.. regions];
+        }
     }
 
 
