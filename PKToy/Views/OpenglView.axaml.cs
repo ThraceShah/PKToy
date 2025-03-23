@@ -19,7 +19,6 @@ using Silk.NET.OpenGL;
 using PKToy.ViewModels;
 using Viewer.Graphic.Opengl;
 using Viewer.IContract;
-using static System.Collections.Specialized.BitVector32;
 
 namespace PKToy.Views;
 
@@ -41,6 +40,8 @@ public partial class OpenglView : UserControl
         this.GLControl.UpdateScale(newScale);
     }
 
+    private DateTime lastMouseMoveTime = DateTime.MinValue;
+    private int anyKeyPressed = 0;
 
     public void RegKeyAction()
     {
@@ -53,6 +54,7 @@ public partial class OpenglView : UserControl
                 var p = args.GetPosition(this);
                 args.Handled = true;
                 GLControl.GlRender.MouseDown(KeyCode.Middle, (int)p.X, (int)p.Y);
+                anyKeyPressed++;
             }
             if (args.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
@@ -60,6 +62,7 @@ public partial class OpenglView : UserControl
                 var p = args.GetPosition(this);
                 args.Handled = true;
                 GLControl.GlRender.MouseDown(KeyCode.Left, (int)p.X, (int)p.Y);
+                anyKeyPressed++;
             }
         };
         this.PointerReleased += (sender, args) =>
@@ -70,6 +73,7 @@ public partial class OpenglView : UserControl
                 var p = args.GetPosition(this);
                 args.Handled = true;
                 GLControl.GlRender.MouseUp(KeyCode.Middle, (int)p.X, (int)p.Y);
+                anyKeyPressed--;
             }
             if (args.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonReleased)
             {
@@ -77,10 +81,17 @@ public partial class OpenglView : UserControl
                 var p = args.GetPosition(this);
                 args.Handled = true;
                 GLControl.LeftReleased((int)(p.X * scale), (int)(p.Y * scale));
+                anyKeyPressed--;
             }
         };
         this.PointerMoved += (sender, args) =>
         {
+            // 限制采样率，每 50 毫秒处理一次
+            if (anyKeyPressed == 0 && (DateTime.Now - lastMouseMoveTime).TotalMilliseconds < 50)
+            {
+                return;
+            }
+            lastMouseMoveTime = DateTime.Now;
             // 记录当前坐标
             var p = args.GetPosition(this);
             args.Handled = true;

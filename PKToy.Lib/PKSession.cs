@@ -176,4 +176,26 @@ public unsafe class PKSession
         transmitOptions.transmit_format = PK.transmit_format_t.text_c;
         PK.PART.transmit(parts.size, parts.data, partName, &transmitOptions);
     }
+
+    public static void SavePart(string partName)
+    {
+        var parts = new PKScopeArray<PK.PART_t>();
+        PK.SESSION.ask_parts(&parts.size, &parts.data);
+        PK.PART.transmit_o_t transmitOptions = new(true);
+        var extension = Path.GetExtension(partName).ToLower();
+        if (extension is ".x_t")
+        {
+            transmitOptions.transmit_format = PK.transmit_format_t.text_c;
+        }
+        else if (extension is ".x_b")
+        {
+            transmitOptions.transmit_format = PK.transmit_format_t.binary_c;
+        }
+        else
+        {
+            throw new NotSupportedException("Unsupported file format");
+        }
+        PK.PART.transmit(parts.size, parts.data, partName, &transmitOptions);
+    }
+
 }
