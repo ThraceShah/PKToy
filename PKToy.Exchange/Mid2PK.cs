@@ -67,7 +67,7 @@ public unsafe class Mid2PK
                 topoGeoMap[parentObj] = mid2pkData.GeomChildren;
             }
         }
-        // PrintTopoTable(pkTopoClassList, pkParentList, pkChildList, pkSenceList);
+        PrintTopoTable(pkTopoClassList, pkParentList, pkChildList, pkSenceList);
         var pkTopoClasses = PrivateAccessor.GetListInternalArray(pkTopoClassList).AsSpan();
         var pkParents = PrivateAccessor.GetListInternalArray(pkParentList).AsSpan();
         var pkChildren = PrivateAccessor.GetListInternalArray(pkChildList).AsSpan();
@@ -77,12 +77,15 @@ public unsafe class Mid2PK
         PK.BODY.create_topology_2_r_t r;
         PK.BODY.create_topology_2_o_t op = new(GetBodyType(midBody));
         PK.BODY.create_topology_2(nTopols, ref pkTopoClasses[0], nRelations, ref pkParents[0], ref pkChildren[0], ref pkSences[0], &op, &r);
-        if (r.body == PK.BODY_t.@null)
-        {
-            PK.BODY.create_topology_2_r_f(&r);
-            return PK.BODY_t.@null;
-        }
         var pkBody = r.body;
+        PK.BODY.type_t bodyType;
+        PK.BODY.ask_type(pkBody, &bodyType);
+        if (r.create_faults->state != PK.check_state_t.BODY_state_ok_c)
+        {
+            Console.WriteLine($"Create PKBody failed: {r.create_faults->state},body tag:{pkBody.Value}");
+            PK.BODY.create_topology_2_r_f(&r);
+            return pkBody;
+        }
         var pkTopolGeomMap = new Dictionary<ITopoObj, (PK.TOPOL_t, IGeoObj)>(topoGeoMap.Count);
         foreach (var (topoObj, geoObj) in topoGeoMap)
         {
@@ -91,8 +94,6 @@ public unsafe class Mid2PK
         }
         ProcessTopoGeom(pkTopolGeomMap);
         PK.BODY.create_topology_2_r_f(&r);
-        PK.BODY.type_t bodyType;
-        PK.BODY.ask_type(pkBody, &bodyType);
         return pkBody;
     }
 

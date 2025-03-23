@@ -221,7 +221,7 @@ public class Step2Mid
             var regions = new List<IRegionObj>();
             var solidRegion = midMgr.CreateMidObj<SolidRegionObj>();
             var solidShell = midMgr.GetOrCreateMidObj<FaceShellObj>(stepManifoldSolid.outer.line_id);
-            solidRegion.Shells = [solidShell];
+            var solidShells = new List<FaceShellObj>() { solidShell };
             var voidRegion = midMgr.CreateMidObj<VoidRegionObj>();
             var voidShell = midMgr.CreateMidObj<FaceShellObj>();
             voidShell.Closed = solidShell.Closed;
@@ -234,11 +234,18 @@ public class Step2Mid
             {
                 foreach (var stepShell in stepBrepWithVoids.voids)
                 {
-                    var boundRegion = midMgr.CreateMidObj<BoundRegionObj>();
-                    boundRegion.Shells = [midMgr.GetOrCreateMidObj<FaceShellObj>(stepShell.line_id)];
+                    var boundRegion = midMgr.CreateMidObj<BoundVoidRegionObj>();
+                    var boundShell = midMgr.GetOrCreateMidObj<FaceShellObj>(stepShell.line_id);
+                    boundRegion.Shells = [boundShell];
                     regions.Add(boundRegion);
+                    var solidBoundShell = midMgr.CreateMidObj<FaceShellObj>();
+                    solidBoundShell.Closed = boundShell.Closed;
+                    solidBoundShell.Oriented = !boundShell.Oriented;
+                    solidBoundShell.Faces = boundShell.Faces;
+                    solidShells.Add(solidBoundShell);
                 }
             }
+            solidRegion.Shells = [.. solidShells];
             solidBody.Regions = [.. regions];
         }
     }

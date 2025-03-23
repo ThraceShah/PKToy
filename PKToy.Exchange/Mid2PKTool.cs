@@ -43,7 +43,7 @@ static class Mid2PKTool
         {
             SolidRegionObj solidRegion => PK.TOPOL.sense_t.positive_c,
             VoidRegionObj voidRegion => PK.TOPOL.sense_t.negative_c,
-            BoundRegionObj boundRegion => PK.TOPOL.sense_t.negative_c,
+            BoundVoidRegionObj boundRegion => PK.TOPOL.sense_t.negative_c,
             _ => PK.TOPOL.sense_t.none_c,
         }).ToArray();
         return new(regions, null, sences);
@@ -73,14 +73,14 @@ static class Mid2PKTool
             {
                 for (var i = 0; i < faces.Length; i++)
                 {
-                    sences[i] = PK.TOPOL.sense_t.positive_c;
+                    sences[i] = PK.TOPOL.sense_t.negative_c;
                 }
             }
             else
             {
                 for (var i = 0; i < faces.Length; i++)
                 {
-                    sences[i] = PK.TOPOL.sense_t.negative_c;
+                    sences[i] = PK.TOPOL.sense_t.positive_c;
                 }
             }
         }
