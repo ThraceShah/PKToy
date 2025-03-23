@@ -106,6 +106,22 @@ public partial class MainWindow : Window
             Console.WriteLine($"after Memory Used: {after}MB");
             Console.WriteLine($"after-before={after - before}MB");
         };
+        this.SaveBtn.Click += async (sender, args) =>
+        {
+            var option = new FilePickerSaveOptions
+            {
+                SuggestedFileName = "part.x_t",
+                Title = "保存文件",
+                FileTypeChoices = [new FilePickerFileType("pk files") { Patterns = ["*.x_t", ".x_b"] }],
+            };
+            var result = await this.StorageProvider.SaveFilePickerAsync(option);
+            if (result is null)
+            {
+                return;
+            }
+            string filename = result.TryGetLocalPath();
+            PKSession.SavePart(filename);
+        };
         this.CubeBtn.Click += (sender, args) =>
         {
             var cube = CreateCubeLine();

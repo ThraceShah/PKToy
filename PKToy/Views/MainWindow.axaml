@@ -26,6 +26,7 @@
         </Grid.ColumnDefinitions>
         <StackPanel Grid.Row="0" Orientation="Horizontal">
             <Button Content="File" Width="50" x:Name="OpenFileBtn"/>
+            <Button Content="Save" Width="50" x:Name="SaveBtn"/>
             <Button Content="Cube" Width="50" x:Name="CubeBtn"/>
         </StackPanel>
         <pages:OpenglView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="GL"/>
