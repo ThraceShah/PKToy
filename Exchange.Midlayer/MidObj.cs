@@ -152,7 +152,7 @@ public class VoidRegionObj : IRegionObj
     public IShellObj[]? Shells { get; set; }
 }
 
-public class BoundRegionObj : IRegionObj
+public class BoundVoidRegionObj : IRegionObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
