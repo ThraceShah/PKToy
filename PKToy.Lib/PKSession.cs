@@ -61,6 +61,8 @@ public unsafe class PKSession
 
         using var parts = new PKScopeArray<PK.PART_t>();
         PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
+        watch.Stop();
+        Console.WriteLine($"receive part elapsed time:{watch.ElapsedMilliseconds} ms");
         var asmGeom = OpenPartition(newPartition);
         PK.PARTITION.set_current(curPartition);
         return asmGeom;

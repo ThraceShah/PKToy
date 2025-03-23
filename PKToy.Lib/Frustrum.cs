@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,12 +16,87 @@ public unsafe static class Frustrum
     const int FR_close_fail = (int)frustrum_ifails_t.FR_close_fail;
     const string end_of_header_s = "**END_OF_HEADER";
 
-    class PSFile : IDisposable
+    struct TwoBytes
+    {
+        public byte b1;
+        public byte b2;
+    };
+    class PKFileReader : IDisposable
+    {
+
+        private readonly MemoryMappedFile memoryMappedFile;
+        private Int64 postion = 0;
+        private readonly Int64 fileLength = 0;
+        public PKFileReader(string name)
+        {
+            fileLength = new FileInfo(name).Length;
+            memoryMappedFile = MemoryMappedFile.CreateFromFile(name, FileMode.Open);
+        }
+        public void SkipHeader()
+        {
+            using var accessor = memoryMappedFile.CreateViewAccessor();
+            accessor.Read<TwoBytes>(0, out var header);
+            if (header.b1 == 0x2A && header.b2 == 0x2A)
+            {
+                var sb = new StringBuilder();
+                for (Int64 i = 2; i < fileLength; i++)
+                {
+                    byte b = accessor.ReadByte(i);
+                    if (b == (byte)'\n')
+                    {
+                        var line = sb.ToString();
+                        if (line.StartsWith(end_of_header_s))
+                        {
+                            postion = i + 1;
+                            break;
+                        }
+                        sb.Clear();
+                    }
+                    else
+                    {
+                        sb.Append((char)b);
+                    }
+                }
+            }
+            else
+            {
+                postion = 0;
+            }
+        }
+
+        public unsafe void Read(int max, byte* buffer, int* n_read, int* ifail)
+        {
+            *ifail = FR_no_errors;
+            *n_read = 0;
+            if (postion == fileLength)
+            {
+                *ifail = FR_end_of_file;
+                return;
+            }
+            int n = max;
+            var remaining = fileLength - postion;
+            if (n >= remaining)
+            {
+                n = (int)remaining;
+            }
+            using var viewStream = memoryMappedFile.CreateViewStream(postion, n);
+            var span = new Span<byte>(buffer, n);
+            *n_read = viewStream.Read(span);
+            postion += *n_read;
+        }
+
+        public void Dispose()
+        {
+            memoryMappedFile.Dispose();
+        }
+    }
+
+    class PKFileWriter : IDisposable
     {
         private readonly FileStream fileStream;
         private readonly BinaryReader reader;
         private readonly BinaryWriter writer;
-        public PSFile(string name)
+        public PKFileWriter(string name)
         {
             fileStream = new(name, FileMode.OpenOrCreate, FileAccess.ReadWrite);
             reader = new(fileStream, Encoding.ASCII);
@@ -85,7 +161,33 @@ public unsafe static class Frustrum
         }
     }
 
-    static Dictionary<int, PSFile> open_files = [];
+    class PSFile : IDisposable
+    {
+        private readonly FileStream fileStream;
+        private readonly BinaryWriter writer;
+        public PSFile(string name)
+        {
+            fileStream = new(name, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+            writer = new(fileStream, Encoding.ASCII);
+        }
+
+        public unsafe void Write(int nchars, byte* buffer, int* ifail)
+        {
+            *ifail = FR_no_errors;
+            writer.Write(new Span<byte>(buffer, nchars));
+        }
+
+        public void Dispose()
+        {
+            writer.Dispose();
+            fileStream.Dispose();
+        }
+    }
+
+    // static Dictionary<int, PSFile> open_files = [];
+
+    readonly static Dictionary<int, PKFileReader> readFiles = [];
+    readonly static Dictionary<int, PKFileWriter> writeFiles = [];
     static int next_file_id = 0;
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
@@ -130,11 +232,11 @@ public unsafe static class Frustrum
         }
         *ifail = FR_unspecified;
         *strid = -1;
-        var file = new PSFile(name_str);
-        open_files[next_file_id] = file;
+        var file = new PKFileReader(name_str);
+        readFiles[next_file_id] = file;
         if (*skiphd == (int)file_open_mode_tokens_t.FFSKHD)
         {
-            open_files[next_file_id].SkipHeader();
+            readFiles[next_file_id].SkipHeader();
         }
         *strid = next_file_id;
         ++next_file_id;
@@ -145,8 +247,8 @@ public unsafe static class Frustrum
     {
         PrintParameters(guise, format, name, namlen, pd2hdr, pd2len, strid, ifail);
         var name_str = new string((sbyte*)name, 0, *namlen, Encoding.UTF8);
-        var file = new PSFile(name_str);
-        open_files[next_file_id] = file;
+        var file = new PKFileWriter(name_str);
+        writeFiles[next_file_id] = file;
         *strid = next_file_id;
         ++next_file_id;
         *ifail = FR_no_errors;
@@ -155,7 +257,7 @@ public unsafe static class Frustrum
     public static unsafe void FrustrumFileWrite(int* guise, int* strid, int* nchars, byte* buffer, int* ifail)
     {
         *ifail = FR_unspecified;
-        if (open_files.TryGetValue(*strid, out var file))
+        if (writeFiles.TryGetValue(*strid, out var file))
         {
             *ifail = FR_no_errors;
             file.Write(*nchars, buffer, ifail);
@@ -167,7 +269,7 @@ public unsafe static class Frustrum
         // PrintParameters(guise, strid, nmax, buffer, nactual, ifail);
         *ifail = FR_unspecified;
         *nactual = 0;
-        if (open_files.TryGetValue(*strid, out var file))
+        if (readFiles.TryGetValue(*strid, out var file))
         {
             *ifail = FR_no_errors;
             file.Read(*nmax, buffer, nactual, ifail);
@@ -178,9 +280,14 @@ public unsafe static class Frustrum
     {
         PrintParameters(guise, strid, action, ifail);
         *ifail = FR_unspecified;
-        if (open_files.Remove(*strid, out var file))
+        if (readFiles.Remove(*strid, out var rfile))
         {
-            file.Dispose();
+            rfile.Dispose();
+            *ifail = FR_no_errors;
+        }
+        else if (writeFiles.Remove(*strid, out var wfile))
+        {
+            wfile.Dispose();
             *ifail = FR_no_errors;
         }
         else
