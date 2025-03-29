@@ -121,6 +121,11 @@ public unsafe class UMList<T>(int capacity) : IDisposable where T : unmanaged
         return ref _data[index];
     }
 
+    public ReadOnlySpan<T> AsReadOnlySpan()
+    {
+        return new ReadOnlySpan<T>(_data, _count);
+    }
+
     public Span<T> AsSpan()
     {
         return new Span<T>(_data, _count);
@@ -148,6 +153,10 @@ public unsafe class UMList<T>(int capacity) : IDisposable where T : unmanaged
 
     public void Fit()
     {
+        if (_count == _capacity)
+        {
+            return;
+        }
         _capacity = _count;
         _data = (T*)NativeMemory.Realloc(_data, (uint)(_capacity * sizeof(T)));
     }

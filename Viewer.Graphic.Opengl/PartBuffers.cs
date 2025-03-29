@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using NativeCorLib;
 using Silk.NET.OpenGL;
 using Viewer.IContract;
 
@@ -58,11 +59,13 @@ namespace Viewer.Graphic.Opengl
             gl.GenBuffers(ebos);
             var ibos = new uint[parts.Count];
             gl.GenBuffers(ibos);
+            var memoryPoolCapacity = parts.Max(p => p.OutPutSize);
+            nint arrayPool = (nint)NativeMemory.Alloc((nuint)memoryPoolCapacity);
             for (int i = 0; i < parts.Count; i++)
             {
                 if (parts[i] is StripFacePart stripFace)
                 {
-                    using var partOut = stripFace.Update();
+                    var partOut = stripFace.Update(arrayPool);
                     gl.BindVertexArray(vaos[i]);
 
                     gl.BindBuffer(GLEnum.ArrayBuffer, vbos[i]);
@@ -90,7 +93,7 @@ namespace Viewer.Graphic.Opengl
                 }
                 else if (parts[i] is EdgePart edgePart)
                 {
-                    using var partOut = edgePart.Update();
+                    var partOut = edgePart.Update(arrayPool);
 
                     gl.BindVertexArray(vaos[i]);
 
@@ -110,6 +113,8 @@ namespace Viewer.Graphic.Opengl
                 }
 
             }
+
+            NativeMemory.Free((void*)arrayPool);
             // Unbind VAO to prevent accidental modification
             gl.BindVertexArray(0);
             var partBuffers = new PartBuffers

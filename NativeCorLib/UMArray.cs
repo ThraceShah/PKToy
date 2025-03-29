@@ -44,6 +44,12 @@ public unsafe class UMArray<T>(int size) : IDisposable where T : unmanaged
         return ref _data[index];
     }
 
+    public ReadOnlySpan<T> AsReadOnlySpan()
+    {
+        return new ReadOnlySpan<T>(_data, _count);
+    }
+
+
     public Span<T> AsSpan()
     {
         return new Span<T>(_data, _count);
