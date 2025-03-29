@@ -27,6 +27,9 @@ public interface IGeometryData
     int CellCount { get; }
 
     int IndicesCount { get; }
+
+    Int64 OutPutSize { get; }
+
 }
 public class StripFace
 {
@@ -101,14 +104,6 @@ public readonly ref struct StripFacePartOutput(UnSafeArray<Vector3> points, UnSa
     public UnSafeArray<uint> Colors => colors;
     public UnSafeArray<int> Indices => indices;
     public UnSafeArray<int> IndicesCells => indicesCells;
-    public readonly void Dispose()
-    {
-        points.Dispose();
-        normals.Dispose();
-        colors.Dispose();
-        indices.Dispose();
-        indicesCells.Dispose();
-    }
 }
 
 public unsafe class StripFacePart : IGeometryData
@@ -153,6 +148,9 @@ public unsafe class StripFacePart : IGeometryData
 
     private int verticesCount = 0;
 
+    private Int64 outPutSize = 0;
+    public Int64 OutPutSize => outPutSize;
+
     public bool GetCellGeometryRange(int cellIndex, out int startCell, out int length)
     {
         startCell = 0;
@@ -181,28 +179,41 @@ public unsafe class StripFacePart : IGeometryData
 
         indicesCount = 0;
         verticesCount = 0;
-
+        outPutSize = 0;
         foreach (var face in tagFaces.Values)
         {
             indicesCount += face.IndicesCount;
             verticesCount += face.Points.Count;
             face.Fit();
         }
+        outPutSize = (Int64)indicesCount * sizeof(int) + (Int64)verticesCount * (sizeof(Vector3) * 2 + sizeof(uint) + sizeof(int));
     }
 
-    public StripFacePartOutput Update()
+    public StripFacePartOutput Update(nint memoryBlock)
     {
         IsModified = false;
         tagIndexMap.Clear();
         indexTagMap.Clear();
 
-        var points = new UnSafeArray<Vector3>(verticesCount);
+        // var points = memoryPool.Rent<Vector3>(verticesCount);
+        // var normals = memoryPool.Rent<Vector3>(verticesCount);
+        // var colors = memoryPool.Rent<uint>(verticesCount);
+        // var indices = memoryPool.Rent<int>(indicesCount);
+        // var indicesCells = memoryPool.Rent<int>(verticesCount);
+
+        var points = new UnSafeArray<Vector3>((Vector3*)memoryBlock, verticesCount);
+        int offset = sizeof(Vector3) * verticesCount;
+        var normals = new UnSafeArray<Vector3>((Vector3*)(memoryBlock + offset), verticesCount);
+        offset += sizeof(Vector3) * verticesCount;
+        var colors = new UnSafeArray<uint>((uint*)(memoryBlock + offset), verticesCount);
+        offset += sizeof(uint) * verticesCount;
+        var indices = new UnSafeArray<int>((int*)(memoryBlock + offset), indicesCount);
+        offset += sizeof(int) * indicesCount;
+        var indicesCells = new UnSafeArray<int>((int*)(memoryBlock + offset), verticesCount);
         var pointsSpan = points.Span;
-        var indices = new UnSafeArray<int>(indicesCount);
-        var indicesCells = new UnSafeArray<int>(verticesCount);
-        var normals = new UnSafeArray<Vector3>(verticesCount);
         var normalsSpan = normals.Span;
-        var colors = new UnSafeArray<uint>(verticesCount);
+
+
         int i = 0;
         int pointsStart = 0;
         int cell = 0;
@@ -248,6 +259,12 @@ public class Edge(UMList<Vector3> points, UMList<int> indices)
     public UMList<Vector3> Points => points;
     public UMList<int> Indices => indices;
     public int IndicesCount => indices.Count;
+
+    public void Fit()
+    {
+        points.Fit();
+        indices.Fit();
+    }
 
 }
 
@@ -302,12 +319,6 @@ public readonly ref struct EdgePartOutput(UnSafeArray<Vector3> points, UnSafeArr
     public UnSafeArray<Vector3> Points => points;
     public UnSafeArray<int> Indices => indices;
     public UnSafeArray<int> IndicesCells => indicesCells;
-    public readonly void Dispose()
-    {
-        points.Dispose();
-        indices.Dispose();
-        indicesCells.Dispose();
-    }
 }
 
 public unsafe class EdgePart : IGeometryData
@@ -351,6 +362,9 @@ public unsafe class EdgePart : IGeometryData
 
     private int verticesCount = 0;
 
+    private Int64 outPutSize = 0;
+    public Int64 OutPutSize => outPutSize;
+
     public bool GetCellGeometryRange(int cellIndex, out int startCell, out int length)
     {
         startCell = 0;
@@ -376,19 +390,31 @@ public unsafe class EdgePart : IGeometryData
     public void Modified()
     {
         IsModified = true;
-        var edges = tagEdges.Values;
-        indicesCount = edges.Sum(f => f.IndicesCount);
-        verticesCount = edges.Sum(f => f.Points.Count);
+        indicesCount = 0;
+        verticesCount = 0;
+        outPutSize = 0;
+        foreach (var edge in tagEdges.Values)
+        {
+            indicesCount += edge.IndicesCount;
+            verticesCount += edge.Points.Count;
+            edge.Fit();
+        }
+        outPutSize = (Int64)indicesCount * sizeof(int) + (Int64)verticesCount * (sizeof(Vector3) + sizeof(int));
     }
 
-    public EdgePartOutput Update()
+    public EdgePartOutput Update(nint memoryBlock)
     {
         IsModified = false;
         tagIndexMap.Clear();
         indexTagMap.Clear();
-        var points = new UnSafeArray<Vector3>(verticesCount);
-        var indices = new UnSafeArray<int>(indicesCount);
-        var indicesCells = new UnSafeArray<int>(verticesCount);
+        // var points = memoryPool.Rent<Vector3>(verticesCount);
+        // var indices = memoryPool.Rent<int>(indicesCount);
+        // var indicesCells = memoryPool.Rent<int>(verticesCount);
+        var points = new UnSafeArray<Vector3>((Vector3*)memoryBlock, verticesCount);
+        int offset = sizeof(Vector3) * verticesCount;
+        var indices = new UnSafeArray<int>((int*)(memoryBlock + offset), indicesCount);
+        offset += sizeof(int) * indicesCount;
+        var indicesCells = new UnSafeArray<int>((int*)(memoryBlock + offset), verticesCount);
 
         var pointsSpan = points.Span;
         int pointsStart = 0;
