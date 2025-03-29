@@ -20,6 +20,13 @@ public struct Vector3D(double x, double y, double z)
     public double Z = z;
 }
 
+public struct Axis2D
+{
+    public Vector3D Location;
+
+    public Vector3D Axis;
+}
+
 public struct Axis3D
 {
     public Vector3D Location;
@@ -53,8 +60,15 @@ public class LineObj : ICurveObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
-    public Vector3D Location { get; set; }
-    public Vector3D Axis { get; set; }
+    public Axis2D BasisSet { get; set; }
+}
+
+public class CircleObj : ICurveObj
+{
+    public ImpId ImpId { get; set; }
+    public ExpId ExpId { get; set; }
+    public Axis3D BasisSet { get; set; }
+    public double Radius { get; set; }
 }
 
 public class PlaneObj : ISurfaceObj
@@ -62,6 +76,16 @@ public class PlaneObj : ISurfaceObj
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
     public Axis3D BasisSet { get; set; }
+}
+
+public class ConeSurfObj : ISurfaceObj
+{
+    public ImpId ImpId { get; set; }
+    public ExpId ExpId { get; set; }
+    public Axis3D BasisSet { get; set; }
+    public double Radius { get; set; }
+    public double SemiAngle { get; set; }
+
 }
 
 public interface ITopoObj : IMidObj;
@@ -90,18 +114,27 @@ public class FinObj : ITopoObj
     public bool Orientation { get; set; }
 }
 
-public class LoopObj : ITopoObj
+public interface ILoopObj : ITopoObj;
+
+public class EdgeLoopObj : ILoopObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
     public FinObj[]? Fins { get; set; }
 }
 
+public class VertexLoopObj : ILoopObj
+{
+    public ImpId ImpId { get; set; }
+    public ExpId ExpId { get; set; }
+    public VertexObj? Vertex { get; set; }
+}
+
 public class FaceObj : ITopoObj
 {
     public ImpId ImpId { get; set; }
     public ExpId ExpId { get; set; }
-    public LoopObj[]? Loops { get; set; }
+    public ILoopObj[]? Loops { get; set; }
     public ISurfaceObj? Surf { get; set; }
     public bool Sence { get; set; } = true;
 }
