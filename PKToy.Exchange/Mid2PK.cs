@@ -150,7 +150,7 @@ public unsafe class Mid2PK
         IRegionObj => PK.CLASS_t.region,
         IShellObj => PK.CLASS_t.shell,
         FaceObj => PK.CLASS_t.face,
-        LoopObj => PK.CLASS_t.loop,
+        ILoopObj => PK.CLASS_t.loop,
         FinObj => PK.CLASS_t.fin,
         EdgeObj => PK.CLASS_t.edge,
         VertexObj => PK.CLASS_t.vertex,

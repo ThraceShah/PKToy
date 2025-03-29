@@ -91,10 +91,26 @@ public class Step2Mid
             switch (stepCurve)
             {
                 case ILine stepLine:
-                    var midLine = midMgr.GetOrCreateMidObj<LineObj>(stepLine.line_id);
-                    midLine.Location = new Vector3D(stepLine.pnt.coordinates[0], stepLine.pnt.coordinates[1], stepLine.pnt.coordinates[2]);
-                    midLine.Axis = new Vector3D(stepLine.dir.orientation.direction_ratios[0], stepLine.dir.orientation.direction_ratios[1], stepLine.dir.orientation.direction_ratios[2]);
-                    break;
+                    {
+                        var midLine = midMgr.GetOrCreateMidObj<LineObj>(stepLine.line_id);
+                        var location = new Vector3D(stepLine.pnt.coordinates[0], stepLine.pnt.coordinates[1], stepLine.pnt.coordinates[2]);
+                        var axis = new Vector3D(stepLine.dir.orientation.direction_ratios[0], stepLine.dir.orientation.direction_ratios[1], stepLine.dir.orientation.direction_ratios[2]);
+                        midLine.BasisSet = new Axis2D { Location = location, Axis = axis };
+                        break;
+                    }
+                case ICircle stepCircle:
+                    {
+                        var midCircle = midMgr.GetOrCreateMidObj<CircleObj>(stepCircle.line_id);
+                        if (stepCircle.position is IAxis2_placement_3d position)
+                        {
+                            var location = new Vector3D(position.location.coordinates[0], position.location.coordinates[1], position.location.coordinates[2]);
+                            var axis = new Vector3D(position.axis.direction_ratios[0], position.axis.direction_ratios[1], position.axis.direction_ratios[2]);
+                            var refDir = new Vector3D(position.ref_direction.direction_ratios[0], position.ref_direction.direction_ratios[1], position.ref_direction.direction_ratios[2]);
+                            midCircle.BasisSet = new Axis3D { Location = location, Axis = axis, RefDir = refDir };
+                            midCircle.Radius = stepCircle.radius;
+                        }
+                        break;
+                    }
                 default:
                     break;
             }
@@ -107,15 +123,30 @@ public class Step2Mid
         {
             switch (stepSurf)
             {
-                case plane_imp stepPlane:
-                    var midPlane = midMgr.GetOrCreateMidObj<PlaneObj>(stepPlane.line_id);
-                    var basisSet = new Axis3D();
-                    var planePos = stepPlane.position;
-                    basisSet.Location = new Vector3D(planePos.location.coordinates[0], planePos.location.coordinates[1], planePos.location.coordinates[2]);
-                    basisSet.Axis = new Vector3D(planePos.axis.direction_ratios[0], planePos.axis.direction_ratios[1], planePos.axis.direction_ratios[2]);
-                    basisSet.RefDir = new Vector3D(planePos.ref_direction.direction_ratios[0], planePos.ref_direction.direction_ratios[1], planePos.ref_direction.direction_ratios[2]);
-                    midPlane.BasisSet = basisSet;
-                    break;
+                case IPlane stepPlane:
+                    {
+                        var midPlane = midMgr.GetOrCreateMidObj<PlaneObj>(stepPlane.line_id);
+                        var basisSet = new Axis3D();
+                        var planePos = stepPlane.position;
+                        basisSet.Location = new Vector3D(planePos.location.coordinates[0], planePos.location.coordinates[1], planePos.location.coordinates[2]);
+                        basisSet.Axis = new Vector3D(planePos.axis.direction_ratios[0], planePos.axis.direction_ratios[1], planePos.axis.direction_ratios[2]);
+                        basisSet.RefDir = new Vector3D(planePos.ref_direction.direction_ratios[0], planePos.ref_direction.direction_ratios[1], planePos.ref_direction.direction_ratios[2]);
+                        midPlane.BasisSet = basisSet;
+                        break;
+                    }
+                case IConical_surface stepConicalSurface:
+                    {
+                        var midConicalSurface = midMgr.GetOrCreateMidObj<ConeSurfObj>(stepConicalSurface.line_id);
+                        var basisSet = new Axis3D();
+                        var conicalPos = stepConicalSurface.position;
+                        basisSet.Location = new Vector3D(conicalPos.location.coordinates[0], conicalPos.location.coordinates[1], conicalPos.location.coordinates[2]);
+                        basisSet.Axis = new Vector3D(conicalPos.axis.direction_ratios[0], conicalPos.axis.direction_ratios[1], conicalPos.axis.direction_ratios[2]);
+                        basisSet.RefDir = new Vector3D(conicalPos.ref_direction.direction_ratios[0], conicalPos.ref_direction.direction_ratios[1], conicalPos.ref_direction.direction_ratios[2]);
+                        midConicalSurface.BasisSet = basisSet;
+                        midConicalSurface.Radius = stepConicalSurface.radius;
+                        midConicalSurface.SemiAngle = stepConicalSurface.semi_angle;
+                        break;
+                    }
                 default:
                     break;
             }
@@ -160,9 +191,13 @@ public class Step2Mid
             switch (stepLoop)
             {
                 case IEdge_loop stepEdgeLoop:
-                    var midLoop = midMgr.GetOrCreateMidObj<LoopObj>(stepEdgeLoop.line_id);
+                    var midLoop = midMgr.GetOrCreateMidObj<EdgeLoopObj>(stepEdgeLoop.line_id);
                     var fins = stepEdgeLoop.edge_list.Select(edge => midMgr.GetMidObj<FinObj>(edge.line_id)).ToArray();
                     midLoop.Fins = fins;
+                    break;
+                case IVertex_loop stepVertexLoop:
+                    var midVertexLoop = midMgr.GetOrCreateMidObj<VertexLoopObj>(stepVertexLoop.line_id);
+                    midVertexLoop.Vertex = midMgr.GetMidObj<VertexObj>(stepVertexLoop.loop_vertex.line_id);
                     break;
                 default:
                     break;
@@ -175,7 +210,7 @@ public class Step2Mid
         foreach (var stepFace in stepFaces)
         {
             var midFace = midMgr.GetOrCreateMidObj<FaceObj>(stepFace.line_id);
-            midFace.Loops = [.. stepFace.bounds.Select(bound => midMgr.GetMidObj<LoopObj>(bound.bound.line_id))];
+            midFace.Loops = [.. stepFace.bounds.Select(bound => midMgr.GetMidObj<ILoopObj>(bound.bound.line_id))];
             midFace.Surf = midMgr.GetMidObj<ISurfaceObj>(stepFace.face_geometry.line_id);
             midFace.Sence = stepFace.same_sense;
         }

@@ -15,7 +15,8 @@ static class Mid2PKTool
         WireShellObj shellObj => GetMid2PKData(shellObj),
         VertexShellObj shellObj => GetMid2PKData(shellObj),
         FaceObj faceObj => GetMid2PKData(faceObj),
-        LoopObj loopObj => GetMid2PKData(loopObj),
+        EdgeLoopObj loopObj => GetMid2PKData(loopObj),
+        VertexLoopObj loopObj => GetMid2PKData(loopObj),
         FinObj finObj => GetMid2PKData(finObj),
         EdgeObj edgeObj => GetMid2PKData(edgeObj),
         VertexObj vertexObj => GetMid2PKData(vertexObj),
@@ -124,7 +125,7 @@ static class Mid2PKTool
         return new(loops, faceObj.Surf, CreateArray(loops.Length, PK.TOPOL.sense_t.none_c));
     }
 
-    private static Mid2PKData? GetMid2PKData(LoopObj loopObj)
+    private static Mid2PKData? GetMid2PKData(EdgeLoopObj loopObj)
     {
         var fins = loopObj.Fins;
         if (fins is null || fins.Length == 0)
@@ -133,6 +134,17 @@ static class Mid2PKTool
         }
         return new(fins, null, CreateArray(fins.Length, PK.TOPOL.sense_t.none_c));
     }
+
+    private static Mid2PKData? GetMid2PKData(VertexLoopObj loopObj)
+    {
+        var vertex = loopObj.Vertex;
+        if (vertex is null)
+        {
+            return null;
+        }
+        return new([vertex], null, [PK.TOPOL.sense_t.none_c]);
+    }
+
 
     private static Mid2PKData? GetMid2PKData(FinObj finObj)
     {
