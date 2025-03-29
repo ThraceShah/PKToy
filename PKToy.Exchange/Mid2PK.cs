@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Exchange.Midlayer;
+using NativeCorLib;
 
 namespace PKToy.Exchange;
 
@@ -32,10 +33,12 @@ public unsafe class Mid2PK
     {
         Dictionary<ITopoObj, IGeoObj> topoGeoMap = [];
         Dictionary<ITopoObj, int> topoIdMap = new() { { midBody, 0 } };
-        var pkTopoClassList = new List<PK.CLASS_t>() { PK.CLASS_t.body };
-        var pkParentList = new List<int>();
-        var pkChildList = new List<int>();
-        var pkSenceList = new List<PK.TOPOL.sense_t>();
+        var capacity = 80;
+        using var pkTopoClassList = new UMList<PK.CLASS_t>(capacity);
+        pkTopoClassList.Add(PK.CLASS_t.body);
+        using var pkParentList = new UMList<int>(capacity);
+        using var pkChildList = new UMList<int>(capacity);
+        using var pkSenceList = new UMList<PK.TOPOL.sense_t>(capacity);
         Queue<ITopoObj> topoQueue = new();
         topoQueue.Enqueue(midBody);
         while (topoQueue.Count > 0)
@@ -68,15 +71,11 @@ public unsafe class Mid2PK
             }
         }
         PrintTopoTable(pkTopoClassList, pkParentList, pkChildList, pkSenceList);
-        var pkTopoClasses = PrivateAccessor.GetListInternalArray(pkTopoClassList).AsSpan();
-        var pkParents = PrivateAccessor.GetListInternalArray(pkParentList).AsSpan();
-        var pkChildren = PrivateAccessor.GetListInternalArray(pkChildList).AsSpan();
-        var pkSences = PrivateAccessor.GetListInternalArray(pkSenceList).AsSpan();
         var nTopols = pkTopoClassList.Count;
         var nRelations = pkParentList.Count;
         PK.BODY.create_topology_2_r_t r;
         PK.BODY.create_topology_2_o_t op = new(GetBodyType(midBody));
-        PK.BODY.create_topology_2(nTopols, ref pkTopoClasses[0], nRelations, ref pkParents[0], ref pkChildren[0], ref pkSences[0], &op, &r);
+        PK.BODY.create_topology_2(nTopols, pkTopoClassList.Data, nRelations, pkParentList.Data, pkChildList.Data, pkSenceList.Data, &op, &r);
         var pkBody = r.body;
         PK.BODY.type_t bodyType;
         PK.BODY.ask_type(pkBody, &bodyType);
@@ -158,7 +157,7 @@ public unsafe class Mid2PK
         _ => throw new NotImplementedException($"Unknown topo class: {topoObj.GetType()}")
     };
 
-    private static void PrintTopoTable(List<PK.CLASS_t> pkTopoClassList, List<int> pkParentList, List<int> pkChildList, List<PK.TOPOL.sense_t> pkSenceList)
+    private static void PrintTopoTable(UMList<PK.CLASS_t> pkTopoClassList, UMList<int> pkParentList, UMList<int> pkChildList, UMList<PK.TOPOL.sense_t> pkSenceList)
     {
         Console.WriteLine($"topols count: {pkTopoClassList.Count}");
         for (var i = 0; i < pkTopoClassList.Count; i++)
@@ -184,32 +183,3 @@ public unsafe class Mid2PK
     }
 }
 
-public static class PrivateAccessor
-{
-    public static void Init()
-    { }
-
-    public static T[] GetListInternalArray<T>(List<T> a)
-    {
-        return ((Func<List<T>, T[]>)cache[typeof(T)])(a);
-    }
-
-    static void Compile<T>()
-    {
-        var parameter = Expression.Parameter(typeof(List<T>), "x");
-        var fieldInfo = typeof(List<T>).GetField("_items", BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new Exception($"Field '_items' not found in List<{typeof(T)}>");
-        var field = Expression.Field(parameter, fieldInfo);
-        var lambda = Expression.Lambda<Func<List<T>, T[]>>(field, parameter);
-        var func = lambda.Compile();
-        cache[typeof(T)] = func;
-    }
-
-    static PrivateAccessor()
-    {
-        Compile<int>();
-        Compile<PK.CLASS_t>();
-        Compile<PK.TOPOL.sense_t>();
-    }
-
-    static readonly Dictionary<Type, Delegate> cache = [];
-}

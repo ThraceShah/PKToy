@@ -15,8 +15,6 @@ public unsafe class PKSession
         PK.SESSION.set_smp(&smpOptions);
         PK.SESSION.smp_r_t smpResult;
         PK.SESSION.ask_smp(&smpResult);
-        Viewer.IContract.PrivateAccessor.Init();
-        PKToy.Exchange.PrivateAccessor.Init();
     }
 
     public static void CallRenderFacet(Span<PK.BODY_t> bodies)

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -8,57 +9,13 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using NativeCorLib;
 
 
 namespace Viewer.IContract;
 public static class Constants
 {
     public const int STRIPBREAK = -1;
-}
-
-public static class PrivateAccessor
-{
-    // [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_items")]
-    // extern static ref T[] GetListInternalArray<T>(List<T> list);
-
-    // [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_items")]
-    // extern static ref Vector4[] GetListInternalArrayVec4(List<Vector4> list);
-    // [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_items")]
-    // extern static ref Vector3[] GetListInternalArray(List<Vector3> list);
-    // [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_items")]
-    // extern static ref uint[] GetListInternalArray(List<uint> list);
-
-    // [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_items")]
-    // extern static ref int[] GetListInternalArray(List<int> list);
-
-
-    public static void Init()
-    { }
-
-    public static T[] GetListInternalArray<T>(List<T> a)
-    {
-        return ((Func<List<T>, T[]>)cache[typeof(T)])(a);
-    }
-
-    static void Compile<T>()
-    {
-        var parameter = Expression.Parameter(typeof(List<T>), "x");
-        var field = Expression.Field(parameter, typeof(List<T>).GetField("_items", BindingFlags.NonPublic | BindingFlags.Instance));
-        var lambda = Expression.Lambda<Func<List<T>, T[]>>(field, parameter);
-        var func = lambda.Compile();
-        cache[typeof(T)] = func;
-    }
-
-    static PrivateAccessor()
-    {
-        Compile<Vector4>();
-        Compile<Vector3>();
-        Compile<uint>();
-        Compile<int>();
-    }
-
-    static readonly Dictionary<Type, Delegate> cache = [];
-
 }
 
 public interface IGeometryData
@@ -74,12 +31,12 @@ public interface IGeometryData
 public class StripFace
 {
     private uint color = 0xFFFFFFFF;
-    private readonly List<Vector3> points = [];
-    private readonly List<Vector3> normals = [];
-    private readonly List<int> indices = [];
-    public List<Vector3> Points => points;
-    public List<Vector3> Normals => normals;
-    public List<int> Indices => indices;
+    private readonly UMList<Vector3> points = new();
+    private readonly UMList<Vector3> normals = new();
+    private readonly UMList<int> indices = new();
+    public UMList<Vector3> Points => points;
+    public UMList<Vector3> Normals => normals;
+    public UMList<int> Indices => indices;
     public int IndicesCount => indices.Count;
     public uint Color => color;
 
@@ -125,6 +82,13 @@ public class StripFace
     public void InsertNextStrip()
     {
         indices.Add(Constants.STRIPBREAK);
+    }
+
+    public void Fit()
+    {
+        points.Fit();
+        normals.Fit();
+        indices.Fit();
     }
 
 }
@@ -214,8 +178,16 @@ public unsafe class StripFacePart : IGeometryData
     public void Modified()
     {
         IsModified = true;
-        indicesCount = tagFaces.Values.Sum(f => f.IndicesCount);
-        verticesCount = tagFaces.Values.Sum(f => f.Points.Count);
+
+        indicesCount = 0;
+        verticesCount = 0;
+
+        foreach (var face in tagFaces.Values)
+        {
+            indicesCount += face.IndicesCount;
+            verticesCount += face.Points.Count;
+            face.Fit();
+        }
     }
 
     public StripFacePartOutput Update()
@@ -231,17 +203,16 @@ public unsafe class StripFacePart : IGeometryData
         var normals = new UnSafeArray<Vector3>(verticesCount);
         var normalsSpan = normals.Span;
         var colors = new UnSafeArray<uint>(verticesCount);
-
         int i = 0;
         int pointsStart = 0;
         int cell = 0;
         foreach (var pair in tagFaces)
         {
             var face = pair.Value;
-            var srcFacePoints = PrivateAccessor.GetListInternalArray(face.Points).AsSpan();
+            var srcFacePoints = face.Points.AsSpan();
             srcFacePoints[..face.Points.Count].CopyTo(pointsSpan[pointsStart..]);
 
-            var srcNormals = PrivateAccessor.GetListInternalArray(face.Normals).AsSpan();
+            var srcNormals = face.Normals.AsSpan();
             srcNormals[..face.Normals.Count].CopyTo(normalsSpan[pointsStart..]);
 
             foreach (var index in face.Indices)
@@ -272,10 +243,10 @@ public unsafe class StripFacePart : IGeometryData
 
 }
 
-public class Edge(List<Vector3> points, List<int> indices)
+public class Edge(UMList<Vector3> points, UMList<int> indices)
 {
-    public List<Vector3> Points => points;
-    public List<int> Indices => indices;
+    public UMList<Vector3> Points => points;
+    public UMList<int> Indices => indices;
     public int IndicesCount => indices.Count;
 
 }
@@ -283,11 +254,13 @@ public class Edge(List<Vector3> points, List<int> indices)
 public class EdgeBuilder
 {
     private readonly Dictionary<Vector3, int> pointIndexMap = [];
-    private readonly List<Vector3> points = [];
-    private readonly List<int> indices = [];
+    private readonly UMList<Vector3> points = new();
+    private readonly UMList<int> indices = new();
 
     public Edge Build()
     {
+        points.Fit();
+        indices.Fit();
         return new Edge(points, indices);
     }
 
@@ -424,7 +397,7 @@ public unsafe class EdgePart : IGeometryData
         foreach (var pair in tagEdges)
         {
             var edge = pair.Value;
-            var edgeSrcPoints = PrivateAccessor.GetListInternalArray(edge.Points).AsSpan();
+            var edgeSrcPoints = edge.Points.AsSpan();
             var edgePoints = pointsSpan[pointsStart..];
             edgeSrcPoints[..edge.Points.Count].CopyTo(edgePoints);
 

@@ -6,4 +6,7 @@
         <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
         <Configurations>Debug;Release</Configurations>
     </PropertyGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\NativeCorLib\NativeCorLib.csproj" />
+    </ItemGroup>
 </Project>
