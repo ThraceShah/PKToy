@@ -20,15 +20,26 @@
             <RowDefinition Height="30"></RowDefinition>
             <RowDefinition Height="20*"></RowDefinition>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="50"/>
-            <ColumnDefinition Width="100*"/>
-        </Grid.ColumnDefinitions>
         <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <Button Content="File" Width="50" x:Name="OpenFileBtn"/>
-            <Button Content="Save" Width="50" x:Name="SaveBtn"/>
-            <Button Content="Cube" Width="50" x:Name="CubeBtn"/>
+            <Button Content="File" Width="50" Command="{Binding FileCommand}"/>
+            <Button Content="Save" Width="50" Command="{Binding SaveCommand}"/>
+            <Button Content="Cube" Width="50" Command="{Binding CubeCommand}"/>
         </StackPanel>
-        <pages:OpenglView Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="GL"/>
+        <Grid Grid.Row="1" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="5*" />
+            </Grid.ColumnDefinitions> 
+            <pages:TopolTreeView Grid.Column="0"/>
+			<GridSplitter Grid.Column="1"
+                      Width="5"
+                      Background="Gray"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      ResizeDirection="Columns"
+                      ResizeBehavior="BasedOnAlignment" />
+            <pages:OpenglView Grid.Column="2" x:Name="GL"/>
+        </Grid>
     </Grid>
 </Window>
