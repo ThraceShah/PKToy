@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="using:PKToy.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+			 
+             x:Class="PKToy.Views.TopolTreeView"
+			 x:DataType="vm:TopolTreeViewModel">
+	<Design.DataContext>
+		<!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+		<vm:TopolTreeViewModel/>
+	</Design.DataContext>
+
+	<TreeView ItemsSource="{Binding Items}" SelectedItems="{Binding SelectedItems}" SelectionMode="{Binding SelectionMode}">
+		<TreeView.ItemTemplate>
+			<TreeDataTemplate ItemsSource="{Binding Children}">
+				<TextBlock Text="{Binding Header}"/>
+			</TreeDataTemplate>
+		</TreeView.ItemTemplate>
+	</TreeView>
+</UserControl>

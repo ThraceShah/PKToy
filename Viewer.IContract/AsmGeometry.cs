@@ -39,7 +39,7 @@ namespace Viewer.IContract
             parts.Add(part);
         }
 
-        public void AddCompnent(IGeometryData part, Matrix4x4 compMatrix)
+        public void AddComponent(IGeometryData part, Matrix4x4 compMatrix)
         {
             if (partsMap.TryGetValue(part, out var partIndex))
             {

@@ -21,7 +21,6 @@ public partial class App : Application
             {
                 Width=1280,
                 Height=720,
-                DataContext = new MainWindowViewModel(),
             };
         }
 

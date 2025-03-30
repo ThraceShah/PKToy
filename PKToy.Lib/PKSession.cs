@@ -129,9 +129,9 @@ public unsafe class PKSession
                     case PK.CLASS_t.body:
                         bodiesSet.Remove(instanceSF.part);
                         var shadedGeometry = goCallback.GetShadedGeometry(instanceSF.part);
-                        asmGeom.AddCompnent(shadedGeometry, Matrix4x4.Transpose(matrix));
+                        asmGeom.AddComponent(shadedGeometry, Matrix4x4.Transpose(matrix));
                         var wireframeGeometry = goCallback.GetWireframeGeometry(instanceSF.part);
-                        asmGeom.AddCompnent(wireframeGeometry, Matrix4x4.Transpose(matrix));
+                        asmGeom.AddComponent(wireframeGeometry, Matrix4x4.Transpose(matrix));
                         break;
                     case PK.CLASS_t.assembly:
                         assemblyQueue.Enqueue(instanceSF.part);
@@ -147,9 +147,9 @@ public unsafe class PKSession
         foreach (var body in bodiesSet)
         {
             var shadedGeometry = goCallback.GetShadedGeometry(body);
-            asmGeom.AddCompnent(shadedGeometry, Matrix4x4.Identity);
+            asmGeom.AddComponent(shadedGeometry, Matrix4x4.Identity);
             var wireframeGeometry = goCallback.GetWireframeGeometry(body);
-            asmGeom.AddCompnent(wireframeGeometry, Matrix4x4.Identity);
+            asmGeom.AddComponent(wireframeGeometry, Matrix4x4.Identity);
         }
         watch.Stop();
         Console.WriteLine($"get part geometry elapsed time:{watch.ElapsedMilliseconds} ms");
