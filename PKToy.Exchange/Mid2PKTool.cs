@@ -159,6 +159,10 @@ static class Mid2PKTool
 
     private static Mid2PKData? GetMid2PKData(EdgeObj edgeObj)
     {
+        if (edgeObj.Start == edgeObj.End)
+        {
+            return new([], edgeObj.Curve, []);
+        }
         var topoChildren = new List<ITopoObj>();
         if (edgeObj.Start is not null)
         {
