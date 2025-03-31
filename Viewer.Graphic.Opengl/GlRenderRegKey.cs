@@ -44,18 +44,20 @@ namespace Viewer.Graphic.Opengl
                 {
                     lastHoverX = x;
                     lastHoverY = y;
-                    HighlightPrimitiveByMousePostion(x, y);
+                    HighlightPrimitiveByMousePostion(x, y, true);
                 }
 
             }
         }
+
+        private int lastHoverId = int.MinValue;
 
         /// <summary>
         /// 离屏渲染拾取图元
         /// </summary>
         /// <param name="nx"></param>
         /// <param name="ny"></param>
-        public void HighlightPrimitiveByMousePostion(int nx, int ny)
+        public void HighlightPrimitiveByMousePostion(int nx, int ny, bool hover = false)
         {
             if (computeEnd is false)
             {
@@ -66,6 +68,12 @@ namespace Viewer.Graphic.Opengl
             var watch = new Stopwatch();
             watch.Start();
             var id = this.GetPickObjectId(nx, ny);
+            if (hover && id == lastHoverId)
+            {
+                computeEnd = true;
+                return;
+            }
+            lastHoverId = id;
             highlightComp = -1;
             highlightCell = -1;
             if (id < 0)
