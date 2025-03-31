@@ -31,7 +31,7 @@
                 <ColumnDefinition Width="5" />
                 <ColumnDefinition Width="5*" />
             </Grid.ColumnDefinitions> 
-            <pages:TopolTreeView Grid.Column="0"/>
+            <pages:TopolTreeView Grid.Column="0" x:Name="TopolTree"/>
 			<GridSplitter Grid.Column="1"
                       Width="5"
                       Background="Gray"
