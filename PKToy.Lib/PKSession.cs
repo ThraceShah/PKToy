@@ -53,14 +53,15 @@ public unsafe class PKSession
         watch.Start();
         PK.PARTITION_t curPartition;
         PK.SESSION.ask_curr_partition(&curPartition);
-        PK.PARTITION_t newPartition;
-        PK.PARTITION.create_empty(&newPartition);
-        PK.PARTITION.set_current(newPartition);
+        // PK.PARTITION_t newPartition;
+        // PK.PARTITION.create_empty(&newPartition);
+        // PK.PARTITION.set_current(newPartition);
 
         using var parts = new PKScopeArray<PK.PART_t>();
         PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
-        var asmGeom = OpenPartition(newPartition);
-        PK.PARTITION.set_current(curPartition);
+        // var asmGeom = OpenPartition(newPartition);
+        // PK.PARTITION.set_current(curPartition);
+        var asmGeom = OpenPartition(curPartition);
         return asmGeom;
     }
 
@@ -196,4 +197,218 @@ public unsafe class PKSession
         PK.PART.transmit(parts.size, parts.data, partName, &transmitOptions);
     }
 
+    public static List<TopolTreeNode> GetCurPartitionTopolTree()
+    {
+        PK.PARTITION_t curPartition;
+        PK.SESSION.ask_curr_partition(&curPartition);
+        return GetPartitionTopolTree(curPartition);
+    }
+
+    public static List<TopolTreeNode> GetPartitionTopolTree(PK.PARTITION_t partition)
+    {
+        var topoTree = new List<TopolTreeNode>();
+        using var bodies = new PKScopeArray<PK.BODY_t>();
+        PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
+        foreach (var body in bodies.Span)
+        {
+            topoTree.Add(GetBodyTopolTree(body));
+        }
+        return topoTree;
+    }
+
+
+    private static string BodyTypeTostring(BODY.type_t bodyType) => bodyType switch
+    {
+        BODY.type_t.solid_c => "solid",
+        BODY.type_t.sheet_c => "sheet",
+        BODY.type_t.minimum_c => "minimum",
+        BODY.type_t.wire_c => "wire",
+        BODY.type_t.general_c => "general",
+        BODY.type_t.acorn_c => "acorn",
+        BODY.type_t.unspecified_c => "unspecified",
+        BODY.type_t.empty_c => "empty",
+        BODY.type_t.compound_c => "compound",
+        _ => throw new NotImplementedException(),
+    };
+
+
+    private static string GetEntityName(PK.ENTITY_t entity, out CLASS_t entityType)
+    {
+        PK.CLASS_t cl;
+        PK.ENTITY.ask_class(entity, &cl);
+        entityType = cl;
+        if (cl == PK.CLASS_t.body)
+        {
+            PK.BODY.type_t bodyType;
+            PK.BODY.ask_type(entity, &bodyType);
+            return BodyTypeTostring(bodyType);
+        }
+        else if (cl == PK.CLASS_t.region)
+        {
+            PK.LOGICAL_t isSolid;
+            PK.REGION.is_solid(entity, &isSolid);
+            string regionType = isSolid ? "solid" : "void";
+            return $"{cl}({regionType})";
+        }
+        else if (cl == PK.CLASS_t.shell)
+        {
+            PK.SHELL.type_t shellType;
+            PK.SHELL.ask_type(entity, &shellType);
+            return $"{cl}({shellType})";
+        }
+        return cl.ToString();
+    }
+
+    private static TopolTreeNode GetBodyTopolTree(PK.BODY_t body)
+    {
+        var topoTree = new TopolTreeNode();
+        topoTree.TypeName = "BODY";
+        topoTree.Tag = body.Value;
+        using var faces = new PKScopeArray<PK.FACE_t>();
+        PK.BODY.ask_topology_o_t options = new(true);
+        options.want_fins = true;
+        using var topols = new PKScopeArray<PK.TOPOL_t>();
+        using var classes = new PKScopeArray<PK.CLASS_t>();
+        using var parents = new PKScopeArray<int>();
+        using var children = new PKScopeArray<int>();
+        using var senses = new PKScopeArray<PK.TOPOL.sense_t>();
+        PK.BODY.ask_topology(body, &options, &topols.size, &topols.data, &classes.data, &parents.size, &parents.data, &children.data, &senses.data);
+        var topolMap = new Dictionary<int, TopolTreeNode>();
+        var faceList = new List<PK.FACE_t>();
+        var finList = new List<PK.FIN_t>();
+        var edgeList = new List<PK.EDGE_t>();
+        var vertexList = new List<PK.VERTEX_t>();
+        foreach (var topol in topols.Span)
+        {
+            var topolNode = new TopolTreeNode
+            {
+                TypeName = GetEntityName(topol, out var entityType),
+                Tag = topol
+            };
+            topolMap[topol] = topolNode;
+            switch (entityType)
+            {
+                case PK.CLASS_t.face:
+                    faceList.Add((PK.FACE_t)topol);
+                    break;
+                case PK.CLASS_t.fin:
+                    finList.Add((PK.FIN_t)topol);
+                    break;
+                case PK.CLASS_t.edge:
+                    edgeList.Add((PK.EDGE_t)topol);
+                    break;
+                case PK.CLASS_t.vertex:
+                    vertexList.Add((PK.VERTEX_t)topol);
+                    break;
+                default:
+                    break;
+            }
+        }
+        for (int i = 0; i < parents.size; i++)
+        {
+            var parent = parents[i];
+            var child = children[i];
+            var topolParent = topols[parent];
+            var topolChild = topols[child];
+            var sense = senses[i];
+            var parentNode = topolMap[topolParent];
+            var childNode = topolMap[topolChild];
+            if (childNode.Parents.Contains(parentNode))
+            {
+                continue;
+            }
+            parentNode.Children.Add(childNode);
+            childNode.Parents.Add(parentNode);
+            parentNode.ChilrenSense.Add($"{parent}-->{child}:{sense}");
+        }
+        foreach (var face in faceList)
+        {
+            var topolNode = topolMap[face];
+            PK.SURF_t geom;
+            PK.LOGICAL_t orient;
+            PK.FACE.ask_oriented_surf(face, &geom, &orient);
+            if (geom == PK.CURVE_t.@null)
+            {
+                continue;
+            }
+            var geomName = GetEntityName(geom, out _);
+            var geomNode = new TopolTreeNode
+            {
+                TypeName = $"{geomName}({(bool)orient})",
+                Tag = geom,
+            };
+            geomNode.Parents.Add(topolNode);
+            topolNode.Children.Add(geomNode);
+            topolNode.ChilrenSense.Add($"{face}-->{geom}:{orient}");
+        }
+        foreach (var fin in finList)
+        {
+            var topolNode = topolMap[fin];
+            PK.CURVE_t geom;
+            PK.FIN.ask_curve(fin, &geom);
+            if (geom == PK.CURVE_t.@null)
+            {
+                continue;
+            }
+            var geomName = GetEntityName(geom, out _);
+            var geomNode = new TopolTreeNode
+            {
+                TypeName = $"{geomName}",
+                Tag = geom,
+            };
+            geomNode.Parents.Add(topolNode);
+            topolNode.Children.Add(geomNode);
+        }
+        foreach (var edge in edgeList)
+        {
+            var topolNode = topolMap[edge];
+            PK.CURVE_t geom;
+            PK.LOGICAL_t orient;
+            PK.EDGE.ask_oriented_curve(edge, &geom, &orient);
+            if (geom == PK.CURVE_t.@null)
+            {
+                continue;
+            }
+            var geomName = GetEntityName(geom, out _);
+            var geomNode = new TopolTreeNode
+            {
+                TypeName = $"{geomName}({(bool)orient})",
+                Tag = geom,
+            };
+            geomNode.Parents.Add(topolNode);
+            topolNode.Children.Add(geomNode);
+            topolNode.ChilrenSense.Add($"{edge}-->{geom}:{orient}");
+        }
+        foreach (var vertex in vertexList)
+        {
+            var topolNode = topolMap[vertex];
+            PK.POINT_t geom;
+            PK.VERTEX.ask_point(vertex, &geom);
+            if (geom == PK.CURVE_t.@null)
+            {
+                continue;
+            }
+            var geomName = GetEntityName(geom, out _);
+            var geomNode = new TopolTreeNode
+            {
+                TypeName = $"{geomName}",
+                Tag = geom,
+            };
+            geomNode.Parents.Add(topolNode);
+            topolNode.Children.Add(geomNode);
+            topolNode.ChilrenSense.Add($"{vertex}-->{geom}");
+        }
+        return topolMap[body];
+    }
+}
+
+public class TopolTreeNode
+{
+    public HashSet<TopolTreeNode> Parents { get; } = [];
+    public List<TopolTreeNode> Children { get; } = [];
+    public List<string> ChilrenSense { get; } = [];
+
+    public int Tag { get; set; }
+    public string TypeName { get; set; } = "";
+    public string Headr => $"{TypeName}:{Tag}";
 }

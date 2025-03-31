@@ -5,31 +5,14 @@ using System.Linq;
 namespace PKToy.ViewModels;
 public class Node
 {
-    private ObservableCollection<Node> _children;
-    private int _childIndex = 10;
-
-    public Node()
+    public Node(string header)
     {
-        Header = "Item";
+        Header = header;
     }
 
-    public Node(Node parent, int index)
-    {
-        Parent = parent;
-        Header = parent.Header + ' ' + index;
-    }
-
-    public Node Parent { get; }
     public string Header { get; }
-    public bool AreChildrenInitialized => _children != null;
-    public ObservableCollection<Node> Children => _children ??= CreateChildren();
-    public void AddItem() => Children.Add(new Node(this, _childIndex++));
-    public void RemoveItem(Node child) => Children.Remove(child);
+    public HashSet<Node> Parents { get; } = [];
+    public ObservableCollection<Node> Children { get; } = [];
     public override string ToString() => Header;
 
-    private ObservableCollection<Node> CreateChildren()
-    {
-        return new ObservableCollection<Node>(
-            Enumerable.Range(0, 10).Select(i => new Node(this, i)));
-    }
 }

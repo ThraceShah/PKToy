@@ -69,6 +69,11 @@ public class MainWindowViewModel : ViewModelBase
         long after = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
         Console.WriteLine($"after Memory Used: {after}MB");
         Console.WriteLine($"after-before={after - before}MB");
+
+        if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
+        {
+            topolTreeVM.UpdateTree();
+        }
     }
 
     private async void SaveCommandExecute()
