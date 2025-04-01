@@ -66,6 +66,39 @@ namespace Viewer.IContract
             return id;
         }
 
+        public Box GetBoundingBox()
+        {
+            Vector3 min = new(float.MaxValue, float.MaxValue, float.MaxValue);
+            Vector3 max = new(float.MinValue, float.MinValue, float.MinValue);
+            var partBoxMap = new Dictionary<int, Box>();
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var part = parts[i];
+                var partBox = part.Box;
+                partBoxMap.Add(i, partBox);
+            }
+            for (int i = 0; i < comps.Count; i++)
+            {
+                var comp = this.comps[i];
+                var partBox = partBoxMap[comp.PartIndex];
+                var newBox = new Box
+                {
+                    Min = Vector3.Transform(partBox.Min, comp.CompMatrix),
+                    Max = Vector3.Transform(partBox.Max, comp.CompMatrix)
+                };
+                min = Vector3.Min(min, newBox.Min);
+                max = Vector3.Max(max, newBox.Max);
+                min = Vector3.Min(min, newBox.Max);
+                max = Vector3.Max(max, newBox.Min);
+            }
+            var box = new Box
+            {
+                Min = min,
+                Max = max
+            };
+            return box;
+        }
+
         public Vector3 GetBBoxCenter()
         {
             //先计算每个组件原始模型的box,然后将这些box偏移,最后获得整个组件的box
