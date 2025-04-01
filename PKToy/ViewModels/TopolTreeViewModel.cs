@@ -34,25 +34,36 @@ class TopolTreeViewModel : ViewModelBase
         }
     }
 
-    public void UpdateTree()
+    public void UpdateTree(int partitionTag = 0)
     {
         Items.Clear();
         SelectedItems.Clear();
         _bodies = new Node("Bodies");
         Items.Add(_bodies);
-        UpdateBodyTopolTree();
+        UpdateBodyTopolTree(partitionTag);
     }
 
-    private void UpdateBodyTopolTree()
+    private void UpdateBodyTopolTree(int partitionTag = 0)
     {
         if (_bodies == null)
         {
             return;
         }
-        var topolTree = PKSession.GetCurPartitionTopolTree();
-        foreach (var body in topolTree)
+        if (partitionTag == 0)
         {
-            MapTopolNode2Node(body, _bodies);
+            var topolTree = PKSession.GetCurPartitionTopolTree();
+            foreach (var body in topolTree)
+            {
+                MapTopolNode2Node(body, _bodies);
+            }
+        }
+        else
+        {
+            var topolTree = PKSession.GetPartitionTopolTree(partitionTag);
+            foreach (var body in topolTree)
+            {
+                MapTopolNode2Node(body, _bodies);
+            }
         }
     }
 
