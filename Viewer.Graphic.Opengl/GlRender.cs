@@ -13,6 +13,8 @@ namespace Viewer.Graphic.Opengl;
 
 public partial class GlRender(GL gl) : IDisposable
 {
+    const float DEFAULT_ORTHO_SCALE = 1.5f;
+    const float DEFAULT_VIEW_SCALE_FACTOR = 0.01f;
 
     private bool disposed = false;
 
@@ -32,7 +34,9 @@ public partial class GlRender(GL gl) : IDisposable
     private Shader highlightFaceShader;
 
     private KeyCode keyCode = KeyCode.None;
-    private float orthoScale = 1;
+    private float orthoScale = DEFAULT_ORTHO_SCALE;
+    private float viewScaleFactor = DEFAULT_VIEW_SCALE_FACTOR;
+
     private Quaternion rotation = Quaternion.Identity;
     private Vector3 bBoxCenter = Vector3.Zero;
 
@@ -168,6 +172,21 @@ public partial class GlRender(GL gl) : IDisposable
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry = asmGeometry;
         EnableHover = hover;
+
+        var box = geometry.GetBoundingBox();
+        FitToBoundingBox(box.Min, box.Max);
+
+    }
+
+    public void FitToBoundingBox(Vector3 min, Vector3 max)
+    {
+        var center = (min + max) / 2;
+        var size = max - min;
+        var scale = float.Max(size.X, float.Max(size.Y, size.Z));
+        bBoxCenter = center;
+        orthoScale = scale * DEFAULT_ORTHO_SCALE;
+        viewScaleFactor = scale * DEFAULT_VIEW_SCALE_FACTOR;
+        this.UpdateProjMatrix();
     }
 
     public void GLControlResize(uint width, uint height)
@@ -228,7 +247,7 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void MouseWheel(int delta)
     {
-        ProcessMouseScroll(delta * 0.01f);
+        ProcessMouseScroll(delta * viewScaleFactor);
         UpdateProjMatrix();
 
     }
