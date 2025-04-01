@@ -34,7 +34,7 @@ public unsafe class PKSession
     }
 
 
-    public static AsmGeometry OpenPart(string partName)
+    public static AsmGeometry OpenPart(string partName, out int partionTag)
     {
         PK.PART.receive_o_t receive_options = new(true);
         if (Path.GetExtension(partName).Equals(".x_t", StringComparison.OrdinalIgnoreCase))
@@ -53,15 +53,15 @@ public unsafe class PKSession
         watch.Start();
         PK.PARTITION_t curPartition;
         PK.SESSION.ask_curr_partition(&curPartition);
-        // PK.PARTITION_t newPartition;
-        // PK.PARTITION.create_empty(&newPartition);
-        // PK.PARTITION.set_current(newPartition);
+        PK.PARTITION_t newPartition;
+        PK.PARTITION.create_empty(&newPartition);
+        PK.PARTITION.set_current(newPartition);
 
         using var parts = new PKScopeArray<PK.PART_t>();
         PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
-        // var asmGeom = OpenPartition(newPartition);
-        // PK.PARTITION.set_current(curPartition);
-        var asmGeom = OpenPartition(curPartition);
+        var asmGeom = OpenPartition(newPartition);
+        PK.PARTITION.set_current(curPartition);
+        partionTag = newPartition;
         return asmGeom;
     }
 
@@ -157,12 +157,13 @@ public unsafe class PKSession
         return asmGeom;
     }
 
-    public static AsmGeometry OpenStep(string stepName)
+    public static AsmGeometry OpenStep(string stepName, out int partionTag)
     {
         var watch = new Stopwatch();
         watch.Start();
         var partition = PKToy.Exchange.StepLoader.LoadStep(stepName);
         watch.Stop();
+        partionTag = partition;
         Console.WriteLine($"load step to pk elapsed time:{watch.ElapsedMilliseconds} ms");
         return OpenPartition(partition);
     }
@@ -204,7 +205,7 @@ public unsafe class PKSession
         return GetPartitionTopolTree(curPartition);
     }
 
-    public static List<TopolTreeNode> GetPartitionTopolTree(PK.PARTITION_t partition)
+    public static List<TopolTreeNode> GetPartitionTopolTree(int partition)
     {
         var topoTree = new List<TopolTreeNode>();
         using var bodies = new PKScopeArray<PK.BODY_t>();

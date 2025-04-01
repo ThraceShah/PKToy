@@ -53,14 +53,15 @@ public class MainWindowViewModel : ViewModelBase
         var stop = new Stopwatch();
         stop.Start();
         var extension = System.IO.Path.GetExtension(filename).ToLower();
+        int partionTag = 0;
         if (extension is ".x_t" or ".x_b")
         {
-            var geometry = PKSession.OpenPart(filename);
+            var geometry = PKSession.OpenPart(filename, out partionTag);
             _window.GL.GLControl.UpdateGeometry(geometry);
         }
         else if (extension is ".step" or ".stp")
         {
-            var geometry = PKSession.OpenStep(filename);
+            var geometry = PKSession.OpenStep(filename, out partionTag);
             _window.GL.GLControl.UpdateGeometry(geometry);
         }
         GC.Collect();
@@ -72,7 +73,7 @@ public class MainWindowViewModel : ViewModelBase
 
         if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
         {
-            topolTreeVM.UpdateTree();
+            topolTreeVM.UpdateTree(partionTag);
         }
     }
 
