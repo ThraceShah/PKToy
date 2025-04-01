@@ -23,6 +23,7 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal">
             <Button Content="File" Width="50" Command="{Binding FileCommand}"/>
             <Button Content="Save" Width="50" Command="{Binding SaveCommand}"/>
+            <Button Content="Reset" Width="50" Command="{Binding ResetCommand}"/>
             <Button Content="Cube" Width="50" Command="{Binding CubeCommand}"/>
         </StackPanel>
         <Grid Grid.Row="1" >

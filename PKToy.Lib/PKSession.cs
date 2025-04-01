@@ -11,6 +11,32 @@ public unsafe class PKSession
     public static void Init()
     {
         Frustrum.InitializeParasolidFrustrum();
+        NewSession();
+    }
+
+    public static void StopSession()
+    {
+        PK.SESSION.stop();
+    }
+
+    public static void NewSession()
+    {
+        PKErrorCheck err;
+        PK.DELTA.frustrum_t deltaFru = new()
+        {
+            open_for_write_fn = &FrustrumDelta.OpenForWrite,
+            write_fn = &FrustrumDelta.Write,
+            open_for_read_fn = &FrustrumDelta.OpenForRead,
+            read_fn = &FrustrumDelta.Read,
+            delete_fn = &FrustrumDelta.Delete,
+            close_fn = &FrustrumDelta.Close,
+        };
+        err = PK.DELTA._register_callbacks(deltaFru);
+
+        PK.SESSION.start_o_t start_options = new(true);
+        err = PK.SESSION.start(&start_options);
+        err = PK.SESSION.set_unicode(true);
+        err = PK.SESSION.set_roll_forward(true);
         PK.SESSION.smp_o_t smpOptions = new(true);
         PK.SESSION.set_smp(&smpOptions);
         PK.SESSION.smp_r_t smpResult;

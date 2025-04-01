@@ -264,23 +264,8 @@ public unsafe static class Frustrum
             free_fn = freePtr
         };
         err = PK.MEMORY.register_callbacks(a);
-        PK.DELTA.frustrum_t deltaFru = new()
-        {
-            open_for_write_fn = &FrustrumDelta.OpenForWrite,
-            write_fn = &FrustrumDelta.Write,
-            open_for_read_fn = &FrustrumDelta.OpenForRead,
-            read_fn = &FrustrumDelta.Read,
-            delete_fn = &FrustrumDelta.Delete,
-            close_fn = &FrustrumDelta.Close,
-        };
-        err = PK.DELTA._register_callbacks(deltaFru);
-
         PK.ERROR.frustrum_t errFru = new(&ErrorHandler);
         err = PK.ERROR._register_callbacks(errFru);
-        PK.SESSION.start_o_t start_options = new(true);
-        err = PK.SESSION.start(&start_options);
-        err = PK.SESSION.set_unicode(true);
-        err = PK.SESSION.set_roll_forward(true);
     }
 
 }

@@ -158,11 +158,16 @@ public partial class GlRender(GL gl) : IDisposable
 
     public void UpdateGeometry(AsmGeometry asmGeometry)
     {
-        var hover = EnableHover;
-        EnableHover = false;
         this.keyCode = KeyCode.None;
-        orthoScale = 1.0f;
-
+        orthoScale = DEFAULT_ORTHO_SCALE;
+        if (asmGeometry == null || asmGeometry.Parts.Count == 0)
+        {
+            partBuffers?.Dispose();
+            partBuffers = null;
+            geometry = null;
+            this.EnableHover = false;
+            return;
+        }
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
         // bBoxCenter = asmGeometry.GetBBoxCenter();
@@ -171,11 +176,10 @@ public partial class GlRender(GL gl) : IDisposable
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry = asmGeometry;
-        EnableHover = hover;
 
         var box = geometry.GetBoundingBox();
         FitToBoundingBox(box.Min, box.Max);
-
+        this.EnableHover = true;
     }
 
     public void FitToBoundingBox(Vector3 min, Vector3 max)

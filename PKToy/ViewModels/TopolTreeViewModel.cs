@@ -21,8 +21,8 @@ class TopolTreeViewModel : ViewModelBase
         SelectedItems = [];
     }
 
-    public ObservableCollection<Node> Items { get; }
-    public ObservableCollection<Node> SelectedItems { get; }
+    public ObservableCollection<Node> Items { get; private set; }
+    public ObservableCollection<Node> SelectedItems { get; private set; }
 
     public SelectionMode SelectionMode
     {
@@ -36,8 +36,8 @@ class TopolTreeViewModel : ViewModelBase
 
     public void UpdateTree(int partitionTag = 0)
     {
-        Items.Clear();
-        SelectedItems.Clear();
+        Items = [];
+        SelectedItems = [];
         _bodies = new Node("Bodies");
         Items.Add(_bodies);
         UpdateBodyTopolTree(partitionTag);

@@ -19,6 +19,7 @@ public class MainWindowViewModel : ViewModelBase
     private readonly MainWindow _window;
     public IReactiveCommand FileCommand { get; }
     public IReactiveCommand SaveCommand { get; }
+    public IReactiveCommand ResetCommand { get; }
     public IReactiveCommand CubeCommand { get; }
 
     public MainWindowViewModel(MainWindow window)
@@ -27,6 +28,7 @@ public class MainWindowViewModel : ViewModelBase
         FileCommand = ReactiveCommand.Create(FileCommandExecute);
         SaveCommand = ReactiveCommand.Create(SaveCommandExecute);
         CubeCommand = ReactiveCommand.Create(CubeCommandExecute);
+        ResetCommand = ReactiveCommand.Create(ResetCommandExecute);
     }
 
     private async void FileCommandExecute()
@@ -92,6 +94,19 @@ public class MainWindowViewModel : ViewModelBase
         }
         string filename = result.TryGetLocalPath();
         PKSession.SavePart(filename);
+    }
+
+    private void ResetCommandExecute()
+    {
+        PKSession.StopSession();
+        PKSession.NewSession();
+        var asm = new AsmGeometry();
+        _window.GL.GLControl.UpdateGeometry(asm);
+        if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
+        {
+            topolTreeVM.UpdateTree();
+        }
+        GC.Collect();
     }
 
     private void CubeCommandExecute()
