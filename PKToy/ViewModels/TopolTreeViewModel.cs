@@ -21,8 +21,19 @@ class TopolTreeViewModel : ViewModelBase
         SelectedItems = [];
     }
 
-    public ObservableCollection<Node> Items { get; private set; }
-    public ObservableCollection<Node> SelectedItems { get; private set; }
+    private ObservableCollection<Node> _items;
+    public ObservableCollection<Node> Items
+    {
+        get => _items;
+        set => this.RaiseAndSetIfChanged(ref _items, value);
+    }
+    private ObservableCollection<Node> _selectedItems;
+
+    public ObservableCollection<Node> SelectedItems
+    {
+        get => _selectedItems;
+        set => this.RaiseAndSetIfChanged(ref _selectedItems, value);
+    }
 
     public SelectionMode SelectionMode
     {
