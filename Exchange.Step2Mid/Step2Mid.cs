@@ -192,7 +192,7 @@ public class Step2Mid
             {
                 case IEdge_loop stepEdgeLoop:
                     var midLoop = midMgr.GetOrCreateMidObj<EdgeLoopObj>(stepEdgeLoop.line_id);
-                    var fins = stepEdgeLoop.edge_list.Select(edge => midMgr.GetMidObj<FinObj>(edge.line_id)).ToArray();
+                    var fins = stepEdgeLoop.edge_list.Select(edge => midMgr.GetMidObj<FinObj>(edge.line_id)).Reverse().ToArray();
                     midLoop.Fins = fins;
                     break;
                 case IVertex_loop stepVertexLoop:
@@ -210,7 +210,7 @@ public class Step2Mid
         foreach (var stepFace in stepFaces)
         {
             var midFace = midMgr.GetOrCreateMidObj<FaceObj>(stepFace.line_id);
-            midFace.Loops = [.. stepFace.bounds.Select(bound => midMgr.GetMidObj<ILoopObj>(bound.bound.line_id))];
+            midFace.Loops = [.. stepFace.bounds.Select(bound => midMgr.GetMidObj<ILoopObj>(bound.bound.line_id)).Reverse()];
             midFace.Surf = midMgr.GetMidObj<ISurfaceObj>(stepFace.face_geometry.line_id);
             midFace.Sence = stepFace.same_sense;
         }
@@ -226,22 +226,22 @@ public class Step2Mid
                 case IOriented_open_shell stepOrientedOpenShell:
                     midFaceShell.Closed = false;
                     midFaceShell.Oriented = stepOrientedOpenShell.orientation;
-                    midFaceShell.Faces = [.. stepOrientedOpenShell.open_shell_element.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    midFaceShell.Faces = [.. stepOrientedOpenShell.open_shell_element.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id)).Reverse()];
                     break;
                 case IOriented_closed_shell stepOrientedClosedShell:
                     midFaceShell.Closed = true;
                     midFaceShell.Oriented = stepOrientedClosedShell.orientation;
-                    midFaceShell.Faces = [.. stepOrientedClosedShell.closed_shell_element.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    midFaceShell.Faces = [.. stepOrientedClosedShell.closed_shell_element.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id)).Reverse()];
                     break;
                 case IOpen_shell stepOpenShell:
                     midFaceShell.Closed = false;
                     midFaceShell.Oriented = true;
-                    midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id)).Reverse()];
                     break;
                 case IClosed_shell stepClosedShell:
                     midFaceShell.Closed = true;
                     midFaceShell.Oriented = true;
-                    midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id))];
+                    midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObj<FaceObj>(face.line_id)).Reverse()];
                     break;
 
             }
