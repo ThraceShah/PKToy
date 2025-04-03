@@ -92,6 +92,9 @@ public unsafe class Mid2PK
             pkTopolGeomMap[topoObj] = (pkTopl, geoObj);
         }
         ProcessTopoGeom(pkTopolGeomMap);
+        PK.BODY.check_o_t bodyCheckOp = new(true);
+        using PKScopeArray<PK.check_fault_t> faults = new();
+        PK.BODY.check(pkBody, &bodyCheckOp, &faults.size, &faults.data);
         PK.BODY.create_topology_2_r_f(&r);
         return pkBody;
     }
