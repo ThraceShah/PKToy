@@ -3,11 +3,11 @@ using Exchange.Step2Mid;
 
 namespace PKToy.Exchange;
 
-record Mid2PKData(ITopoObj[] TopoChildren, IGeoObj? GeomChildren, PK.TOPOL.sense_t[] Sense);
+record Mid2PKData(ITopolObj[] TopoChildren, IGeoObj? GeomChildren, PK.TOPOL.sense_t[] Sense);
 
 static class Mid2PKTool
 {
-    public static Mid2PKData? GetChildren(this ITopoObj topoObj) => topoObj switch
+    public static Mid2PKData? GetChildren(this ITopolObj topoObj) => topoObj switch
     {
         IBodyObj solidBodyObj => GetMid2PKData(solidBodyObj),
         IRegionObj regionObj => GetMid2PKData(regionObj),
@@ -163,7 +163,7 @@ static class Mid2PKTool
         {
             return new([], edgeObj.Curve, []);
         }
-        var topoChildren = new List<ITopoObj>();
+        var topoChildren = new List<ITopolObj>();
         if (edgeObj.Start is not null)
         {
             topoChildren.Add(edgeObj.Start);
