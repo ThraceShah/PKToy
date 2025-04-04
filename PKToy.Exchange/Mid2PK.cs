@@ -20,123 +20,216 @@ public unsafe class Mid2PK
         PK.PARTITION_t partition;
         PK.PARTITION.create_empty(&partition);
         PK.PARTITION.set_current(partition);
+        var builder = new KernelBodyBuilder(midMgr);
         foreach (var midObj in midBodies)
         {
-            var pkBody = MidBody2PK(midObj);
+            var pkBody = builder.Build(midObj);
             Console.WriteLine($"MidBody #{midObj.ImpId} -> PKBody #{pkBody.Value}");
         }
         PK.PARTITION.set_current(curPartition);
         return partition;
     }
 
-    private static PK.BODY_t MidBody2PK(IBodyObj midBody)
+    internal class KernelBodyBuilder(MidMgr midMgr)
     {
-        Dictionary<ITopoObj, IGeoObj> topoGeoMap = [];
-        Dictionary<ITopoObj, int> topoIdMap = new() { { midBody, 0 } };
-        var capacity = 80;
-        using var pkTopoClassList = new UMList<PK.CLASS_t>(capacity);
-        pkTopoClassList.Add(PK.CLASS_t.body);
-        using var pkParentList = new UMList<int>(capacity);
-        using var pkChildList = new UMList<int>(capacity);
-        using var pkSenceList = new UMList<PK.TOPOL.sense_t>(capacity);
-        Queue<ITopoObj> topoQueue = new();
-        topoQueue.Enqueue(midBody);
-        while (topoQueue.Count > 0)
+        bool cleared = true;
+        readonly Dictionary<ITopolObj, int> topolIdMap = [];
+        readonly Dictionary<VertexObj, IPointObj> vertexPointMap = [];
+        readonly Dictionary<EdgeObj, ICurveObj> edgeCurveMap = [];
+        readonly Dictionary<FaceObj, ISurfaceObj> faceSurfMap = [];
+        private void Clear()
         {
-            var parentObj = topoQueue.Dequeue();
-            var mid2pkData = parentObj.GetChildren();
-            if (mid2pkData is null)
+            topolIdMap.Clear();
+            vertexPointMap.Clear();
+            edgeCurveMap.Clear();
+            faceSurfMap.Clear();
+            cleared = true;
+        }
+        public PK.BODY_t Build(IBodyObj midBody)
+        {
+            if (cleared is false)
             {
-                continue;
+                Clear();
             }
-            var pkParentId = topoIdMap[parentObj];
-            for (var i = 0; i < mid2pkData.TopoChildren.Length; i++)
+            var body = BuildTopol(midBody);
+            if (body == PK.BODY_t.@null)
             {
-                var childObj = mid2pkData.TopoChildren[i];
-                if (topoIdMap.TryGetValue(childObj, out var pkChildId) is false)
+                return body;
+            }
+            ProcessTopolGeom(body);
+            cleared = false;
+            return body;
+        }
+
+        private void ProcessTopolGeom<TTopol, TGeom>(Dictionary<TTopol, TGeom> topoGeoMap,
+        Action<UMList<PK.TOPOL_t>, UMList<PK.GEOM_t>, UMList<PK.LOGICAL_t>> attachFunc, Func<TTopol, bool> getSenseFunc) where TTopol : ITopolObj where TGeom : IGeoObj
+        {
+            using var pkTopolList = new UMList<PK.TOPOL_t>(topoGeoMap.Count);
+            using var pkGeomList = new UMList<PK.GEOM_t>(topoGeoMap.Count);
+            using var pkSenseList = new UMList<PK.LOGICAL_t>(topoGeoMap.Count);
+            foreach (var (topoObj, geoObj) in topoGeoMap)
+            {
+                var pkTopol = topoObj.ExpId;
+                var pkGeom = MidGeom2PKTool.MidGeom2PK(geoObj);
+                if (pkGeom == PK.GEOM_t.@null)
                 {
-                    pkChildId = pkTopoClassList.Count;
-                    topoIdMap[childObj] = pkChildId;
-                    topoQueue.Enqueue(childObj);
-                    var pkChildClass = GetTopoPKClass(childObj);
-                    pkTopoClassList.Add(pkChildClass);
+                    Console.WriteLine($"Convert MidGeom #{geoObj.ImpId} to PK failed");
+                    continue;
                 }
-                pkParentList.Add(pkParentId);
-                pkChildList.Add(pkChildId);
-                pkSenceList.Add(mid2pkData.Sense[i]);
+                midMgr.SetObjExpId(topoObj, pkTopol);
+                pkTopolList.Add(pkTopol.Id);
+                pkGeomList.Add(pkGeom);
+                pkSenseList.Add(getSenseFunc(topoObj));
             }
-            if (mid2pkData.GeomChildren is not null)
+            attachFunc(pkTopolList, pkGeomList, pkSenseList);
+        }
+
+        private static void VertexAttachPoints(UMList<PK.TOPOL_t> pkTopolList, UMList<PK.GEOM_t> pkGeomList, UMList<PK.LOGICAL_t> pkSenseList)
+        {
+            PK.VERTEX.attach_points(pkTopolList.Count, (PK.VERTEX_t*)pkTopolList.Data, (PK.POINT_t*)pkGeomList.Data);
+        }
+
+        private static void EdgeAttachCurves(UMList<PK.TOPOL_t> pkTopolList, UMList<PK.GEOM_t> pkGeomList, UMList<PK.LOGICAL_t> pkSenseList)
+        {
+            PK.EDGE.attach_curves_o_t op = new(true)
             {
-                topoGeoMap[parentObj] = mid2pkData.GeomChildren;
+                have_senses = true,
+                senses = pkSenseList.Data
+            };
+            using var rt = new PKScopeData<PK.ENTITY.track_r_t>(&PK.ENTITY.track_r_f);
+            PK.EDGE.attach_curves_2(pkTopolList.Count, (PK.EDGE_t*)pkTopolList.Data, (PK.CURVE_t*)pkGeomList.Data, &op, &rt.data);
+            if (rt.data.n_track_records > 0)
+            {
+                Console.WriteLine($"Edge attach curves has {rt.data.n_track_records} records");
             }
         }
-        PrintTopoTable(pkTopoClassList, pkParentList, pkChildList, pkSenceList);
-        var nTopols = pkTopoClassList.Count;
-        var nRelations = pkParentList.Count;
-        PK.BODY.create_topology_2_r_t r;
-        PK.BODY.create_topology_2_o_t op = new(GetBodyType(midBody));
-        PK.BODY.create_topology_2(nTopols, pkTopoClassList.Data, nRelations, pkParentList.Data, pkChildList.Data, pkSenceList.Data, &op, &r);
-        var pkBody = r.body;
-        PK.BODY.type_t bodyType;
-        PK.BODY.ask_type(pkBody, &bodyType);
-        if (r.create_faults->state != PK.check_state_t.BODY_state_ok_c)
+
+        private static void FaceAttachSurfs(UMList<PK.TOPOL_t> pkTopolList, UMList<PK.GEOM_t> pkGeomList, UMList<PK.LOGICAL_t> pkSenseList)
         {
-            Console.WriteLine($"Create PKBody failed: {r.create_faults->state},body tag:{pkBody.Value}");
-            PK.BODY.create_topology_2_r_f(&r);
-            return pkBody;
+            PK.FACE.attach_surfs(pkTopolList.Count, (PK.FACE_t*)pkTopolList.Data, (PK.SURF_t*)pkGeomList.Data, pkSenseList.Data);
         }
-        var pkTopolGeomMap = new Dictionary<ITopoObj, (PK.TOPOL_t, IGeoObj)>(topoGeoMap.Count);
-        foreach (var (topoObj, geoObj) in topoGeoMap)
+
+
+        private void ProcessTopolGeom(PK.BODY_t pkBody)
         {
-            var pkTopl = r.topols[topoIdMap[topoObj]];
-            pkTopolGeomMap[topoObj] = (pkTopl, geoObj);
+            ProcessTopolGeom(vertexPointMap, VertexAttachPoints, topoObj => true);
+            ProcessTopolGeom(edgeCurveMap, EdgeAttachCurves, topoObj => topoObj.Sense);
+            ProcessTopolGeom(faceSurfMap, FaceAttachSurfs, topoObj => topoObj.Sence);
+            PK.BODY.check_o_t bodyCheckOp = new(true);
+            using PKScopeArray<PK.check_fault_t> faults = new();
+            PK.BODY.check(pkBody, &bodyCheckOp, &faults.size, &faults.data);
+            if (faults.size > 0)
+            {
+                Console.WriteLine($"Check pk body #{pkBody.Value} has {faults.size} faults");
+                for (var i = 0; i < faults.size; i++)
+                {
+                    PrintCheckFault(faults[i]);
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Check pk body #{pkBody.Value} successfully");
+            }
         }
-        ProcessTopoGeom(pkTopolGeomMap);
-        PK.BODY.check_o_t bodyCheckOp = new(true);
-        using PKScopeArray<PK.check_fault_t> faults = new();
-        PK.BODY.check(pkBody, &bodyCheckOp, &faults.size, &faults.data);
-        PK.BODY.create_topology_2_r_f(&r);
-        return pkBody;
+
+        private PK.BODY_t BuildTopol(IBodyObj midBody)
+        {
+            topolIdMap[midBody] = 0;
+            var capacity = 80;
+            using var pkTopoClassList = new UMList<PK.CLASS_t>(capacity);
+            pkTopoClassList.Add(PK.CLASS_t.body);
+            using var pkParentList = new UMList<int>(capacity);
+            using var pkChildList = new UMList<int>(capacity);
+            using var pkSenceList = new UMList<PK.TOPOL.sense_t>(capacity);
+            Queue<ITopolObj> topoQueue = new();
+            topoQueue.Enqueue(midBody);
+            while (topoQueue.Count > 0)
+            {
+                var parentObj = topoQueue.Dequeue();
+                var mid2pkData = parentObj.GetChildren();
+                if (mid2pkData is null)
+                {
+                    continue;
+                }
+                var pkParentId = topolIdMap[parentObj];
+                for (var i = 0; i < mid2pkData.TopoChildren.Length; i++)
+                {
+                    var childObj = mid2pkData.TopoChildren[i];
+                    if (topolIdMap.TryGetValue(childObj, out var pkChildId) is false)
+                    {
+                        pkChildId = pkTopoClassList.Count;
+                        topolIdMap[childObj] = pkChildId;
+                        topoQueue.Enqueue(childObj);
+                        var pkChildClass = GetTopoPKClass(childObj);
+                        pkTopoClassList.Add(pkChildClass);
+                    }
+                    pkParentList.Add(pkParentId);
+                    pkChildList.Add(pkChildId);
+                    pkSenceList.Add(mid2pkData.Sense[i]);
+                }
+                if (mid2pkData.GeomChildren is not null)
+                {
+                    MatchTopolGeom(parentObj, mid2pkData.GeomChildren);
+                }
+            }
+            PrintTopoTable(pkTopoClassList, pkParentList, pkChildList, pkSenceList);
+            var nTopols = pkTopoClassList.Count;
+            var nRelations = pkParentList.Count;
+            using var r = new PKScopeData<PK.BODY.create_topology_2_r_t>(&PK.BODY.create_topology_2_r_f);
+            PK.BODY.create_topology_2_o_t op = new(GetBodyType(midBody));
+            PK.BODY.create_topology_2(nTopols, pkTopoClassList.Data, nRelations, pkParentList.Data, pkChildList.Data, pkSenceList.Data, &op, &r.data);
+            SetTopolTags(r.data.topols, r.data.n_topols);
+            PrintCreateTopolFaults(midBody, r.data);
+            return r.data.body;
+        }
+
+        private void MatchTopolGeom(ITopolObj topol, IGeoObj geom)
+        {
+            switch (topol)
+            {
+                case FaceObj midFace:
+                    {
+                        if (geom is ISurfaceObj midSurf)
+                        {
+                            faceSurfMap[midFace] = midSurf;
+                        }
+                        break;
+                    }
+                case EdgeObj midEdge:
+                    {
+                        if (geom is ICurveObj midCurve)
+                        {
+                            edgeCurveMap[midEdge] = midCurve;
+                        }
+                        break;
+                    }
+                case VertexObj midVertex:
+                    {
+                        if (geom is IPointObj midPoint)
+                        {
+                            vertexPointMap[midVertex] = midPoint;
+                        }
+                        break;
+                    }
+                default:
+                    throw new NotImplementedException($"Unknown topo class: {topol.GetType()}");
+            }
+        }
+        private void SetTopolTags(PK.TOPOL_t* topols, int nTopols)
+        {
+            if (nTopols == 0)
+            {
+                return;
+            }
+            foreach (var (midTopol, id) in this.topolIdMap)
+            {
+                midMgr.SetObjExpId(midTopol, topols[id].Value);
+            }
+        }
+
+
     }
 
-    private static void ProcessTopoGeom(Dictionary<ITopoObj, (PK.TOPOL_t, IGeoObj)> pkTopolGeomMap)
-    {
-        foreach (var (topoObj, (pkTopo, midGeom)) in pkTopolGeomMap)
-        {
-            var pkGeom = MidGeom2PKTool.MidGeom2PK(midGeom);
-            if (pkGeom == PK.GEOM_t.@null)
-            {
-                Console.WriteLine($"Convert MidGeom #{midGeom.ImpId} to PK failed");
-                continue;
-            }
-            ProcessTopoGeom(topoObj, pkTopo, pkGeom);
-        }
-    }
-
-    private static void ProcessTopoGeom(ITopoObj topoObj, int pkTopol, int pkGeom)
-    {
-        switch (topoObj)
-        {
-            case FaceObj midFace:
-                {
-                    PK.LOGICAL_t sense = midFace.Sence;
-                    PK.FACE.attach_surfs(1, (PK.FACE_t*)&pkTopol, (PK.SURF_t*)&pkGeom, &sense);
-                    break;
-                }
-            case EdgeObj midEdge:
-                {
-                    PK.EDGE.attach_curves(1, (PK.EDGE_t*)&pkTopol, (PK.CURVE_t*)&pkGeom);
-                    break;
-                }
-            case VertexObj midVertex:
-                {
-                    PK.VERTEX.attach_points(1, (PK.VERTEX_t*)&pkTopol, (PK.POINT_t*)&pkGeom);
-                    break;
-                }
-            default:
-                throw new NotImplementedException($"Unknown topo class: {topoObj.GetType()}");
-        }
-    }
 
     private static PK.BODY.type_t GetBodyType(IBodyObj midBody) => midBody switch
     {
@@ -147,7 +240,7 @@ public unsafe class Mid2PK
         _ => throw new NotImplementedException($"Unknown body type: {midBody.GetType()}")
     };
 
-    private static PK.CLASS_t GetTopoPKClass(ITopoObj topoObj) => topoObj switch
+    private static PK.CLASS_t GetTopoPKClass(ITopolObj topoObj) => topoObj switch
     {
         IBodyObj => PK.CLASS_t.body,
         IRegionObj => PK.CLASS_t.region,
@@ -184,5 +277,39 @@ public unsafe class Mid2PK
             Console.WriteLine($"[{i}] {pkParent}:{pClass} - {pkChild}:{cClass}-> {pkSenceList[i]}");
         }
     }
+
+    private static void PrintCreateTopolFaults(IBodyObj midBody, PK.BODY.create_topology_2_r_t crt)
+    {
+        if (crt.n_create_faults == 0)
+        {
+            Console.WriteLine($"Create midbody #{midBody.ImpId} topology successfully, body tag: #{crt.body.Value}");
+            return;
+        }
+        Console.WriteLine($"Create midbody #{midBody.ImpId} topology ,faults count: {crt.n_create_faults},body tag: {crt.body.Value}");
+        for (var i = 0; i < crt.n_create_faults; i++)
+        {
+            var fault = crt.create_faults[i];
+            PrintCreateFault(fault);
+        }
+    }
+
+    private static void PrintCreateFault(PK.create_fault_t fault)
+    {
+        Console.Write($"state: {fault.state}, indices:[");
+        for (var i = 0; i < fault.n_indices; i++)
+        {
+            var index = fault.indices[i];
+            Console.Write($" {index},");
+        }
+        Console.WriteLine("]");
+    }
+
+    private static void PrintCheckFault(PK.check_fault_t fault)
+    {
+        var posStr = $"[{fault.position.coord[0]},{fault.position.coord[1]},{fault.position.coord[2]}]";
+        Console.WriteLine($"Check fault: {fault.state}, entity1:{fault.entity_1.Value},entity2: {fault.entity_2.Value}, postion{posStr}");
+    }
+
+
 }
 
