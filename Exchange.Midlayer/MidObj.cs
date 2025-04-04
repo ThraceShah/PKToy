@@ -261,9 +261,25 @@ public class BoundVoidRegionObj : IRegionObj
     public IShellObj[]? Shells { get; set; }
 }
 
+public struct Unit
+{
+    const double M = 1;
+    const double MM = 1e-3;
+    const double ANGLE = 1;
+    const double DEGREE = double.Pi / 180.0;
+    public Unit()
+    {
+    }
+
+    public double LengthFactor = MM;// m
+    public double RadianFactor = DEGREE;// rad
+    public double Tolerance = 1e-5;
+}
+
 public interface IBodyObj : ITopolObj
 {
     public IRegionObj[]? Regions { get; set; }
+    public Unit Unit { get; set; }
 }
 
 public class SolidBodyObj : IBodyObj
@@ -275,6 +291,8 @@ public class SolidBodyObj : IBodyObj
     ImpId IMidObj.ImpId { get => impId; set => impId = value; }
     ExpId IMidObj.ExpId { get => expId; set => expId = value; }
     public IRegionObj[]? Regions { get; set; }
+    public Unit Unit { get; set; } = new Unit();
+
 }
 
 public class SheetBodyObj : IBodyObj
@@ -286,6 +304,8 @@ public class SheetBodyObj : IBodyObj
     ImpId IMidObj.ImpId { get => impId; set => impId = value; }
     ExpId IMidObj.ExpId { get => expId; set => expId = value; }
     public IRegionObj[]? Regions { get; set; }
+    public Unit Unit { get; set; } = new Unit();
+
 }
 
 public class WireBodyObj : IBodyObj
@@ -297,6 +317,8 @@ public class WireBodyObj : IBodyObj
     ImpId IMidObj.ImpId { get => impId; set => impId = value; }
     ExpId IMidObj.ExpId { get => expId; set => expId = value; }
     public IRegionObj[]? Regions { get; set; }
+    public Unit Unit { get; set; } = new Unit();
+
 }
 
 public class AcornBodyObj : IBodyObj
@@ -308,5 +330,7 @@ public class AcornBodyObj : IBodyObj
     ImpId IMidObj.ImpId { get => impId; set => impId = value; }
     ExpId IMidObj.ExpId { get => expId; set => expId = value; }
     public IRegionObj[]? Regions { get; set; }
+    public Unit Unit { get; set; } = new Unit();
+
 }
 

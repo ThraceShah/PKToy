@@ -40,8 +40,8 @@ public class MainWindowViewModel : ViewModelBase
         {
             AllowMultiple = false,
             Title = "选择文件",
-            FileTypeFilter = [new FilePickerFileType("pk files") { Patterns = ["*.x_t", "*.x_b"] },
-                new FilePickerFileType("step files") { Patterns = ["*.step","*.stp"] },
+            FileTypeFilter = [new ("step files") { Patterns = ["*.step","*.stp"] },
+            new ("pk files") { Patterns = ["*.x_t", "*.x_b"] },
                 ],
         };
         var result = await _window.StorageProvider.OpenFilePickerAsync(option);

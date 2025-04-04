@@ -37,6 +37,7 @@ public unsafe class Mid2PK
         readonly Dictionary<VertexObj, IPointObj> vertexPointMap = [];
         readonly Dictionary<EdgeObj, ICurveObj> edgeCurveMap = [];
         readonly Dictionary<FaceObj, ISurfaceObj> faceSurfMap = [];
+        readonly MidGeom2PKTool geom2PKTool = new();
         private void Clear()
         {
             topolIdMap.Clear();
@@ -51,6 +52,7 @@ public unsafe class Mid2PK
             {
                 Clear();
             }
+            geom2PKTool.Unit = midBody.Unit;
             var body = BuildTopol(midBody);
             if (body == PK.BODY_t.@null)
             {
@@ -70,7 +72,7 @@ public unsafe class Mid2PK
             foreach (var (topoObj, geoObj) in topoGeoMap)
             {
                 var pkTopol = topoObj.ExpId;
-                var pkGeom = MidGeom2PKTool.MidGeom2PK(geoObj);
+                var pkGeom = geom2PKTool.MidGeom2PK(geoObj);
                 if (pkGeom == PK.GEOM_t.@null)
                 {
                     Console.WriteLine($"Convert MidGeom #{geoObj.ImpId} to PK failed");
@@ -124,11 +126,41 @@ public unsafe class Mid2PK
                 for (var i = 0; i < faults.size; i++)
                 {
                     PrintCheckFault(faults[i]);
+                    ProcessBodyCheckResult(faults[i]);
                 }
             }
             else
             {
                 Console.WriteLine($"Check pk body #{pkBody.Value} successfully");
+            }
+        }
+
+        private static void ProcessBadEdge(PK.check_fault_t fault)
+        {
+            PK.EDGE.repair_o_t op = new(true);
+            op.max_tolerance = 2e-5;
+            using var rt = new PKScopeData<PK.TOPOL.track_r_t>(&PK.TOPOL.track_r_f);
+            PK.EDGE.repair(1, (PK.EDGE_t*)&fault.entity_2, &op, &rt.data);
+            if (rt.data.n_track_records > 0)
+            {
+                Console.WriteLine($"Repair edge #{fault.entity_2.Value} has {rt.data.n_track_records} records");
+            }
+        }
+
+        private static void ProcessBodyCheckResult(PK.check_fault_t fault)
+        {
+            switch (fault.state)
+            {
+                case PK.check_state_t.FACE_state_bad_edge_c:
+                    {
+                        ProcessBadEdge(fault);
+                        break;
+                    }
+                default:
+                    {
+                        Console.WriteLine($"Unimplemented check fault repair: {fault.state}");
+                        break;
+                    }
             }
         }
 
