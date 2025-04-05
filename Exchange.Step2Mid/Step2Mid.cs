@@ -11,6 +11,7 @@ public class Step2Mid
         var stepCreator = new StepObjCreator();
         var stepParser = new StepParser(stepCreator);
         var stepObjs = stepParser.Resolve(stepFile);
+        var stepIdObjMap = new Dictionary<int, IStepObj>(stepObjs.Length);
         var stepPoints = new List<ICartesian_point>();
         var stepLines = new List<ICurve>();
         var stepPlanes = new List<ISurface>();
@@ -21,8 +22,14 @@ public class Step2Mid
         var stepFaces = new List<IFace_surface>();
         var stepFaceShells = new List<IConnected_face_set>();
         var stepManifoldSolids = new List<IManifold_solid_brep>();
+        var shapeRes = new List<IShape_representation>();
         foreach (var stepObj in stepObjs)
         {
+            if (stepObj is null)
+            {
+                continue;
+            }
+            stepIdObjMap.Add(stepObj.line_id, stepObj);
             switch (stepObj)
             {
                 case StepComplexImp stepComplex:
@@ -57,6 +64,9 @@ public class Step2Mid
                 case IManifold_solid_brep stepManifoldSolid:
                     stepManifoldSolids.Add(stepManifoldSolid);
                     break;
+                case IShape_representation stepShapeRes:
+                    shapeRes.Add(stepShapeRes);
+                    break;
                 default:
                     break;
             }
@@ -72,7 +82,17 @@ public class Step2Mid
         ResolveFaces(stepFaces, midMgr);
         ResolveFaceShells(stepFaceShells, midMgr);
         ResolveManifoldSolids(stepManifoldSolids, midMgr);
+        ResolveShapeRes(stepIdObjMap, shapeRes, midMgr);
         return midMgr;
+    }
+
+    private static void ResolveShapeRes(Dictionary<int, IStepObj> stepIdObjMap, List<IShape_representation> stepShapeRes, MidMgr midMgr)
+    {
+        var unit2Mid = new StepUnit2Mid(stepIdObjMap); // Ensure the StepUnit2Mid class has a method named ResolveUnit
+        foreach (var stepShape in stepShapeRes)
+        {
+            unit2Mid.ResolveUnit(stepShape, midMgr);
+        }
     }
 
     private static void ResolvePoints(List<ICartesian_point> stepPoints, MidMgr midMgr)
