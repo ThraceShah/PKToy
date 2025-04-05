@@ -8,6 +8,11 @@ public class MidMgr
     private readonly Dictionary<ExpId, IMidObj> expIdMidObjMap = [];
     private readonly Dictionary<ImpId, IMidObj> impIdMidObjMap = [];
 
+    public bool ContainsMidObj(ImpId impId)
+    {
+        return impIdMidObjMap.ContainsKey(impId);
+    }
+
     public T GetOrCreateMidObj<T>(ImpId impId) where T : IMidObj, new()
     {
         if (impIdMidObjMap.TryGetValue(impId, out var midObj))

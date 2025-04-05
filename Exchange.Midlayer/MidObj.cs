@@ -263,17 +263,16 @@ public class BoundVoidRegionObj : IRegionObj
 
 public struct Unit
 {
-    const double M = 1;
-    const double MM = 1e-3;
-    const double ANGLE = 1;
-    const double DEGREE = double.Pi / 180.0;
+    public const double DEFAULT_LEN_FACTOR = 1;
+    public const double DEFAULT_RADIAN_FACTOR = 1;
+    public const double DEFAULT_TOLERANCE = 1e-5;
     public Unit()
     {
     }
 
-    public double LengthFactor = MM;// m
-    public double RadianFactor = DEGREE;// rad
-    public double Tolerance = 1e-5;
+    public double LengthFactor = DEFAULT_LEN_FACTOR;// m
+    public double RadianFactor = DEFAULT_RADIAN_FACTOR;// rad
+    public double Tolerance = DEFAULT_TOLERANCE;
 }
 
 public interface IBodyObj : ITopolObj
