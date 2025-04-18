@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using System.Text;
+using NativeCorLib;
 using Viewer.IContract;
 
 namespace PKToy.Lib;
@@ -183,6 +184,13 @@ public unsafe class PKSession
         return asmGeom;
     }
 
+    public static AsmGeometry OpenCurrentPartition()
+    {
+        PK.PARTITION_t curPartition;
+        PK.SESSION.ask_curr_partition(&curPartition);
+        return OpenPartition(curPartition);
+    }
+
     public static AsmGeometry OpenStep(string stepName, out int partionTag)
     {
         var watch = new Stopwatch();
@@ -300,11 +308,13 @@ public unsafe class PKSession
         using var children = new PKScopeArray<int>();
         using var senses = new PKScopeArray<PK.TOPOL.sense_t>();
         PK.BODY.ask_topology(body, &options, &topols.size, &topols.data, &classes.data, &parents.size, &parents.data, &children.data, &senses.data);
+
+        PrintHelper.PrintTopoTable(new(classes.data, topols.size), parents.Span, new(children.data, parents.size), new(senses.data, parents.size));
         var topolMap = new Dictionary<int, TopolTreeNode>();
-        var faceList = new List<PK.FACE_t>();
-        var finList = new List<PK.FIN_t>();
-        var edgeList = new List<PK.EDGE_t>();
-        var vertexList = new List<PK.VERTEX_t>();
+        using var faceList = new UMList<PK.FACE_t>(topols.size);
+        using var finList = new UMList<PK.FIN_t>(topols.size);
+        using var edgeList = new UMList<PK.EDGE_t>(topols.size);
+        using var vertexList = new UMList<PK.VERTEX_t>(topols.size);
         foreach (var topol in topols.Span)
         {
             var topolNode = new TopolTreeNode
