@@ -27,6 +27,7 @@
   </ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="../Viewer.Graphic.Opengl/Viewer.Graphic.Opengl.csproj" />
+    <ProjectReference Include="../PKToy.Script/PKToy.Script.csproj" />
 		<ProjectReference Include="..\PKToy.Lib\PKToy.Lib.csproj" />
 	</ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using PKToy.Lib;
+using PKToy.Script;
 using PKToy.Views;
 using ReactiveUI;
 using System;
@@ -21,6 +22,7 @@ public class MainWindowViewModel : ViewModelBase
     public IReactiveCommand SaveCommand { get; }
     public IReactiveCommand ResetCommand { get; }
     public IReactiveCommand CubeCommand { get; }
+    public IReactiveCommand RunScriptCommand { get; }
 
     public MainWindowViewModel(MainWindow window)
     {
@@ -29,6 +31,7 @@ public class MainWindowViewModel : ViewModelBase
         SaveCommand = ReactiveCommand.Create(SaveCommandExecute);
         CubeCommand = ReactiveCommand.Create(CubeCommandExecute);
         ResetCommand = ReactiveCommand.Create(ResetCommandExecute);
+        RunScriptCommand = ReactiveCommand.Create(RunScriptCommandExecute);
     }
 
     private async void FileCommandExecute()
@@ -113,6 +116,48 @@ public class MainWindowViewModel : ViewModelBase
     {
         var cube = CreateCubeLine();
         _window.GL.GLControl.UpdateGeometry(cube);
+    }
+
+    private async void RunScriptCommandExecute()
+    {
+        var option = new FilePickerOpenOptions
+        {
+            AllowMultiple = false,
+            Title = "选择文件",
+            FileTypeFilter = [new("csx files") { Patterns = ["*.csx"] }],
+        };
+        var result = await _window.StorageProvider.OpenFilePickerAsync(option);
+
+        if (result.Count == 0)
+        {
+            return;
+        }
+
+        string filename = result[0].TryGetLocalPath();
+        var stop = new Stopwatch();
+        stop.Start();
+        var r = await CsxRunner.Run(filename);
+        stop.Stop();
+        if (r == false)
+        {
+            return;
+        }
+        Console.WriteLine($"run script elapsed time:{stop.ElapsedMilliseconds} ms");
+        UpdateView();
+    }
+
+    private void UpdateView()
+    {
+        var watch = new Stopwatch();
+        watch.Start();
+        var asm = PKSession.OpenCurrentPartition();
+        _window.GL.GLControl.UpdateGeometry(asm);
+        if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
+        {
+            topolTreeVM.UpdateTree();
+        }
+        watch.Stop();
+        Console.WriteLine($"update view elapsed time:{watch.ElapsedMilliseconds} ms");
     }
 
     static AsmGeometry CreateCubeLine()
