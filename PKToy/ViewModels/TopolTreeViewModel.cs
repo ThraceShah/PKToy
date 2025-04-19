@@ -92,7 +92,7 @@ class TopolTreeViewModel : ViewModelBase
         for (int i = 0; i < table.Nodes.Count; i++)
         {
             var tableNode = table.Nodes[i];
-            nodes[i] = new Node(tableNode.Header);
+            nodes[i] = new Node(tableNode);
         }
         foreach (var relation in relations)
         {
@@ -105,7 +105,7 @@ class TopolTreeViewModel : ViewModelBase
             var child = nodes[relation.Child];
             if (child.Parents.Count > 0)
             {
-                var copyChild = new Node(table.Nodes[relation.Child].Header)
+                var copyChild = new Node(table.Nodes[relation.Child])
                 {
                     Children = child.Children,
                     Parents = child.Parents

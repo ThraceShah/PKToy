@@ -252,6 +252,14 @@ public unsafe class PKSession
         return topoTree;
     }
 
+    private static TopolTable GetBodyTable(PK.BODY_t body)
+    {
+        var topolNode = new TopolNode(body, GetEntityName(body, out _));
+        var nodes = new List<TopolNode>() { topolNode };
+        var relations = new List<TopolRelation>();
+        return new(nodes, relations);
+    }
+
 
     private static string BodyTypeTostring(BODY.type_t bodyType) => bodyType switch
     {
