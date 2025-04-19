@@ -1,3 +1,5 @@
+#r "pskernel_net.dll"
+using PK;
 unsafe
 {
     PK.BODY_t body;
@@ -13,6 +15,8 @@ unsafe
     if (err != ERROR.code_t.no_errors)
     {
         Console.WriteLine($"create body error:{err}");
+        return false;
     }
     Console.WriteLine($"create body:#{body.Value}");
+    return true;
 }

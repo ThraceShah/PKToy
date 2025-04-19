@@ -15,8 +15,14 @@ public class CsxRunner
             .AddImports("System.IO")
             .AddImports("PK");
             var scriptState = await CSharpScript.RunAsync(File.ReadAllText(scriptPath), options);
-            Console.WriteLine(scriptState.ReturnValue);
-            return true;
+            if (scriptState.ReturnValue is bool result)
+            {
+                return result;
+            }
+            else
+            {
+                return false;
+            }
         }
         catch (CompilationErrorException e)
         {
