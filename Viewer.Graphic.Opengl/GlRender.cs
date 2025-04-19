@@ -216,7 +216,25 @@ public partial class GlRender(GL gl) : IDisposable
         {
             if (geometry != null && geometry.Parts.Count > 0)
             {
-                this.HighlightPrimitiveByMousePostion(x, y);
+                if (highlightComp == -1 || highlightCell == -1)
+                {
+                    this.HighlightPrimitiveByMousePostion(x, y);
+                }
+            }
+            if (highlightComp != -1 && highlightCell != -1)
+            {
+                var comp = geometry.Components[highlightComp];
+                var part = geometry.Parts[comp.PartIndex];
+                if (part is StripFacePart facePart)
+                {
+                    var tag = facePart.IndexTagMap[highlightCell];
+                    Console.WriteLine($"tag:{tag}");
+                }
+                else if (part is EdgePart edgePart)
+                {
+                    var tag = edgePart.IndexTagMap[highlightCell];
+                    Console.WriteLine($"tag:{tag}");
+                }
             }
         }
         this.keyCode &= ~keyCode;
