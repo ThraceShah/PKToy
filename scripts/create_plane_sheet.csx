@@ -14,7 +14,7 @@ unsafe
     var err = PK.BODY.create_sheet_polygon(radius, nSides, &basisSet, &body);
     if (err != ERROR.code_t.no_errors)
     {
-        Console.WriteLine($"create body error:{err}");
+        Console.WriteLine($"create body error:ERROR.code_t.{err}");
         return false;
     }
     Console.WriteLine($"create body:#{body.Value}");

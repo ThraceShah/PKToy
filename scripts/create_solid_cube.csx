@@ -13,7 +13,7 @@ unsafe
     var err = PK.BODY.create_solid_block(size[0], size[1], size[2], &basisSet, &body);
     if (err != ERROR.code_t.no_errors)
     {
-        Console.WriteLine($"create body error:{err}");
+        Console.WriteLine($"create body error:ERROR.code_t.{err}");
         return false;
     }
     Console.WriteLine($"create body:#{body.Value}");

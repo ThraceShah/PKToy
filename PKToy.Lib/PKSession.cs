@@ -296,20 +296,26 @@ public unsafe class PKSession
 
     private static TopolTreeNode GetBodyTopolTree(PK.BODY_t body)
     {
-        var topoTree = new TopolTreeNode();
-        topoTree.TypeName = "BODY";
-        topoTree.Tag = body.Value;
+        PK.BODY.type_t bodyType;
+        PK.BODY.ask_type(body, &bodyType);
+        var topoTree = new TopolTreeNode
+        {
+            TypeName = "BODY",
+            Tag = body.Value
+        };
         using var faces = new PKScopeArray<PK.FACE_t>();
-        PK.BODY.ask_topology_o_t options = new(true);
-        options.want_fins = true;
+        PK.BODY.ask_topology_o_t options = new(true)
+        {
+            want_fins = true
+        };
         using var topols = new PKScopeArray<PK.TOPOL_t>();
         using var classes = new PKScopeArray<PK.CLASS_t>();
         using var parents = new PKScopeArray<int>();
         using var children = new PKScopeArray<int>();
         using var senses = new PKScopeArray<PK.TOPOL.sense_t>();
         PK.BODY.ask_topology(body, &options, &topols.size, &topols.data, &classes.data, &parents.size, &parents.data, &children.data, &senses.data);
-
-        PrintHelper.PrintTopoTable(new(classes.data, topols.size), parents.Span, new(children.data, parents.size), new(senses.data, parents.size));
+        PrintHelper.PrintTopolTable(topols.size, topols.data, classes.data, parents.size, parents.data, children.data, senses.data);
+        PrintHelper.PrintTopolGenCode(bodyType, topols.size, classes.data, parents.size, parents.data, children.data, senses.data);
         var topolMap = new Dictionary<int, TopolTreeNode>();
         using var faceList = new UMList<PK.FACE_t>(topols.size);
         using var finList = new UMList<PK.FIN_t>(topols.size);

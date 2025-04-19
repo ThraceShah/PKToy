@@ -285,17 +285,17 @@ public unsafe class Mid2PK
         _ => throw new NotImplementedException($"Unknown topo class: {topoObj.GetType()}")
     };
 
-    private static void PrintTopoTable(UMList<PK.CLASS_t> pkTopoClassList, UMList<int> pkParentList, UMList<int> pkChildList, UMList<PK.TOPOL.sense_t> pkSenceList)
+    private static void PrintTopoTable(Span<PK.CLASS_t> pkTopoClassList, Span<int> pkParentList, Span<int> pkChildList, Span<PK.TOPOL.sense_t> pkSenceList)
     {
-        Console.WriteLine($"topols count: {pkTopoClassList.Count}");
-        for (var i = 0; i < pkTopoClassList.Count; i++)
+        Console.WriteLine($"topols count: {pkTopoClassList.Length}");
+        for (var i = 0; i < pkTopoClassList.Length; i++)
         {
             Console.Write($"[{i}] {pkTopoClassList[i]}: ");
         }
         Console.WriteLine();
-        Console.WriteLine($"relations count: {pkParentList.Count}");
+        Console.WriteLine($"relations count: {pkParentList.Length}");
         PK.CLASS_t lastType = PK.CLASS_t.@null;
-        for (var i = 0; i < pkParentList.Count; i++)
+        for (var i = 0; i < pkParentList.Length; i++)
         {
             var pkParent = pkParentList[i];
             var pkChild = pkChildList[i];
