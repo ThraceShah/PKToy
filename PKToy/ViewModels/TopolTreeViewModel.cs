@@ -49,7 +49,10 @@ class TopolTreeViewModel : ViewModelBase
     {
         Items = [];
         SelectedItems = [];
-        _bodies = new Node("Bodies");
+        _bodies = new Node("Bodies")
+        {
+            Children = []
+        };
         Items.Add(_bodies);
         UpdateBodyTopolTree(partitionTag);
     }
@@ -62,59 +65,58 @@ class TopolTreeViewModel : ViewModelBase
         }
         if (partitionTag == 0)
         {
-            var topolTree = PKSession.GetCurPartitionTopolTree();
-            foreach (var body in topolTree)
+            var tables = PKSession.GetCurPartitionTopolTree();
+            foreach (var body in tables)
             {
                 MapTopolNode2Node(body, _bodies);
             }
         }
         else
         {
-            var topolTree = PKSession.GetPartitionTopolTree(partitionTag);
-            foreach (var body in topolTree)
+            var tables = PKSession.GetPartitionTopolTree(partitionTag);
+            foreach (var body in tables)
             {
                 MapTopolNode2Node(body, _bodies);
             }
         }
     }
 
-    private static void MapTopolNode2Node(TopolTreeNode topolNode, Node rootParent)
+    private static void MapTopolNode2Node(TopolTable table, Node rootParent)
     {
-        var map = new Dictionary<TopolTreeNode, Node>();
-        var queue = new Queue<TopolTreeNode>();
-        var root = new Node(topolNode.Headr);
-        rootParent.Children.Add(root);
-        root.Parents.Add(root);
-        map[topolNode] = root;
-        foreach (var child in topolNode.Children)
+        if (table.Nodes.Count == 0)
         {
-            queue.Enqueue(child);
+            return;
         }
-        while (queue.Count > 0)
+        var relations = table.Relations;
+        var nodes = new Node[table.Nodes.Count];
+        for (int i = 0; i < table.Nodes.Count; i++)
         {
-            var current = queue.Dequeue();
-            if (map.TryGetValue(current, out var node) == false)
-            {
-                node = new Node(current.Headr);
-                map[current] = node;
-                foreach (var child in current.Children)
-                {
-                    queue.Enqueue(child);
-                }
-            }
-            foreach (var parent in current.Parents)
-            {
-                if (map.TryGetValue(parent, out var parentNode))
-                {
-                    if (node.Parents.Contains(parentNode))
-                    {
-                        continue;
-                    }
-                    parentNode.Children.Add(node);
-                    node.Parents.Add(parentNode);
-                }
-            }
+            var tableNode = table.Nodes[i];
+            nodes[i] = new Node(tableNode.Header);
         }
+        foreach (var relation in relations)
+        {
+            nodes[relation.Parent].Children ??= [];
+            nodes[relation.Child].Parents ??= [];
+        }
+        foreach (var relation in relations)
+        {
+            var parent = nodes[relation.Parent];
+            var child = nodes[relation.Child];
+            if (child.Parents.Count > 0)
+            {
+                var copyChild = new Node(table.Nodes[relation.Child].Header)
+                {
+                    Children = child.Children,
+                    Parents = child.Parents
+                };
+                child = copyChild;
+            }
+            child.ParentSense = relation.Sense;
+            parent.Children.Add(child);
+            child.Parents.Add(parent);
+        }
+        var bodyNode = nodes[0];
+        rootParent.Children.Add(bodyNode);
     }
-
 }
