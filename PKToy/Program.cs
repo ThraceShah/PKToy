@@ -2,30 +2,30 @@
 using Avalonia;
 using Avalonia.OpenGL;
 using Avalonia.Platform;
-using Avalonia.ReactiveUI;
 using Avalonia.Win32;
 using Silk.NET.OpenGL;
 using Avalonia.Win32.OpenGl.Angle;
+using PKToy.Views;
 
-namespace PKToy;
 
-class Program
-{
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
-    [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+var lifetime = new ClassicDesktopStyleApplicationLifetime { Args = args, ShutdownMode = ShutdownMode.OnLastWindowClose };
 
-    // Avalonia configuration, don't remove; also used by visual designer.
-    public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            // .UseSkia()
-            .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Wgl] })
-            .WithInterFont()
-            .LogToTrace()
-            .UseReactiveUI();
-}
+AppBuilder.Configure<Application>()
+    .UsePlatformDetect()
+    .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Wgl] })
+    .AfterSetup(b => b.Instance?.Styles.Add(new FluentTheme()))
+    // uncomment the line below to enable rider ht reload workaround
+    //.UseRiderHotReload()
+    .SetupWithLifetime(lifetime);
 
+var mainWindow = new Window()
+    .Title("PKToy MVU")
+    .Width(1280)
+    .Height(720);
+lifetime.MainWindow = mainWindow.Content(new MainView(mainWindow));
+
+#if DEBUG
+lifetime.MainWindow.AttachDevTools();
+#endif
+
+lifetime.Start(args);

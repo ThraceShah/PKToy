@@ -1,49 +1,32 @@
-﻿using Avalonia.Controls;
+namespace PKToy.Views;
+using Avalonia.Controls.Templates;
 using PKToy.Lib;
-using ReactiveUI;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PKToy.ViewModels;
-
-class TopolTreeViewModel : ViewModelBase
+public class TopolTreeView : MvuView
 {
-    private Node _bodies;
-    private SelectionMode _selectionMode;
-
-    public TopolTreeViewModel()
+    private Node? _bodies = null;
+    private ObservableCollection<Node>? Items { get; set; } = null;
+    private ObservableCollection<Node>? SelectedItems { get; set; } = null;
+    private Node? _selectedNode = null;
+    private Node? SelectedNode
     {
-        Items = [];
-        SelectedItems = [];
-    }
-
-    private ObservableCollection<Node> _items;
-    public ObservableCollection<Node> Items
-    {
-        get => _items;
-        set => this.RaiseAndSetIfChanged(ref _items, value);
-    }
-    private ObservableCollection<Node> _selectedItems;
-
-    public ObservableCollection<Node> SelectedItems
-    {
-        get => _selectedItems;
-        set => this.RaiseAndSetIfChanged(ref _selectedItems, value);
-    }
-
-    public SelectionMode SelectionMode
-    {
-        get => _selectionMode;
+        get => _selectedNode;
         set
         {
-            SelectedItems.Clear();
-            this.RaiseAndSetIfChanged(ref _selectionMode, value);
+            _selectedNode = value;
+            StateHasChanged();
         }
     }
+
+    protected override object Build() =>
+    New<TreeView>().SelectionMode(SelectionMode.Toggle)
+    .ItemsSource(() => Items!)
+    .ItemTemplate(new FuncTreeDataTemplate<Node>(
+            (node, _) => New<TextBlock>().Text(node.Header ?? string.Empty),
+            n => n.Children!))
+    .SelectedItem(() => SelectedNode!, v => SelectedNode = (Node?)v);
+
 
     public void UpdateTree(int partitionTag = 0)
     {
@@ -55,6 +38,7 @@ class TopolTreeViewModel : ViewModelBase
         };
         Items.Add(_bodies);
         UpdateBodyTopolTree(partitionTag);
+        base.UpdateState();
     }
 
     private void UpdateBodyTopolTree(int partitionTag = 0)
@@ -103,7 +87,7 @@ class TopolTreeViewModel : ViewModelBase
         {
             var parent = nodes[relation.Parent];
             var child = nodes[relation.Child];
-            if (child.Parents.Count > 0)
+            if (child.Parents!.Count > 0)
             {
                 var copyChild = new Node(table.Nodes[relation.Child])
                 {
@@ -113,10 +97,35 @@ class TopolTreeViewModel : ViewModelBase
                 child = copyChild;
             }
             child.ParentSense = relation.Sense;
-            parent.Children.Add(child);
+            parent.Children!.Add(child);
             child.Parents.Add(parent);
         }
         var bodyNode = nodes[0];
-        rootParent.Children.Add(bodyNode);
+        rootParent.Children!.Add(bodyNode);
+    }
+
+}
+
+
+public class Node
+{
+    private readonly string? _header = null;
+    private readonly TopolNode? _topolNode = null;
+    public string? Header => _header;
+    public int Tag => _topolNode?.Tag ?? 0;
+    public string? ParentSense { get; set; } = null;
+    public HashSet<Node>? Parents { get; set; } = null;
+    public ObservableCollection<Node>? Children { get; set; } = null;
+    public override string ToString() => $"{Header} ({ParentSense})";
+
+    public Node(string header)
+    {
+        _header = header;
+    }
+
+    public Node(TopolNode node)
+    {
+        _topolNode = node;
+        _header = node.Header;
     }
 }

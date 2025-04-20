@@ -1,40 +1,44 @@
-﻿using Avalonia.Controls;
+namespace PKToy.Views;
+using System.Diagnostics;
+using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using PKToy.Lib;
 using PKToy.Script;
-using PKToy.Views;
-using ReactiveUI;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel.Design;
-using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
 using Viewer.IContract;
-
-namespace PKToy.ViewModels;
-
-public class MainWindowViewModel : ViewModelBase
+class MainView : MvuView
 {
-    private readonly MainWindow _window;
-    public IReactiveCommand FileCommand { get; }
-    public IReactiveCommand SaveCommand { get; }
-    public IReactiveCommand ResetCommand { get; }
-    public IReactiveCommand CubeCommand { get; }
-    public IReactiveCommand RunScriptCommand { get; }
-
-    public MainWindowViewModel(MainWindow window)
+    private readonly Window _window;
+    private OpenglView GL = null!;
+    private TopolTreeView TopolTree = null!;
+    public MainView(Window window)
     {
         _window = window;
-        FileCommand = ReactiveCommand.Create(FileCommandExecute);
-        SaveCommand = ReactiveCommand.Create(SaveCommandExecute);
-        CubeCommand = ReactiveCommand.Create(CubeCommandExecute);
-        ResetCommand = ReactiveCommand.Create(ResetCommandExecute);
-        RunScriptCommand = ReactiveCommand.Create(RunScriptCommandExecute);
+        PKToy.Lib.PKSession.Init();
+        this.GL.UpdateScale(_window.DesktopScaling);
+        _window.ScalingChanged += (sender, args) => this.GL.UpdateScale(_window.DesktopScaling);
     }
+    protected override object Build() => New<Grid>()
+    .Rows("30,20*")
+    .Children(
+        New<StackPanel>().Row(0).Orientation(Orientation.Horizontal)
+        .Children(
+            New<Button>().Content("File").Width(50).OnClick(FileClick),
+            New<Button>().Content("Save").Width(50).OnClick(SaveClick),
+            New<Button>().Content("Reset").Width(50).OnClick(ResetClick),
+            New<Button>().Content("Cube").Width(50).OnClick(CubeClick),
+            New<Button>().Content("RunScript").Width(50).OnClick(RunScriptClick)
+        ),
+        New<Grid>().Row(1).Cols("2*,5,5*").Children(
+            New<TopolTreeView>().Ref(out TopolTree).Col(0),
+            New<GridSplitter>().Col(1).Width(5).Background(Colors.Gray.ToBrush()).
+            HorizontalAlignment(HorizontalAlignment.Stretch).VerticalAlignment(VerticalAlignment.Stretch).
+            ResizeDirection(GridResizeDirection.Columns).ResizeBehavior(GridResizeBehavior.PreviousAndNext),
+            New<OpenglView>().Ref(out GL).Col(2)
+        )
+    );
 
-    private async void FileCommandExecute()
+    private async void FileClick(object obj)
     {
         long before = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
         Console.WriteLine($"before Memory Used: {before}MB");
@@ -54,7 +58,7 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        string filename = result[0].TryGetLocalPath();
+        string filename = result[0].TryGetLocalPath()!;
         var stop = new Stopwatch();
         stop.Start();
         var extension = System.IO.Path.GetExtension(filename).ToLower();
@@ -62,12 +66,12 @@ public class MainWindowViewModel : ViewModelBase
         if (extension is ".x_t" or ".x_b")
         {
             var geometry = PKSession.OpenPart(filename, out partionTag);
-            _window.GL.GLControl.UpdateGeometry(geometry);
+            this.GL.GLControl.UpdateGeometry(geometry);
         }
         else if (extension is ".step" or ".stp")
         {
             var geometry = PKSession.OpenStep(filename, out partionTag);
-            _window.GL.GLControl.UpdateGeometry(geometry);
+            this.GL.GLControl.UpdateGeometry(geometry);
         }
         GC.Collect();
         stop.Stop();
@@ -76,13 +80,10 @@ public class MainWindowViewModel : ViewModelBase
         Console.WriteLine($"after Memory Used: {after}MB");
         Console.WriteLine($"after-before={after - before}MB");
 
-        if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
-        {
-            topolTreeVM.UpdateTree(partionTag);
-        }
+        this.TopolTree.UpdateTree(partionTag);
     }
 
-    private async void SaveCommandExecute()
+    private async void SaveClick(object obj)
     {
         var option = new FilePickerSaveOptions
         {
@@ -95,30 +96,28 @@ public class MainWindowViewModel : ViewModelBase
         {
             return;
         }
-        string filename = result.TryGetLocalPath();
+        string filename = result.TryGetLocalPath()!;
         PKSession.SavePart(filename);
     }
 
-    private void ResetCommandExecute()
+    private void ResetClick(object obj)
     {
         PKSession.StopSession();
         PKSession.NewSession();
         var asm = new AsmGeometry();
-        _window.GL.GLControl.UpdateGeometry(asm);
-        if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
-        {
-            topolTreeVM.UpdateTree();
-        }
+        this.GL.GLControl.UpdateGeometry(asm);
+        this.TopolTree.UpdateTree();
         GC.Collect();
     }
 
-    private void CubeCommandExecute()
+    private void CubeClick(object obj)
     {
         var cube = CreateCubeLine();
-        _window.GL.GLControl.UpdateGeometry(cube);
+        this.GL.GLControl.UpdateGeometry(cube);
     }
 
-    private async void RunScriptCommandExecute()
+
+    private async void RunScriptClick(object obj)
     {
         var option = new FilePickerOpenOptions
         {
@@ -133,7 +132,7 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        string filename = result[0].TryGetLocalPath();
+        string filename = result[0].TryGetLocalPath()!;
         var stop = new Stopwatch();
         stop.Start();
         var r = await CsxRunner.Run(filename);
@@ -151,11 +150,8 @@ public class MainWindowViewModel : ViewModelBase
         var watch = new Stopwatch();
         watch.Start();
         var asm = PKSession.OpenCurrentPartition();
-        _window.GL.GLControl.UpdateGeometry(asm);
-        if (_window.TopolTree.DataContext is TopolTreeViewModel topolTreeVM)
-        {
-            topolTreeVM.UpdateTree();
-        }
+        this.GL.GLControl.UpdateGeometry(asm);
+        this.TopolTree.UpdateTree();
         watch.Stop();
         Console.WriteLine($"update view elapsed time:{watch.ElapsedMilliseconds} ms");
     }
@@ -206,4 +202,5 @@ public class MainWindowViewModel : ViewModelBase
         cube.AddComponent(edgePart, Matrix4x4.Identity);
         return cube;
     }
+
 }
