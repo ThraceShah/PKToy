@@ -10,7 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Silk.NET.Maths" Version="2.22.0" />
         <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
-        <PackageReference Include="System.Text.Json" Version="8.0.5" />
+        <PackageReference Include="System.Text.Json" Version="9.0.4" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="../Viewer.IContract/Viewer.IContract.csproj" />
