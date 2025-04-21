@@ -374,7 +374,7 @@ public unsafe class PKSession
             }
             var geomName = GetEntityName(geom, out _);
             var geomNode = new TopolNode(geom, $"{geomName}({(bool)orient})");
-            var sense = $"{face}-->{geom}:{orient}";
+            var sense = $"{face}-->{geom.Value}:{orient}";
             relations.Add(new(faceIndex, nodes.Count, sense));
             nodes.Add(geomNode);
 
@@ -391,7 +391,7 @@ public unsafe class PKSession
             }
             var geomName = GetEntityName(geom, out _);
             var geomNode = new TopolNode(geom, $"{geomName}");
-            var sense = $"{fin}-->{geom}";
+            var sense = $"{fin}-->{geom.Value}";
             relations.Add(new(finIndex, nodes.Count, sense));
             nodes.Add(geomNode);
 
@@ -408,7 +408,7 @@ public unsafe class PKSession
                 continue;
             }
             var geomName = GetEntityName(geom, out _);
-            var sense = $"{edge}-->{geom}:{orient}";
+            var sense = $"{edge}-->{geom.Value}:{orient}";
             var geomNode = new TopolNode(geom, $"{geomName}({(bool)orient})");
             relations.Add(new(edgeIndex, nodes.Count, sense));
             nodes.Add(geomNode);
@@ -425,7 +425,7 @@ public unsafe class PKSession
             }
             var geomName = GetEntityName(geom, out _);
             var geomNode = new TopolNode(geom, $"{geomName}");
-            var sense = $"{vertex}-->{geom}";
+            var sense = $"{vertex}-->{geom.Value}";
             relations.Add(new(vertexIndex, nodes.Count, sense));
             nodes.Add(geomNode);
 
