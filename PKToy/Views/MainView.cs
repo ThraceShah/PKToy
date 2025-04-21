@@ -8,16 +8,9 @@ using System.Numerics;
 using Viewer.IContract;
 class MainView : MvuView
 {
-    private readonly Window _window;
+    private Window _window = null!;
     private OpenglView GL = null!;
     private TopolTreeView TopolTree = null!;
-    public MainView(Window window)
-    {
-        _window = window;
-        PKToy.Lib.PKSession.Init();
-        this.GL.UpdateScale(_window.DesktopScaling);
-        _window.ScalingChanged += (sender, args) => this.GL.UpdateScale(_window.DesktopScaling);
-    }
     protected override object Build() => New<Grid>()
     .Rows("30,20*")
     .Children(
@@ -36,7 +29,13 @@ class MainView : MvuView
             ResizeDirection(GridResizeDirection.Columns).ResizeBehavior(GridResizeBehavior.PreviousAndNext),
             New<OpenglView>().Ref(out GL).Col(2)
         )
-    );
+    ).OnAttachedToLogicalTree(x =>
+    {
+        _window = (Window)x.Root;
+        PKToy.Lib.PKSession.Init();
+        this.GL.UpdateScale(_window.DesktopScaling);
+        _window.ScalingChanged += (sender, args) => this.GL.UpdateScale(_window.DesktopScaling);
+    });
 
     private async void FileClick(object obj)
     {
@@ -62,15 +61,15 @@ class MainView : MvuView
         var stop = new Stopwatch();
         stop.Start();
         var extension = System.IO.Path.GetExtension(filename).ToLower();
-        int partionTag = 0;
+        int partitionTag = 0;
         if (extension is ".x_t" or ".x_b")
         {
-            var geometry = PKSession.OpenPart(filename, out partionTag);
+            var geometry = PKSession.OpenPart(filename, out partitionTag);
             this.GL.GLControl.UpdateGeometry(geometry);
         }
         else if (extension is ".step" or ".stp")
         {
-            var geometry = PKSession.OpenStep(filename, out partionTag);
+            var geometry = PKSession.OpenStep(filename, out partitionTag);
             this.GL.GLControl.UpdateGeometry(geometry);
         }
         GC.Collect();
@@ -80,7 +79,7 @@ class MainView : MvuView
         Console.WriteLine($"after Memory Used: {after}MB");
         Console.WriteLine($"after-before={after - before}MB");
 
-        this.TopolTree.UpdateTree(partionTag);
+        this.TopolTree.UpdateTree(partitionTag);
     }
 
     private async void SaveClick(object obj)

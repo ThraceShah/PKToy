@@ -7,7 +7,6 @@ public class TopolTreeView : MvuView
 {
     private Node? _bodies = null;
     private ObservableCollection<Node>? Items { get; set; } = null;
-    private ObservableCollection<Node>? SelectedItems { get; set; } = null;
     private Node? _selectedNode = null;
     private Node? SelectedNode
     {
@@ -16,6 +15,7 @@ public class TopolTreeView : MvuView
         {
             _selectedNode = value;
             StateHasChanged();
+            Console.WriteLine(_selectedNode?.ParentSense);
         }
     }
 
@@ -27,11 +27,9 @@ public class TopolTreeView : MvuView
             n => n.Children!))
     .SelectedItem(() => SelectedNode!, v => SelectedNode = (Node?)v);
 
-
     public void UpdateTree(int partitionTag = 0)
     {
         Items = [];
-        SelectedItems = [];
         _bodies = new Node("Bodies")
         {
             Children = []

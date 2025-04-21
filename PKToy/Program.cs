@@ -18,11 +18,10 @@ AppBuilder.Configure<Application>()
     //.UseRiderHotReload()
     .SetupWithLifetime(lifetime);
 
-var mainWindow = new Window()
+lifetime.MainWindow = new Window()
     .Title("PKToy MVU")
     .Width(1280)
-    .Height(720);
-lifetime.MainWindow = mainWindow.Content(new MainView(mainWindow));
+    .Height(720).Content(new MainView());
 
 #if DEBUG
 lifetime.MainWindow.AttachDevTools();
