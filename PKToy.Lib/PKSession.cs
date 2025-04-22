@@ -247,18 +247,44 @@ public unsafe class PKSession
         var printInfo = bodies.size == 1;
         foreach (var body in bodies.Span)
         {
-            topoTree.Add(GetBodyTopolTree(body));
+            topoTree.Add(GetBodyTopolTree(body, printInfo));
         }
         return topoTree;
     }
 
-    private static TopolTable GetBodyTable(PK.BODY_t body)
+    public static TopolNode[] GetCurPartitionBodyNodes()
     {
-        var topolNode = new TopolNode(body, GetEntityName(body, out _));
-        var nodes = new List<TopolNode>() { topolNode };
-        var relations = new List<TopolRelation>();
-        return new(nodes, relations);
+        PK.PARTITION_t curPartition;
+        PK.SESSION.ask_curr_partition(&curPartition);
+        return GetPartitionBodyNodes(curPartition);
     }
+
+
+    public static TopolNode[] GetPartitionBodyNodes(int partition)
+    {
+        using var bodies = new PKScopeArray<PK.BODY_t>();
+        PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
+        var result = new TopolNode[bodies.size];
+        for (int i = 0; i < bodies.size; i++)
+        {
+            var body = bodies[i];
+            result[i] = new TopolNode(body, GetEntityName(body, out _));
+        }
+        return result;
+    }
+
+
+    public static TopolTable? GetEntityTable(int entity)
+    {
+        PK.CLASS_t cl;
+        PK.ENTITY.ask_class(entity, &cl);
+        if (cl == PK.CLASS_t.body)
+        {
+            return GetBodyTopolTree((PK.BODY_t)entity, true);
+        }
+        return null;
+    }
+
 
 
     private static string BodyTypeTostring(BODY.type_t bodyType) => bodyType switch

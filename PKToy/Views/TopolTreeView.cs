@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 public class TopolTreeView : MvuView
 {
+    private TreeView _treeView = null!;
     private Node? _bodies = null;
     private ObservableCollection<Node>? Items { get; set; } = null;
     private Node? _selectedNode = null;
@@ -14,18 +15,46 @@ public class TopolTreeView : MvuView
         set
         {
             _selectedNode = value;
-            StateHasChanged();
-            Console.WriteLine(_selectedNode?.ParentSense);
+            if (_selectedNode is null)
+            {
+                base.UpdateState();
+                return;
+            }
+            Console.WriteLine(_selectedNode.ParentSense);
+            if (TryGetChildren(_selectedNode))
+            {
+                base.UpdateState();
+            }
         }
     }
 
     protected override object Build() =>
-    New<TreeView>().SelectionMode(SelectionMode.Toggle)
-    .ItemsSource(() => Items!)
+    New<TreeView>().Ref(out _treeView).SelectionMode(SelectionMode.Toggle)
+    .ItemsSource(() => Items!, v => Items = (ObservableCollection<Node>?)v)
     .ItemTemplate(new FuncTreeDataTemplate<Node>(
-            (node, _) => New<TextBlock>().Text(node.Header ?? string.Empty),
+            (node, _) => BindNode(node),
             n => n.Children!))
     .SelectedItem(() => SelectedNode!, v => SelectedNode = (Node?)v);
+
+    private TextBlock BindNode(Node node)
+    {
+        if (_treeView.ContainerFromItem(node) is TreeViewItem container)
+        {
+            container.Expanded += OnNodeExpanded;
+        }
+        return New<TextBlock>().Text(node.Header ?? string.Empty);
+    }
+
+    private void OnNodeExpanded(object? sender, RoutedEventArgs e)
+    {
+        if (sender is TreeViewItem item && item.DataContext is Node node)
+        {
+            if (TryGetChildren(node))
+            {
+                base.UpdateState();
+            }
+        }
+    }
 
     public void UpdateTree(int partitionTag = 0)
     {
@@ -39,31 +68,69 @@ public class TopolTreeView : MvuView
         base.UpdateState();
     }
 
-    private void UpdateBodyTopolTree(int partitionTag = 0)
+    // private void UpdateBodyTopolTree(int partitionTag = 0)
+    // {
+    //     if (_bodies == null)
+    //     {
+    //         return;
+    //     }
+    //     if (partitionTag == 0)
+    //     {
+    //         var tables = PKSession.GetCurPartitionTopolTree();
+    //         foreach (var body in tables)
+    //         {
+    //             MapTopolNode2Node(body, _bodies);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         var tables = PKSession.GetPartitionTopolTree(partitionTag);
+    //         foreach (var body in tables)
+    //         {
+    //             MapTopolNode2Node(body, _bodies);
+    //         }
+    //     }
+    // }
+
+    private void UpdateBodyTopolTree(int partition = 0)
     {
         if (_bodies == null)
         {
             return;
         }
-        if (partitionTag == 0)
+        var nodes = partition == 0 ? PKSession.GetCurPartitionBodyNodes() : PKSession.GetPartitionBodyNodes(partition);
+        foreach (var node in nodes)
         {
-            var tables = PKSession.GetCurPartitionTopolTree();
-            foreach (var body in tables)
-            {
-                MapTopolNode2Node(body, _bodies);
-            }
-        }
-        else
-        {
-            var tables = PKSession.GetPartitionTopolTree(partitionTag);
-            foreach (var body in tables)
-            {
-                MapTopolNode2Node(body, _bodies);
-            }
+            _bodies.Children!.Add(new(node));
         }
     }
 
-    private static void MapTopolNode2Node(TopolTable table, Node rootParent)
+    private static bool TryGetChildren(Node node)
+    {
+        if (node.Tag == 0)
+        {
+            node.HasBeenExpanded = true;
+            return false;
+        }
+        if (node.HasBeenExpanded)
+        {
+            return false;
+        }
+        if (node.Children != null)
+        {
+            return false;
+        }
+        var table = PKSession.GetEntityTable(node.Tag);
+        if (table is null)
+        {
+            return false;
+        }
+        MapTopolNode2Node(table, node);
+        return true;
+    }
+
+
+    private static void MapTopolNode2Node(TopolTable table, Node firstNode)
     {
         if (table.Nodes.Count == 0)
         {
@@ -71,7 +138,8 @@ public class TopolTreeView : MvuView
         }
         var relations = table.Relations;
         var nodes = new Node[table.Nodes.Count];
-        for (int i = 0; i < table.Nodes.Count; i++)
+        nodes[0] = firstNode;
+        for (int i = 1; i < table.Nodes.Count; i++)
         {
             var tableNode = table.Nodes[i];
             nodes[i] = new Node(tableNode);
@@ -98,8 +166,6 @@ public class TopolTreeView : MvuView
             parent.Children!.Add(child);
             child.Parents.Add(parent);
         }
-        var bodyNode = nodes[0];
-        rootParent.Children!.Add(bodyNode);
     }
 
 }
@@ -114,6 +180,8 @@ public class Node
     public string? ParentSense { get; set; } = null;
     public HashSet<Node>? Parents { get; set; } = null;
     public ObservableCollection<Node>? Children { get; set; } = null;
+    public bool HasBeenExpanded { get; set; } = false;
+
     public override string ToString() => $"{Header} ({ParentSense})";
 
     public Node(string header)
