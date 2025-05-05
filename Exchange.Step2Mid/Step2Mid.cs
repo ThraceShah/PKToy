@@ -1,6 +1,6 @@
 ﻿using Exchange.Midlayer;
 using StepCodeDotNet.Base;
-using StepCodeDotNet.Gen.ap203;
+using StepCodeDotNet.Gen.config_control_design;
 
 namespace Exchange.Step2Mid;
 
@@ -12,17 +12,17 @@ public class Step2Mid
         var stepParser = new StepParser(stepCreator);
         var stepObjs = stepParser.Resolve(stepFile);
         var stepIdObjMap = new Dictionary<int, IStepObj>(stepObjs.Length);
-        var stepPoints = new List<ICartesian_point>();
-        var stepLines = new List<ICurve>();
-        var stepPlanes = new List<ISurface>();
-        var stepVertices = new List<IVertex_point>();
-        var stepEdges = new List<IEdge_curve>();
-        var stepOrientedEdges = new List<IOriented_edge>();
-        var stepLoops = new List<ILoop>();
-        var stepFaces = new List<IFace_surface>();
-        var stepFaceShells = new List<IConnected_face_set>();
-        var stepManifoldSolids = new List<IManifold_solid_brep>();
-        var shapeRes = new List<IShape_representation>();
+        var stepPoints = new List<cartesian_point>();
+        var stepLines = new List<curve>();
+        var stepPlanes = new List<surface>();
+        var stepVertices = new List<vertex_point>();
+        var stepEdges = new List<edge_curve>();
+        var stepOrientedEdges = new List<oriented_edge>();
+        var stepLoops = new List<loop>();
+        var stepFaces = new List<face_surface>();
+        var stepFaceShells = new List<connected_face_set>();
+        var stepManifoldSolids = new List<manifold_solid_brep>();
+        var shapeRes = new List<shape_representation>();
         foreach (var stepObj in stepObjs)
         {
             if (stepObj is null)
@@ -34,37 +34,37 @@ public class Step2Mid
             {
                 case StepComplexImp stepComplex:
                     break;
-                case ICartesian_point stepPoint:
+                case cartesian_point stepPoint:
                     stepPoints.Add(stepPoint);
                     break;
-                case ICurve stepLine:
+                case curve stepLine:
                     stepLines.Add(stepLine);
                     break;
-                case ISurface stepPlane:
+                case surface stepPlane:
                     stepPlanes.Add(stepPlane);
                     break;
-                case IVertex_point stepVertex:
+                case vertex_point stepVertex:
                     stepVertices.Add(stepVertex);
                     break;
-                case IEdge_curve stepEdge:
+                case edge_curve stepEdge:
                     stepEdges.Add(stepEdge);
                     break;
-                case IOriented_edge stepOrientedEdge:
+                case oriented_edge stepOrientedEdge:
                     stepOrientedEdges.Add(stepOrientedEdge);
                     break;
-                case ILoop stepLoop:
+                case loop stepLoop:
                     stepLoops.Add(stepLoop);
                     break;
-                case IFace_surface stepFace:
+                case face_surface stepFace:
                     stepFaces.Add(stepFace);
                     break;
-                case IConnected_face_set stepFaceShell:
+                case connected_face_set stepFaceShell:
                     stepFaceShells.Add(stepFaceShell);
                     break;
-                case IManifold_solid_brep stepManifoldSolid:
+                case manifold_solid_brep stepManifoldSolid:
                     stepManifoldSolids.Add(stepManifoldSolid);
                     break;
-                case IShape_representation stepShapeRes:
+                case shape_representation stepShapeRes:
                     shapeRes.Add(stepShapeRes);
                     break;
                 default:
@@ -86,7 +86,7 @@ public class Step2Mid
         return midMgr;
     }
 
-    private static void ResolveShapeRes(Dictionary<int, IStepObj> stepIdObjMap, List<IShape_representation> stepShapeRes, MidMgr midMgr)
+    private static void ResolveShapeRes(Dictionary<int, IStepObj> stepIdObjMap, List<shape_representation> stepShapeRes, MidMgr midMgr)
     {
         var unit2Mid = new StepUnit2Mid(stepIdObjMap); // Ensure the StepUnit2Mid class has a method named ResolveUnit
         foreach (var stepShape in stepShapeRes)
@@ -95,7 +95,7 @@ public class Step2Mid
         }
     }
 
-    private static void ResolvePoints(List<ICartesian_point> stepPoints, MidMgr midMgr)
+    private static void ResolvePoints(List<cartesian_point> stepPoints, MidMgr midMgr)
     {
         foreach (var stepPoint in stepPoints)
         {
@@ -104,13 +104,13 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveCurves(List<ICurve> stepCurves, MidMgr midMgr)
+    private static void ResolveCurves(List<curve> stepCurves, MidMgr midMgr)
     {
         foreach (var stepCurve in stepCurves)
         {
             switch (stepCurve)
             {
-                case ILine stepLine:
+                case line stepLine:
                     {
                         var midLine = midMgr.GetOrCreateMidObj<LineObj>(stepLine.line_id);
                         var location = new Vector3D(stepLine.pnt.coordinates[0], stepLine.pnt.coordinates[1], stepLine.pnt.coordinates[2]);
@@ -118,10 +118,10 @@ public class Step2Mid
                         midLine.BasisSet = new Axis2D { Location = location, Axis = axis };
                         break;
                     }
-                case ICircle stepCircle:
+                case circle stepCircle:
                     {
                         var midCircle = midMgr.GetOrCreateMidObj<CircleObj>(stepCircle.line_id);
-                        if (stepCircle.position is IAxis2_placement_3d position)
+                        if (stepCircle.position is axis2_placement_3d position)
                         {
                             var location = new Vector3D(position.location.coordinates[0], position.location.coordinates[1], position.location.coordinates[2]);
                             var axis = new Vector3D(position.axis.direction_ratios[0], position.axis.direction_ratios[1], position.axis.direction_ratios[2]);
@@ -137,13 +137,13 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveSurfs(List<ISurface> stepSurfs, MidMgr midMgr)
+    private static void ResolveSurfs(List<surface> stepSurfs, MidMgr midMgr)
     {
         foreach (var stepSurf in stepSurfs)
         {
             switch (stepSurf)
             {
-                case IPlane stepPlane:
+                case plane stepPlane:
                     {
                         var midPlane = midMgr.GetOrCreateMidObj<PlaneObj>(stepPlane.line_id);
                         var basisSet = new Axis3D();
@@ -154,7 +154,7 @@ public class Step2Mid
                         midPlane.BasisSet = basisSet;
                         break;
                     }
-                case IConical_surface stepConicalSurface:
+                case conical_surface stepConicalSurface:
                     {
                         var midConicalSurface = midMgr.GetOrCreateMidObj<ConeSurfObj>(stepConicalSurface.line_id);
                         var basisSet = new Axis3D();
@@ -173,7 +173,7 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveVertices(List<IVertex_point> stepVertices, MidMgr midMgr)
+    private static void ResolveVertices(List<vertex_point> stepVertices, MidMgr midMgr)
     {
         foreach (var stepVertex in stepVertices)
         {
@@ -183,7 +183,7 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveEdges(List<IEdge_curve> stepEdges, MidMgr midMgr)
+    private static void ResolveEdges(List<edge_curve> stepEdges, MidMgr midMgr)
     {
         foreach (var stepEdge in stepEdges)
         {
@@ -195,7 +195,7 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveOrientedEdges(List<IOriented_edge> stepOrientedEdges, MidMgr midMgr)
+    private static void ResolveOrientedEdges(List<oriented_edge> stepOrientedEdges, MidMgr midMgr)
     {
         foreach (var stepOrientedEdge in stepOrientedEdges)
         {
@@ -205,18 +205,18 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveLoops(List<ILoop> stepLoops, MidMgr midMgr)
+    private static void ResolveLoops(List<loop> stepLoops, MidMgr midMgr)
     {
         foreach (var stepLoop in stepLoops)
         {
             switch (stepLoop)
             {
-                case IEdge_loop stepEdgeLoop:
+                case edge_loop stepEdgeLoop:
                     var midLoop = midMgr.GetOrCreateMidObj<EdgeLoopObj>(stepEdgeLoop.line_id);
                     var fins = stepEdgeLoop.edge_list.Select(edge => midMgr.GetMidObjByImp<FinObj>(edge.line_id)).ToArray();
                     midLoop.Fins = fins;
                     break;
-                case IVertex_loop stepVertexLoop:
+                case vertex_loop stepVertexLoop:
                     var midVertexLoop = midMgr.GetOrCreateMidObj<VertexLoopObj>(stepVertexLoop.line_id);
                     midVertexLoop.Vertex = midMgr.GetMidObjByImp<VertexObj>(stepVertexLoop.loop_vertex.line_id);
                     break;
@@ -226,7 +226,7 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveFaces(List<IFace_surface> stepFaces, MidMgr midMgr)
+    private static void ResolveFaces(List<face_surface> stepFaces, MidMgr midMgr)
     {
         foreach (var stepFace in stepFaces)
         {
@@ -237,29 +237,29 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveFaceShells(List<IConnected_face_set> stepFaceShells, MidMgr midMgr)
+    private static void ResolveFaceShells(List<connected_face_set> stepFaceShells, MidMgr midMgr)
     {
         foreach (var stepFaceShell in stepFaceShells)
         {
             var midFaceShell = midMgr.GetOrCreateMidObj<FaceShellObj>(stepFaceShell.line_id);
             switch (stepFaceShell)
             {
-                case IOriented_open_shell stepOrientedOpenShell:
+                case oriented_open_shell stepOrientedOpenShell:
                     midFaceShell.Closed = false;
                     midFaceShell.Oriented = stepOrientedOpenShell.orientation;
                     midFaceShell.Faces = [.. stepOrientedOpenShell.open_shell_element.cfs_faces.Select(face => midMgr.GetMidObjByImp<FaceObj>(face.line_id)).Reverse()];
                     break;
-                case IOriented_closed_shell stepOrientedClosedShell:
+                case oriented_closed_shell stepOrientedClosedShell:
                     midFaceShell.Closed = true;
                     midFaceShell.Oriented = stepOrientedClosedShell.orientation;
                     midFaceShell.Faces = [.. stepOrientedClosedShell.closed_shell_element.cfs_faces.Select(face => midMgr.GetMidObjByImp<FaceObj>(face.line_id)).Reverse()];
                     break;
-                case IOpen_shell stepOpenShell:
+                case open_shell stepOpenShell:
                     midFaceShell.Closed = false;
                     midFaceShell.Oriented = true;
                     midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObjByImp<FaceObj>(face.line_id)).Reverse()];
                     break;
-                case IClosed_shell stepClosedShell:
+                case closed_shell stepClosedShell:
                     midFaceShell.Closed = true;
                     midFaceShell.Oriented = true;
                     midFaceShell.Faces = [.. stepFaceShell.cfs_faces.Select(face => midMgr.GetMidObjByImp<FaceObj>(face.line_id)).Reverse()];
@@ -269,7 +269,7 @@ public class Step2Mid
         }
     }
 
-    private static void ResolveManifoldSolids(List<IManifold_solid_brep> stepManifoldSolids, MidMgr midMgr)
+    private static void ResolveManifoldSolids(List<manifold_solid_brep> stepManifoldSolids, MidMgr midMgr)
     {
         foreach (var stepManifoldSolid in stepManifoldSolids)
         {
@@ -286,7 +286,7 @@ public class Step2Mid
             voidRegion.Shells = [voidShell];
             regions.Add(voidRegion);
             regions.Add(solidRegion);
-            if (stepManifoldSolid is IBrep_with_voids stepBrepWithVoids)
+            if (stepManifoldSolid is brep_with_voids stepBrepWithVoids)
             {
                 foreach (var stepShell in stepBrepWithVoids.voids)
                 {

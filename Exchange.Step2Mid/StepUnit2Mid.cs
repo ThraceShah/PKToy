@@ -1,13 +1,13 @@
 using System.Collections.Frozen;
 using Exchange.Midlayer;
 using StepCodeDotNet.Base;
-using StepCodeDotNet.Gen.ap203;
+using StepCodeDotNet.Gen.config_control_design;
 
 namespace Exchange.Step2Mid;
 
 public class StepUnit2Mid(Dictionary<int, IStepObj> stepIdObjMap)
 {
-    public void ResolveUnit(IShape_representation shapeRep, MidMgr midMgr)
+    public void ResolveUnit(shape_representation shapeRep, MidMgr midMgr)
     {
         var parts = new List<IBodyObj>();
         foreach (var item in shapeRep.items)
@@ -89,9 +89,9 @@ public class StepUnit2Mid(Dictionary<int, IStepObj> stepIdObjMap)
             return Unit.DEFAULT_TOLERANCE;
         }
         var id = refExpress.RefLineNumber;
-        if (stepIdObjMap.TryGetValue(id, out var obj) && obj is IUncertainty_measure_with_unit measureWithUinit)
+        if (stepIdObjMap.TryGetValue(id, out var obj) && obj is uncertainty_measure_with_unit measureWithUinit)
         {
-            if (measureWithUinit.value_component is not REAL value)
+            if (measureWithUinit.value_component is not length_measure value)
             {
                 Console.WriteLine($"GetToleranceFactor: {id} is not REAL.");
                 return Unit.DEFAULT_TOLERANCE;
@@ -207,33 +207,33 @@ public class StepUnit2Mid(Dictionary<int, IStepObj> stepIdObjMap)
         {
             return Unit.DEFAULT_LEN_FACTOR;
         }
-        var unit = (si_unit_name)StepObjCreator.Instance.ToEnum(unitExpress.Value);
-        if (unit != si_unit_name.metre)
+        var unit = Enum.Parse<SI_UNIT_NAME>(unitExpress.Value);
+        if (unit != SI_UNIT_NAME.METRE)
         {
             return Unit.DEFAULT_LEN_FACTOR;
         }
-        var prefix = (si_prefix)StepObjCreator.Instance.ToEnum(prefixExpress.Value);
+        var prefix = Enum.Parse<SI_PREFIX>(prefixExpress.Value);
         return SiPrefixToFactor(prefix);
 
     }
-    static double SiPrefixToFactor(si_prefix prefix) => prefix switch
+    static double SiPrefixToFactor(SI_PREFIX prefix) => prefix switch
     {
-        si_prefix.exa => 1e18,
-        si_prefix.peta => 1e15,
-        si_prefix.tera => 1e12,
-        si_prefix.giga => 1e9,
-        si_prefix.mega => 1e6,
-        si_prefix.kilo => 1e3,
-        si_prefix.hecto => 1e2,
-        si_prefix.deca => 1e1,
-        si_prefix.deci => 1e-1,
-        si_prefix.centi => 1e-2,
-        si_prefix.milli => 1e-3,
-        si_prefix.micro => 1e-6,
-        si_prefix.nano => 1e-9,
-        si_prefix.pico => 1e-12,
-        si_prefix.femto => 1e-15,
-        si_prefix.atto => 1e-18,
+        SI_PREFIX.EXA => 1e18,
+        SI_PREFIX.PETA => 1e15,
+        SI_PREFIX.TERA => 1e12,
+        SI_PREFIX.GIGA => 1e9,
+        SI_PREFIX.MEGA => 1e6,
+        SI_PREFIX.KILO => 1e3,
+        SI_PREFIX.HECTO => 1e2,
+        SI_PREFIX.DECA => 1e1,
+        SI_PREFIX.DECI => 1e-1,
+        SI_PREFIX.CENTI => 1e-2,
+        SI_PREFIX.MILLI => 1e-3,
+        SI_PREFIX.MICRO => 1e-6,
+        SI_PREFIX.NANO => 1e-9,
+        SI_PREFIX.PICO => 1e-12,
+        SI_PREFIX.FEMTO => 1e-15,
+        SI_PREFIX.ATTO => 1e-18,
         _ => 1.0
     };
     enum ComplexUnitType
