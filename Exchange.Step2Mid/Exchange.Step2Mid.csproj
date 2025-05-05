@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Exchange.Midlayer\Exchange.Midlayer.csproj" />
-    <Reference Include="../lib/ap203.dll" />
+    <Reference Include="../lib/StepCodeDotNet.Gen.config_control_design.dll" />
     <Reference Include="../lib/StepCodeDotNet.Base.dll" />
   </ItemGroup>
 
