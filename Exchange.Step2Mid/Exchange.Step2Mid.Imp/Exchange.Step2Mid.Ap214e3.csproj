@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../../Exchange.Midlayer/Exchange.Midlayer.csproj" />
+    <Reference Include="../../lib/StepCodeDotNet.Gen.automotive_design.dll" />
+    <Reference Include="../../lib/StepCodeDotNet.Base.dll" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DefineConstants>AP_VERSION_214E3</DefineConstants>
+  </PropertyGroup>
+
+</Project>
