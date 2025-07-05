@@ -13,17 +13,20 @@
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
     <DefineConstants>UNIX</DefineConstants>
 
-  </PropertyGroup>  
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="../lib/pskernel_net.dll" />
     <None Include="../lib/pskernel.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>  
+    <None Include="../lib/libpskernel.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Viewer.IContract\Viewer.IContract.csproj" />
     <ProjectReference Include="..\PKToy.Exchange\PKToy.Exchange.csproj" />
-  </ItemGroup>  
+  </ItemGroup>
   <ItemGroup>
     <None Update="pschema\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
