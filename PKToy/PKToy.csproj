@@ -16,22 +16,25 @@
     <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
-	<ItemGroup>
-		<TrimmableAssembly Include="Avalonia.Themes.Fluent" />
-		<TrimmableAssembly Include="Avalonia.Themes.Default" />
-	</ItemGroup>
   <ItemGroup>
-		<PackageReference Include="Avalonia.Desktop" Version="11.2.8" />
-		<PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.8" />
-		<!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-		<PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.8" />
-		<PackageReference Include="navalonia.markup" Version="11.2.6-beta2.2.1" />
+    <TrimmableAssembly Include="Avalonia.Themes.Fluent" />
+    <TrimmableAssembly Include="Avalonia.Themes.Default" />
   </ItemGroup>
-	<ItemGroup>
-		<ProjectReference Include="../Viewer.Graphic.Opengl/Viewer.Graphic.Opengl.csproj" />
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.8" />
+    <!--Condition
+    below is needed to remove Avalonia.Diagnostics package from build output in Release
+    configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics"
+      Version="11.2.8" />
+    <PackageReference Include="navalonia.markup" Version="11.2.6-beta2.2.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Viewer.Graphic.Opengl/Viewer.Graphic.Opengl.csproj" />
     <ProjectReference Include="../PKToy.Script/PKToy.Script.csproj" />
-		<ProjectReference Include="../PKToy.Lib/PKToy.Lib.csproj" />
-	</ItemGroup>
+    <ProjectReference Include="../PKToy.Lib/PKToy.Lib.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <Using Include="System" />
     <Using Include="Avalonia" />
