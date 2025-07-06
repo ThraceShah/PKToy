@@ -46,6 +46,8 @@ public class OpenGlPageControl : OpenGlControlBase
     {
         if (inited is false)
         {
+            this.width = (uint)(this.Bounds.Width * this.scale);
+            this.height = (uint)(this.Bounds.Height * this.scale);
             var _gl = GL.GetApi(gl.GetProcAddress);
             GlRender = new GlRender(_gl);
             GlRender.GLControlLoad();
