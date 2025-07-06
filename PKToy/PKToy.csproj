@@ -11,7 +11,19 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <PublishAot>true</PublishAot>
   </PropertyGroup>
-
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <DefineConstants>WINDOWS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <DefineConstants>MACOS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <DefineConstants>LINUX</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup
+    Condition="'$(OS)' != 'Windows_NT' AND !$([MSBuild]::IsOSPlatform('OSX')) AND !$([MSBuild]::IsOSPlatform('Linux'))">
+    <DefineConstants>UNIX</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />

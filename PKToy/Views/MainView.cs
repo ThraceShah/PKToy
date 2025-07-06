@@ -1,4 +1,5 @@
 namespace PKToy.Views;
+
 using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
@@ -33,9 +34,18 @@ class MainView : MvuView
     {
         _window = (Window)x.Root;
         PKToy.Lib.PKSession.Init();
-        this.GL.UpdateScale(_window.DesktopScaling);
-        _window.ScalingChanged += (sender, args) => this.GL.UpdateScale(_window.DesktopScaling);
+        this.GL.UpdateScale(GetScaling(_window));
+        _window.ScalingChanged += (sender, args) => this.GL.UpdateScale(GetScaling(_window));
     });
+
+    private static double GetScaling(Window window)
+    {
+#if MACOS
+        return window.RenderScaling;
+#else
+        return window.DesktopScaling;
+#endif
+    }
 
     private async void FileClick(object obj)
     {
