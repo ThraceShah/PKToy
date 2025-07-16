@@ -13,7 +13,8 @@ public class Step2Mid
     {
         var stepCreator = new StepObjCreator();
         var stepParser = new StepParser(stepCreator);
-        var stepObjs = stepParser.Resolve(stepFile);
+        stepParser.Resolve(stepFile);
+        var stepObjs = stepParser.GetStepObjs();
         var stepIdObjMap = new Dictionary<int, IStepObj>(stepObjs.Length);
         var stepPoints = new List<cartesian_point>();
         var stepLines = new List<curve>();
