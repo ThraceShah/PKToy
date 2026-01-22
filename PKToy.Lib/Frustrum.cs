@@ -6,13 +6,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 namespace PKToy.Lib;
-using static PK.UNCLASSED;
 public unsafe static class Frustrum
 {
-    const int FR_no_errors = (int)frustrum_ifails_t.FR_no_errors;
-    const int FR_unspecified = (int)frustrum_ifails_t.FR_unspecified;
-    const int FR_end_of_file = (int)frustrum_ifails_t.FR_end_of_file;
-    const int FR_close_fail = (int)frustrum_ifails_t.FR_close_fail;
     const string end_of_header_s = "**END_OF_HEADER";
 
     class PSFile : IDisposable
@@ -118,7 +113,7 @@ public unsafe static class Frustrum
         var name_str = new string((sbyte*)name, 0, *namlen, Encoding.UTF8);
         switch ((file_guise_tokens_t)(*guise))
         {
-            case file_guise_tokens_t.FFCSCH:
+            case FFCSCH:
                 {
                     name_str = Path.Combine(AppContext.BaseDirectory, $"pschema/{name_str}.s_t");
                     break;
@@ -132,7 +127,7 @@ public unsafe static class Frustrum
         *strid = -1;
         var file = new PSFile(name_str);
         open_files[next_file_id] = file;
-        if (*skiphd == (int)file_open_mode_tokens_t.FFSKHD)
+        if (*skiphd == FFSKHD)
         {
             open_files[next_file_id].SkipHeader();
         }
@@ -221,17 +216,17 @@ public unsafe static class Frustrum
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    public static unsafe PK.ERROR.code_t ErrorHandler(PK.ERROR_sf_t* error)
+    public static unsafe PK_ERROR_code_t ErrorHandler(PK_ERROR_sf_t* error)
     {
         string? functionName = Marshal.PtrToStringAnsi((nint)error->function);
         string? errCodeName = Marshal.PtrToStringAnsi((nint)error->code_token);
-        Console.WriteLine($"Error in {functionName} with code {errCodeName},err arg number:{error->argument_number},err arg index:{error->argument_index},err entity:{error->entity.Value}");
+        Console.WriteLine($"Error in {functionName} with code {errCodeName},err arg number:{error->argument_number},err arg index:{error->argument_index},err entity:{error->entity}");
         return error->code;
     }
 
 
 
-    public static void InitializeParasolidFrustrum()
+    public static unsafe void InitializeParasolidFrustrum()
     {
 #if WINDOWS
         string libc = "msvcrt";
@@ -242,7 +237,7 @@ public unsafe static class Frustrum
         var mallocPtr = (delegate* unmanaged[Cdecl]<ulong, void*>)NativeLibrary.GetExport(handle, "malloc");
         var freePtr = (delegate* unmanaged[Cdecl]<void*, void>)NativeLibrary.GetExport(handle, "free");
         PKErrorCheck err;
-        PK.SESSION.frustrum_v fru = new()
+        PK_SESSION_frustrum_t fru = new()
         {
             fstart = &FrustrumStart,
             fstop = &FrustrumStop,
@@ -257,15 +252,15 @@ public unsafe static class Frustrum
             goopsg = &GOOpenSegment,
             goclsg = &GOCloseSegment
         };
-        err = PK.SESSION._register_frustrum(&fru);
-        PK.MEMORY.frustrum_t a = new()
+        err = PK_SESSION_register_frustrum(&fru);
+        PK_MEMORY_frustrum_t a = new()
         {
             alloc_fn = mallocPtr,
             free_fn = freePtr
         };
-        err = PK.MEMORY.register_callbacks(a);
-        PK.ERROR.frustrum_t errFru = new(&ErrorHandler);
-        err = PK.ERROR._register_callbacks(errFru);
+        err = PK_MEMORY_register_callbacks(a);
+        PK_ERROR_frustrum_t errFru = &ErrorHandler;
+        err = PK_ERROR_register_callbacks(errFru);
     }
 
 }

@@ -15,7 +15,7 @@
 
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="../lib/pskernel_net.dll" />
+    <Reference Include="../lib/PskernelSharp.dll" />
     <None Include="../lib/pskernel.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

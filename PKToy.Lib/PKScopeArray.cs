@@ -17,21 +17,21 @@ public unsafe ref struct PKScopeArray<T> where T : unmanaged
     {
         if (data != null)
         {
-            var err = PK.MEMORY.free(data);
+            var err = PK_MEMORY_free(data);
         }
         data = null;
     }
 }
 
-public unsafe ref struct PKFacetResult
+public unsafe ref struct PK_acetResult
 {
-    public PK.TOPOL.facet_r_t data;
+    public PK_TOPOL_facet_r_t data;
 
     public unsafe void Dispose()
     {
-        fixed (PK.TOPOL.facet_r_t* ptr = &data)
+        fixed (PK_TOPOL_facet_r_t* ptr = &data)
         {
-            PK.TOPOL.facet_r_f(ptr);
+            PK_TOPOL_facet_r_f(ptr);
         }
     }
 }
