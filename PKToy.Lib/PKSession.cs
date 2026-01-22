@@ -17,13 +17,13 @@ public unsafe class PKSession
 
     public static void StopSession()
     {
-        PK.SESSION.stop();
+        PK_SESSION_stop();
     }
 
     public static void NewSession()
     {
         PKErrorCheck err;
-        PK.DELTA.frustrum_t deltaFru = new()
+        PK_DELTA_frustrum_t deltaFru = new()
         {
             open_for_write_fn = &FrustrumDelta.OpenForWrite,
             write_fn = &FrustrumDelta.Write,
@@ -32,29 +32,29 @@ public unsafe class PKSession
             delete_fn = &FrustrumDelta.Delete,
             close_fn = &FrustrumDelta.Close,
         };
-        err = PK.DELTA._register_callbacks(deltaFru);
+        err = PK_DELTA_register_callbacks(deltaFru);
 
-        PK.SESSION.start_o_t start_options = new(true);
-        err = PK.SESSION.start(&start_options);
-        err = PK.SESSION.set_unicode(true);
-        err = PK.SESSION.set_roll_forward(true);
-        PK.SESSION.smp_o_t smpOptions = new(true);
-        PK.SESSION.set_smp(&smpOptions);
-        PK.SESSION.smp_r_t smpResult;
-        PK.SESSION.ask_smp(&smpResult);
+        PK_SESSION_start_o_t start_options = new();
+        err = PK_SESSION_start(&start_options);
+        err = PK_SESSION_set_unicode(PK_LOGICAL_true);
+        err = PK_SESSION_set_roll_forward(PK_LOGICAL_true);
+        PK_SESSION_smp_o_t smpOptions = new();
+        PK_SESSION_set_smp(&smpOptions);
+        PK_SESSION_smp_r_t smpResult;
+        PK_SESSION_ask_smp(&smpResult);
     }
 
-    public static void CallRenderFacet(Span<PK.BODY_t> bodies)
+    public static void CallRenderFacet(Span<PK_BODY_t> bodies)
     {
         var watch = new Stopwatch();
         watch.Start();
-        PK.TOPOL.render_facet_o_t facetOptions = new(true);
-        facetOptions.go_option.go_normals = facet_go_normals_t.yes_c;
-        facetOptions.go_option.go_edges = facet_go_edges_t.yes_c;
-        facetOptions.go_option.go_strips = facet_go_strips_t.yes_c;
+        PK_TOPOL_render_facet_o_t facetOptions = new();
+        facetOptions.go_option.go_normals = PK_facet_go_normals_yes_c;
+        facetOptions.go_option.go_edges = PK_facet_go_edges_yes_c;
+        facetOptions.go_option.go_strips = PK_facet_go_strips_yes_c;
         facetOptions.go_option.go_max_facets_per_strip = 65535;
-        facetOptions.go_option.go_interleaved = facet_go_interleaved_t.yes_c;
-        PK.TOPOL.render_facet(bodies.Length, (TOPOL_t*)Unsafe.AsPointer(ref bodies[0]), null, 0, &facetOptions);
+        facetOptions.go_option.go_interleaved = PK_facet_go_interleaved_yes_c;
+        PK_TOPOL_render_facet(bodies.Length, (PK_TOPOL_t*)Unsafe.AsPointer(ref bodies[0]), null, 0, &facetOptions);
         watch.Stop();
         Console.WriteLine($"render facet elapsed time:{watch.ElapsedMilliseconds} ms");
         return;
@@ -63,14 +63,14 @@ public unsafe class PKSession
 
     public static AsmGeometry OpenPart(string partName, out int partionTag)
     {
-        PK.PART.receive_o_t receive_options = new(true);
+        PK_PART_receive_o_t receive_options = new();
         if (Path.GetExtension(partName).Equals(".x_t", StringComparison.OrdinalIgnoreCase))
         {
-            receive_options.transmit_format = PK.transmit_format_t.text_c;
+            receive_options.transmit_format = PK_transmit_format_text_c;
         }
         else if (Path.GetExtension(partName).Equals(".x_b", StringComparison.OrdinalIgnoreCase))
         {
-            receive_options.transmit_format = PK.transmit_format_t.binary_c;
+            receive_options.transmit_format = PK_transmit_format_binary_c;
         }
         else
         {
@@ -78,50 +78,50 @@ public unsafe class PKSession
         }
         var watch = new Stopwatch();
         watch.Start();
-        PK.PARTITION_t curPartition;
-        PK.SESSION.ask_curr_partition(&curPartition);
-        PK.PARTITION_t newPartition;
-        PK.PARTITION.create_empty(&newPartition);
-        PK.PARTITION.set_current(newPartition);
+        PK_PARTITION_t curPartition;
+        PK_SESSION_ask_curr_partition(&curPartition);
+        PK_PARTITION_t newPartition;
+        PK_PARTITION_create_empty(&newPartition);
+        PK_PARTITION_set_current(newPartition);
 
-        using var parts = new PKScopeArray<PK.PART_t>();
-        PK.PART.receive(partName, &receive_options, &parts.size, &parts.data);
+        using var parts = new PKScopeArray<PK_PART_t>();
+        PK_PART_receive(partName, &receive_options, &parts.size, &parts.data);
         var asmGeom = OpenPartition(newPartition);
-        PK.PARTITION.set_current(curPartition);
+        PK_PARTITION_set_current(curPartition);
         partionTag = newPartition;
         return asmGeom;
     }
 
-    public static AsmGeometry OpenPartition(PK.PARTITION_t partition)
+    public static AsmGeometry OpenPartition(PK_PARTITION_t partition)
     {
         var watch = new Stopwatch();
         watch.Start();
-        using var bodies = new PKScopeArray<PK.BODY_t>();
-        PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
+        using var bodies = new PKScopeArray<PK_BODY_t>();
+        PK_PARTITION_ask_bodies(partition, &bodies.size, &bodies.data);
         using var goCallback = new PKGoCallback();
         Console.WriteLine("render faces");
         CallRenderFacet(bodies.Span);
-        var bodiesSet = new HashSet<PK.BODY_t>();
+        var bodiesSet = new HashSet<PK_BODY_t>();
         for (int i = 0; i < bodies.size; i++)
         {
             bodiesSet.Add(bodies[i]);
         }
         var asmGeom = new AsmGeometry();
 
-        var identityTransform = new TRANSF_sf_t(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-        TRANSF_t identityTrans;
-        PK.TRANSF.create(&identityTransform, &identityTrans);
-        INSTANCE_sf_t instanceSF;
-        TRANSF_sf_t transformSF;
-        CLASS_t classSF;
-        using var assemblies = new PKScopeArray<ASSEMBLY_t>();
-        PK.PARTITION.ask_assemblies(partition, &assemblies.size, &assemblies.data);
-        Queue<PK.ASSEMBLY_t> assemblyQueue = new();
+        var identityTransform = new PK_TRANSF_sf_t(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+        PK_TRANSF_t identityTrans;
+        PK_TRANSF_create(&identityTransform, &identityTrans);
+        PK_INSTANCE_sf_t instanceSF;
+        PK_TRANSF_sf_t transformSF;
+        PK_CLASS_t classSF;
+        using var assemblies = new PKScopeArray<PK_ASSEMBLY_t>();
+        PK_PARTITION_ask_assemblies(partition, &assemblies.size, &assemblies.data);
+        Queue<PK_ASSEMBLY_t> assemblyQueue = new();
         Queue<Matrix4x4> matrixQueue = new();
         for (int i = 0; i < assemblies.size; i++)
         {
-            using var refInstances = new PKScopeArray<INSTANCE_t>();
-            PK.PART.ask_ref_instances(assemblies[i], &refInstances.size, &refInstances.data);
+            using var refInstances = new PKScopeArray<PK_INSTANCE_t>();
+            PK_PART_ask_ref_instances(assemblies[i], &refInstances.size, &refInstances.data);
             if (refInstances.size == 0)
             {
                 assemblyQueue.Enqueue(assemblies[i]);
@@ -133,17 +133,17 @@ public unsafe class PKSession
         {
             var assembly = assemblyQueue.Dequeue();
             var asmMatrix = matrixQueue.Dequeue();
-            using var instances = new PKScopeArray<PK.INSTANCE_t>();
-            PK.ASSEMBLY.ask_instances(assembly, &instances.size, &instances.data);
+            using var instances = new PKScopeArray<PK_INSTANCE_t>();
+            PK_ASSEMBLY_ask_instances(assembly, &instances.size, &instances.data);
             for (int j = 0; j < instances.size; j++)
             {
-                PK.INSTANCE.ask(instances[j], &instanceSF);
-                PK.ENTITY.ask_class(instanceSF.part, &classSF);
-                if (instanceSF.transf == PK.ENTITY_t.@null)
+                PK_INSTANCE_ask(instances[j], &instanceSF);
+                PK_ENTITY_ask_class(instanceSF.part, &classSF);
+                if (instanceSF.transf == NULTAG)
                 {
                     instanceSF.transf = identityTrans;
                 }
-                PK.TRANSF.ask(instanceSF.transf, &transformSF);
+                PK_TRANSF_ask(instanceSF.transf, &transformSF);
                 var transPtr = (double*)&transformSF;
                 Matrix4x4 matrix;
                 var matrixPtr = (float*)&matrix;
@@ -154,14 +154,14 @@ public unsafe class PKSession
                 matrix = asmMatrix * matrix;
                 switch (classSF)
                 {
-                    case PK.CLASS_t.body:
+                    case PK_CLASS_body:
                         bodiesSet.Remove(instanceSF.part);
                         var shadedGeometry = goCallback.GetShadedGeometry(instanceSF.part);
                         asmGeom.AddComponent(shadedGeometry, Matrix4x4.Transpose(matrix));
                         var wireframeGeometry = goCallback.GetWireframeGeometry(instanceSF.part);
                         asmGeom.AddComponent(wireframeGeometry, Matrix4x4.Transpose(matrix));
                         break;
-                    case PK.CLASS_t.assembly:
+                    case PK_CLASS_assembly:
                         assemblyQueue.Enqueue(instanceSF.part);
                         matrixQueue.Enqueue(matrix);
                         break;
@@ -186,8 +186,8 @@ public unsafe class PKSession
 
     public static AsmGeometry OpenCurrentPartition()
     {
-        PK.PARTITION_t curPartition;
-        PK.SESSION.ask_curr_partition(&curPartition);
+        PK_PARTITION_t curPartition;
+        PK_SESSION_ask_curr_partition(&curPartition);
         return OpenPartition(curPartition);
     }
 
@@ -202,48 +202,48 @@ public unsafe class PKSession
         return OpenPartition(partition);
     }
 
-    public static void SavePart(string partName, PK.PARTITION_t partition)
+    public static void SavePart(string partName, PK_PARTITION_t partition)
     {
-        var parts = new PKScopeArray<PK.PART_t>();
-        PK.SESSION.ask_parts(&parts.size, &parts.data);
-        PK.PART.transmit_o_t transmitOptions = new(true);
-        transmitOptions.transmit_format = PK.transmit_format_t.text_c;
-        PK.PART.transmit(parts.size, parts.data, partName, &transmitOptions);
+        var parts = new PKScopeArray<PK_PART_t>();
+        PK_SESSION_ask_parts(&parts.size, &parts.data);
+        PK_PART_transmit_o_t transmitOptions = new();
+        transmitOptions.transmit_format = PK_transmit_format_text_c;
+        PK_PART_transmit(parts.size, parts.data, partName, &transmitOptions);
     }
 
     public static void SavePart(string partName)
     {
-        var parts = new PKScopeArray<PK.PART_t>();
-        PK.SESSION.ask_parts(&parts.size, &parts.data);
-        PK.PART.transmit_o_t transmitOptions = new(true);
+        var parts = new PKScopeArray<PK_PART_t>();
+        PK_SESSION_ask_parts(&parts.size, &parts.data);
+        PK_PART_transmit_o_t transmitOptions = new();
         var extension = Path.GetExtension(partName).ToLower();
         if (extension is ".x_t")
         {
-            transmitOptions.transmit_format = PK.transmit_format_t.text_c;
+            transmitOptions.transmit_format = PK_transmit_format_text_c;
         }
         else if (extension is ".x_b")
         {
-            transmitOptions.transmit_format = PK.transmit_format_t.binary_c;
+            transmitOptions.transmit_format = PK_transmit_format_binary_c;
         }
         else
         {
             throw new NotSupportedException("Unsupported file format");
         }
-        PK.PART.transmit(parts.size, parts.data, partName, &transmitOptions);
+        PK_PART_transmit(parts.size, parts.data, partName, &transmitOptions);
     }
 
     public static List<TopolTable> GetCurPartitionTopolTree()
     {
-        PK.PARTITION_t curPartition;
-        PK.SESSION.ask_curr_partition(&curPartition);
+        PK_PARTITION_t curPartition;
+        PK_SESSION_ask_curr_partition(&curPartition);
         return GetPartitionTopolTree(curPartition);
     }
 
     public static List<TopolTable> GetPartitionTopolTree(int partition)
     {
         var topoTree = new List<TopolTable>();
-        using var bodies = new PKScopeArray<PK.BODY_t>();
-        PK.PARTITION.ask_bodies(partition, &bodies.size, &bodies.data);
+        using var bodies = new PKScopeArray<PK_BODY_t>();
+        PK_PARTITION_ask_bodies(partition, &bodies.size, &bodies.data);
         var printInfo = bodies.size == 1;
         foreach (var body in bodies.Span)
         {
@@ -252,7 +252,7 @@ public unsafe class PKSession
         return topoTree;
     }
 
-    private static TopolTable GetBodyTable(PK.BODY_t body)
+    private static TopolTable GetBodyTable(PK_BODY_t body)
     {
         var topolNode = new TopolNode(body, GetEntityName(body, out _));
         var nodes = new List<TopolNode>() { topolNode };
@@ -261,63 +261,63 @@ public unsafe class PKSession
     }
 
 
-    private static string BodyTypeTostring(BODY.type_t bodyType) => bodyType switch
+    private static string BodyTypeTostring(PK_BODY_type_t bodyType) => bodyType switch
     {
-        BODY.type_t.solid_c => "solid",
-        BODY.type_t.sheet_c => "sheet",
-        BODY.type_t.minimum_c => "minimum",
-        BODY.type_t.wire_c => "wire",
-        BODY.type_t.general_c => "general",
-        BODY.type_t.acorn_c => "acorn",
-        BODY.type_t.unspecified_c => "unspecified",
-        BODY.type_t.empty_c => "empty",
-        BODY.type_t.compound_c => "compound",
+        PK_BODY_type_solid_c => "solid",
+        PK_BODY_type_sheet_c => "sheet",
+        PK_BODY_type_minimum_c => "minimum",
+        PK_BODY_type_wire_c => "wire",
+        PK_BODY_type_general_c => "general",
+        PK_BODY_type_acorn_c => "acorn",
+        PK_BODY_type_unspecified_c => "unspecified",
+        PK_BODY_type_empty_c => "empty",
+        PK_BODY_type_compound_c => "compound",
         _ => throw new NotImplementedException(),
     };
 
 
-    private static string GetEntityName(PK.ENTITY_t entity, out CLASS_t entityType)
+    private static string GetEntityName(PK_ENTITY_t entity, out PK_CLASS_t entityType)
     {
-        PK.CLASS_t cl;
-        PK.ENTITY.ask_class(entity, &cl);
+        PK_CLASS_t cl;
+        PK_ENTITY_ask_class(entity, &cl);
         entityType = cl;
-        if (cl == PK.CLASS_t.body)
+        if (cl == PK_CLASS_body)
         {
-            PK.BODY.type_t bodyType;
-            PK.BODY.ask_type(entity, &bodyType);
+            PK_BODY_type_t bodyType;
+            PK_BODY_ask_type(entity, &bodyType);
             return BodyTypeTostring(bodyType);
         }
-        else if (cl == PK.CLASS_t.region)
+        else if (cl == PK_CLASS_region)
         {
-            PK.LOGICAL_t isSolid;
-            PK.REGION.is_solid(entity, &isSolid);
-            string regionType = isSolid ? "solid" : "void";
+            PK_LOGICAL_t isSolid;
+            PK_REGION_is_solid(entity, &isSolid);
+            string regionType = isSolid==0 ? "solid" : "void";
             return $"{cl}({regionType})";
         }
-        else if (cl == PK.CLASS_t.shell)
+        else if (cl == PK_CLASS_shell)
         {
-            PK.SHELL.type_t shellType;
-            PK.SHELL.ask_type(entity, &shellType);
+            PK_SHELL_type_t shellType;
+            PK_SHELL_ask_type(entity, &shellType);
             return $"{cl}({shellType})";
         }
         return cl.ToString();
     }
 
-    private static TopolTable GetBodyTopolTree(PK.BODY_t body, bool printInfo = false)
+    private static TopolTable GetBodyTopolTree(PK_BODY_t body, bool printInfo = false)
     {
-        PK.BODY.type_t bodyType;
-        PK.BODY.ask_type(body, &bodyType);
-        using var faces = new PKScopeArray<PK.FACE_t>();
-        PK.BODY.ask_topology_o_t options = new(true)
+        PK_BODY_type_t bodyType;
+        PK_BODY_ask_type(body, &bodyType);
+        using var faces = new PKScopeArray<PK_FACE_t>();
+        PK_BODY_ask_topology_o_t options = new()
         {
-            want_fins = true
+            want_fins = PK_LOGICAL_true,
         };
-        using var topols = new PKScopeArray<PK.TOPOL_t>();
-        using var classes = new PKScopeArray<PK.CLASS_t>();
+        using var topols = new PKScopeArray<PK_TOPOL_t>();
+        using var classes = new PKScopeArray<PK_CLASS_t>();
         using var parents = new PKScopeArray<int>();
         using var children = new PKScopeArray<int>();
-        using var senses = new PKScopeArray<PK.TOPOL.sense_t>();
-        PK.BODY.ask_topology(body, &options, &topols.size, &topols.data, &classes.data, &parents.size, &parents.data, &children.data, &senses.data);
+        using var senses = new PKScopeArray<PK_TOPOL_sense_t>();
+        PK_BODY_ask_topology(body, &options, &topols.size, &topols.data, &classes.data, &parents.size, &parents.data, &children.data, &senses.data);
         if (printInfo)
         {
             PrintHelper.PrintTopolTable(topols.size, topols.data, classes.data, parents.size, parents.data, children.data, senses.data);
@@ -336,16 +336,16 @@ public unsafe class PKSession
             nodes.Add(topolNode);
             switch (entityType)
             {
-                case PK.CLASS_t.face:
+                case PK_CLASS_face:
                     faceList.Add(i);
                     break;
-                case PK.CLASS_t.fin:
+                case PK_CLASS_fin:
                     finList.Add(i);
                     break;
-                case PK.CLASS_t.edge:
+                case PK_CLASS_edge:
                     edgeList.Add(i);
                     break;
-                case PK.CLASS_t.vertex:
+                case PK_CLASS_vertex:
                     vertexList.Add(i);
                     break;
                 default:
@@ -365,16 +365,16 @@ public unsafe class PKSession
         {
             var topolNode = nodes[faceIndex];
             var face = topolNode.Tag;
-            PK.SURF_t geom;
-            PK.LOGICAL_t orient;
-            PK.FACE.ask_oriented_surf(face, &geom, &orient);
-            if (geom == PK.CURVE_t.@null)
+            PK_SURF_t geom;
+            PK_LOGICAL_t orient;
+            PK_FACE_ask_oriented_surf(face, &geom, &orient);
+            if (geom == NULTAG)
             {
                 continue;
             }
             var geomName = GetEntityName(geom, out _);
-            var geomNode = new TopolNode(geom, $"{geomName}({(bool)orient})");
-            var sense = $"{face}-->{geom.Value}:{orient}";
+            var geomNode = new TopolNode(geom, $"{geomName}({orient})");
+            var sense = $"{face}-->{geom}:{orient}";
             relations.Add(new(faceIndex, nodes.Count, sense));
             nodes.Add(geomNode);
 
@@ -383,15 +383,15 @@ public unsafe class PKSession
         {
             var topolNode = nodes[finIndex];
             var fin = topolNode.Tag;
-            PK.CURVE_t geom;
-            PK.FIN.ask_curve(fin, &geom);
-            if (geom == PK.CURVE_t.@null)
+            PK_CURVE_t geom;
+            PK_FIN_ask_curve(fin, &geom);
+            if (geom == NULTAG)
             {
                 continue;
             }
             var geomName = GetEntityName(geom, out _);
             var geomNode = new TopolNode(geom, $"{geomName}");
-            var sense = $"{fin}-->{geom.Value}";
+            var sense = $"{fin}-->{geom}";
             relations.Add(new(finIndex, nodes.Count, sense));
             nodes.Add(geomNode);
 
@@ -400,16 +400,16 @@ public unsafe class PKSession
         {
             var topolNode = nodes[edgeIndex];
             var edge = topolNode.Tag;
-            PK.CURVE_t geom;
-            PK.LOGICAL_t orient;
-            PK.EDGE.ask_oriented_curve(edge, &geom, &orient);
-            if (geom == PK.CURVE_t.@null)
+            PK_CURVE_t geom;
+            PK_LOGICAL_t orient;
+            PK_EDGE_ask_oriented_curve(edge, &geom, &orient);
+            if (geom == NULTAG)
             {
                 continue;
             }
             var geomName = GetEntityName(geom, out _);
-            var sense = $"{edge}-->{geom.Value}:{orient}";
-            var geomNode = new TopolNode(geom, $"{geomName}({(bool)orient})");
+            var sense = $"{edge}-->{geom}:{orient}";
+            var geomNode = new TopolNode(geom, $"{geomName}({orient})");
             relations.Add(new(edgeIndex, nodes.Count, sense));
             nodes.Add(geomNode);
         }
@@ -417,15 +417,15 @@ public unsafe class PKSession
         {
             var topolNode = nodes[vertexIndex];
             var vertex = topolNode.Tag;
-            PK.POINT_t geom;
-            PK.VERTEX.ask_point(vertex, &geom);
-            if (geom == PK.CURVE_t.@null)
+            PK_POINT_t geom;
+            PK_VERTEX_ask_point(vertex, &geom);
+            if (geom == NULTAG)
             {
                 continue;
             }
             var geomName = GetEntityName(geom, out _);
             var geomNode = new TopolNode(geom, $"{geomName}");
-            var sense = $"{vertex}-->{geom.Value}";
+            var sense = $"{vertex}-->{geom}";
             relations.Add(new(vertexIndex, nodes.Count, sense));
             nodes.Add(geomNode);
 

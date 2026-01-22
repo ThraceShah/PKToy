@@ -3,16 +3,12 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using System.Text;
 using Viewer.IContract;
-using static PK.UNCLASSED;
 
 namespace PKToy.Lib;
 
 
 public unsafe class PKGoCallback : IDisposable
 {
-    const int CONTIN = (int)graphics_ifails_t.CONTIN;
-    const int ABORT = (int)graphics_ifails_t.ABORT;
-
     class BodyGeometry
     {
         public readonly StripFacePart Shaded = new();
@@ -36,8 +32,8 @@ public unsafe class PKGoCallback : IDisposable
     public PKGoCallback()
     {
         Frustrum.RegGoCallback(this);
-        PK.ATTDEF_t colorAttdef;
-        PK.ATTDEF.find("SDL/TYSA_COLOUR", &colorAttdef);
+        PK_ATTDEF_t colorAttdef;
+        PK_ATTDEF_find("SDL/TYSA_COLOUR", &colorAttdef);
         colorTag = colorAttdef;
     }
 
@@ -49,7 +45,7 @@ public unsafe class PKGoCallback : IDisposable
         }
         else
         {
-            return $"[lntp0:{lntp[0]},lntp1:{Enum.GetName((go_line_types_t)lntp[1])}]";
+            return $"[lntp0:{lntp[0]},lntp1:{lntp[1]}]";
         }
     }
 
@@ -57,12 +53,12 @@ public unsafe class PKGoCallback : IDisposable
     {
         var sb = new StringBuilder();
         sb.Append('[');
-        PK.CLASS_t cl;
+        PK_CLASS_t cl;
         foreach (var tag in tags)
         {
             sb.Append(tag);
-            PK.ENTITY.ask_class(tag, &cl);
-            sb.Append($":{Enum.GetName(cl)},");
+            PK_ENTITY_ask_class(tag, &cl);
+            sb.Append($":{cl},");
         }
         sb.Append(']');
         return sb.ToString();
@@ -70,7 +66,7 @@ public unsafe class PKGoCallback : IDisposable
 
     static void PrintSegmentParams(int* segtyp, int* ntags, int* tags, int* ngeom, double* geom, int* nlntp, int* lntp, [CallerMemberName] string methodName = "")
     {
-        string? sgetypName = Enum.GetName((go_segment_types_t)(*segtyp));
+        string? sgetypName = $"{*segtyp}";
 
         string tagsStr = FormatTags(new Span<int>(tags, *ntags));
         string lntpStr = FormatLineType(new Span<int>(lntp, *nlntp));
@@ -86,13 +82,13 @@ public unsafe class PKGoCallback : IDisposable
         var curParams = threadIds[Environment.CurrentManagedThreadId];
 
         // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
-        switch ((go_segment_types_t)(*segtyp))
+        switch ((*segtyp))
         {
-            case go_segment_types_t.SGTPBY:
+            case SGTPBY:
                 curParams.currentBody = *tags;
                 curParams.curBody = new BodyGeometry();
                 break;
-            case go_segment_types_t.SGTPFA:
+            case SGTPFA:
                 break;
             default:
                 break;
@@ -106,13 +102,13 @@ public unsafe class PKGoCallback : IDisposable
         var curParams = threadIds[Environment.CurrentManagedThreadId];
 
         // // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
-        switch ((go_segment_types_t)(*segtyp))
+        switch ((*segtyp))
         {
-            case go_segment_types_t.SGTPBY:
+            case SGTPBY:
                 shadedParts.TryAdd(curParams.currentBody, curParams.curBody.Shaded);
                 wireframeParts.TryAdd(curParams.currentBody, curParams.curBody.Wire);
                 break;
-            case go_segment_types_t.SGTPFA:
+            case SGTPFA:
                 break;
             default:
                 break;
@@ -125,23 +121,23 @@ public unsafe class PKGoCallback : IDisposable
         // PrintSegmentParams(segtyp, ntags, tags, ngeom, geom, nlntp, lntp);
         var curParams = threadIds[Environment.CurrentManagedThreadId];
 
-        switch ((go_segment_types_t)(*segtyp))
+        switch ((*segtyp))
         {
-            case go_segment_types_t.SGTPFT:
+            case SGTPFT:
                 break;
-            case go_segment_types_t.SGTPTS:
+            case SGTPTS:
                 {
                     int faceTag = tags[0];
-                    using var colorAttribs = new PKScopeArray<PK.ATTRIB_t>();
-                    PK.ENTITY.ask_attribs(faceTag, colorTag, &colorAttribs.size, &colorAttribs.data);
+                    using var colorAttribs = new PKScopeArray<PK_ATTRIB_t>();
+                    PK_ENTITY_ask_attribs(faceTag, colorTag, &colorAttribs.size, &colorAttribs.data);
                     Span<byte> colorRef = [150, 150, 150, 255];
                     Span<uint> color = MemoryMarshal.Cast<byte, uint>(colorRef);
                     if (colorAttribs.size > 0)
                     {
-                        if (colorAttribs[0] != PK.ENTITY_t.@null)
+                        if (colorAttribs[0] != NULTAG)
                         {
                             using var colorValue = new PKScopeArray<double>();
-                            PK.ATTRIB.ask_doubles(colorAttribs[0], 0, &colorValue.size, &colorValue.data);
+                            PK_ATTRIB_ask_doubles(colorAttribs[0], 0, &colorValue.size, &colorValue.data);
                             var colorSpan = colorValue.Span;
                             colorRef[0] = (byte)(colorValue[0] * 255);
                             colorRef[1] = (byte)(colorValue[1] * 255);

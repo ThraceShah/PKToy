@@ -2,18 +2,19 @@ namespace PKToy.Lib;
 
 readonly ref struct PKErrorCheck
 {
-    private readonly PK.ERROR.code_t _err;
-    public PKErrorCheck(PK.ERROR.code_t err)
+    private readonly PK_ERROR_code_t _err;
+    public PKErrorCheck(PK_ERROR_code_t err)
     {
         _err = err;
-        if (err != PK.ERROR.code_t.no_errors)
+        if (err != PK_ERROR_code_no_errors)
         {
-            Console.WriteLine($"Error: {Enum.GetName(err)}");
+            // find in parasolid consts, use reflection to get the name
+            
         }
     }
 
-    public readonly PK.ERROR.code_t Error => _err;
+    public readonly PK_ERROR_code_t Error => _err;
 
-    public static implicit operator PKErrorCheck(PK.ERROR.code_t err) => new(err);
+    public static implicit operator PKErrorCheck(PK_ERROR_code_t err) => new(err);
 
 }
