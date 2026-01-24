@@ -9,11 +9,10 @@ public class CsxRunner
         try
         {
             var options = ScriptOptions.Default
-            .AddReferences("pskernel_net")
+            .AddReferences("PskernelSharp")
             .AddImports("System")
             .AddImports("System.Collections.Generic")
-            .AddImports("System.IO")
-            .AddImports("PK");
+            .AddImports("System.IO");
             var scriptState = await CSharpScript.RunAsync(File.ReadAllText(scriptPath), options);
             if (scriptState.ReturnValue is bool result)
             {

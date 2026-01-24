@@ -259,7 +259,7 @@ public unsafe static class Frustrum
             free_fn = freePtr
         };
         err = PK_MEMORY_register_callbacks(a);
-        PK_ERROR_frustrum_t errFru = &ErrorHandler;
+        PK_ERROR_frustrum_t errFru = new(&ErrorHandler);
         err = PK_ERROR_register_callbacks(errFru);
     }
 
