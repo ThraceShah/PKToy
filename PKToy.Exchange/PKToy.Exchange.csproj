@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -11,7 +11,10 @@
     <ProjectReference Include="..\NativeCorLib\NativeCorLib.csproj" />
     <ProjectReference Include="..\Exchange.Midlayer\Exchange.Midlayer.csproj" />
     <ProjectReference Include="..\Exchange.Step2Mid\Exchange.Step2Mid.csproj" />
-    <Reference Include="../lib/pskernel_net.dll" />
+    <Reference Include="../lib/PskernelSharp.dll" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../lib/Using.cs" />
+  </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@ using Exchange.Step2Mid;
 
 namespace PKToy.Exchange;
 
-record Mid2PKData(ITopolObj[] TopoChildren, IGeoObj? GeomChildren, PK.TOPOL.sense_t[] Sense);
+record Mid2PKData(ITopolObj[] TopoChildren, IGeoObj? GeomChildren, PK_TOPOL_sense_t[] Sense);
 
 static class Mid2PKTool
 {
@@ -42,10 +42,10 @@ static class Mid2PKTool
         }
         var sences = regions.Select(region => region switch
         {
-            SolidRegionObj solidRegion => PK.TOPOL.sense_t.positive_c,
-            VoidRegionObj voidRegion => PK.TOPOL.sense_t.negative_c,
-            BoundVoidRegionObj boundRegion => PK.TOPOL.sense_t.negative_c,
-            _ => PK.TOPOL.sense_t.none_c,
+            SolidRegionObj solidRegion => PK_TOPOL_sense_positive_c,
+            VoidRegionObj voidRegion => PK_TOPOL_sense_negative_c,
+            BoundVoidRegionObj boundRegion => PK_TOPOL_sense_negative_c,
+            _ => PK_TOPOL_sense_none_c,
         }).ToArray();
         return new(regions, null, sences);
     }
@@ -57,7 +57,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        return new(shells, null, CreateArray(shells.Length, PK.TOPOL.sense_t.none_c));
+        return new(shells, null, CreateArray(shells.Length, PK_TOPOL_sense_none_c));
     }
 
     private static Mid2PKData? GetMid2PKData(FaceShellObj shellObj)
@@ -67,21 +67,21 @@ static class Mid2PKTool
         {
             return null;
         }
-        var sences = new PK.TOPOL.sense_t[faces.Length];
+        var sences = new PK_TOPOL_sense_t[faces.Length];
         if (shellObj.Closed)
         {
             if (shellObj.Oriented)
             {
                 for (var i = 0; i < faces.Length; i++)
                 {
-                    sences[i] = PK.TOPOL.sense_t.negative_c;
+                    sences[i] = PK_TOPOL_sense_negative_c;
                 }
             }
             else
             {
                 for (var i = 0; i < faces.Length; i++)
                 {
-                    sences[i] = PK.TOPOL.sense_t.positive_c;
+                    sences[i] = PK_TOPOL_sense_positive_c;
                 }
             }
         }
@@ -89,7 +89,7 @@ static class Mid2PKTool
         {
             for (var i = 0; i < faces.Length; i++)
             {
-                sences[i] = PK.TOPOL.sense_t.none_c;
+                sences[i] = PK_TOPOL_sense_none_c;
             }
         }
         return new(faces, null, sences);
@@ -102,7 +102,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        return new(edges, null, CreateArray(edges.Length, PK.TOPOL.sense_t.none_c));
+        return new(edges, null, CreateArray(edges.Length, PK_TOPOL_sense_none_c));
     }
 
     private static Mid2PKData? GetMid2PKData(VertexShellObj shellObj)
@@ -112,7 +112,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        return new([vertex], null, [PK.TOPOL.sense_t.none_c]);
+        return new([vertex], null, [PK_TOPOL_sense_none_c]);
     }
 
     private static Mid2PKData? GetMid2PKData(FaceObj faceObj)
@@ -122,7 +122,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        return new(loops, faceObj.Surf, CreateArray(loops.Length, PK.TOPOL.sense_t.none_c));
+        return new(loops, faceObj.Surf, CreateArray(loops.Length, PK_TOPOL_sense_none_c));
     }
 
     private static Mid2PKData? GetMid2PKData(EdgeLoopObj loopObj)
@@ -132,7 +132,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        return new(fins, null, CreateArray(fins.Length, PK.TOPOL.sense_t.none_c));
+        return new(fins, null, CreateArray(fins.Length, PK_TOPOL_sense_none_c));
     }
 
     private static Mid2PKData? GetMid2PKData(VertexLoopObj loopObj)
@@ -142,7 +142,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        return new([vertex], null, [PK.TOPOL.sense_t.none_c]);
+        return new([vertex], null, [PK_TOPOL_sense_none_c]);
     }
 
 
@@ -153,7 +153,7 @@ static class Mid2PKTool
         {
             return null;
         }
-        var sence = finObj.Orientation ? PK.TOPOL.sense_t.positive_c : PK.TOPOL.sense_t.negative_c;
+        var sence = finObj.Orientation ? PK_TOPOL_sense_positive_c : PK_TOPOL_sense_negative_c;
         return new([edge], null, [sence]);
     }
 
@@ -172,7 +172,7 @@ static class Mid2PKTool
         {
             topoChildren.Add(edgeObj.End);
         }
-        var sences = CreateArray(topoChildren.Count, PK.TOPOL.sense_t.none_c);
+        var sences = CreateArray(topoChildren.Count, PK_TOPOL_sense_none_c);
         return new([.. topoChildren], edgeObj.Curve, sences);
     }
 

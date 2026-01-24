@@ -30,7 +30,7 @@ internal unsafe ref struct PKScopeArray<T> where T : unmanaged
     {
         if (data != null)
         {
-            var err = PK.MEMORY.free(data);
+            var err = PK_MEMORY_free(data);
         }
         size = 0;
         data = null;
@@ -60,7 +60,7 @@ internal unsafe ref struct PKScopeArray<T> where T : unmanaged
 }
 
 
-internal unsafe ref partial struct PKScopeData<T>(delegate*<T*, PK.ERROR.code_t> freeFunc) where T : unmanaged
+internal unsafe ref partial struct PKScopeData<T>(delegate*<T*, PK_ERROR_code_t> freeFunc) where T : unmanaged
 {
 
     public T data;
