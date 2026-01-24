@@ -11,7 +11,7 @@ unsafe
         ref_direction = new(1, 0, 0),
     };
     var err = PK_BODY_create_solid_block(size[0], size[1], size[2], &basisSet, &body);
-    if (err != PK_ERROR_code_no_errors)
+    if (err != PK_ERROR_no_errors)
     {
         Console.WriteLine($"create body error:{err}");
         return false;
