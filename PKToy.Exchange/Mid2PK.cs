@@ -151,7 +151,7 @@ public unsafe class Mid2PK
         {
             switch (fault.state)
             {
-                case PK_check_state_FACE_state_bad_edge_c:
+                case PK_FACE_state_bad_edge_c:
                 {
                     ProcessBadEdge(fault);
                     break;
