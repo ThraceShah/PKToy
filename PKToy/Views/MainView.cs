@@ -7,7 +7,7 @@ using PKToy.Lib;
 using PKToy.Script;
 using System.Numerics;
 using Viewer.IContract;
-class MainView : MvuView
+class MainView : ViewBase
 {
     private Window _window = null!;
     private OpenglView GL = null!;
@@ -25,7 +25,7 @@ class MainView : MvuView
         ),
         New<Grid>().Row(1).Cols("2*,5,5*").Children(
             New<TopolTreeView>().Ref(out TopolTree).Col(0),
-            New<GridSplitter>().Col(1).Width(5).Background(Colors.Gray.ToBrush()).
+            New<GridSplitter>().Col(1).Width(5).Background(Brushes.Gray).
             HorizontalAlignment(HorizontalAlignment.Stretch).VerticalAlignment(VerticalAlignment.Stretch).
             ResizeDirection(GridResizeDirection.Columns).ResizeBehavior(GridResizeBehavior.PreviousAndNext),
             New<OpenglView>().Ref(out GL).Col(2)

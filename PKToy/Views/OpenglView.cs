@@ -23,12 +23,13 @@ using Avalonia.VisualTree;
 using Silk.NET.OpenGL;
 
 [method: DynamicDependency(DynamicallyAccessedMemberTypes.PublicProperties, typeof(OpenglView))]
-public class OpenglView() : MvuView
+public class OpenglView() : ViewBase
 {
     protected override object Build()
     {
-        var r = New<Grid>().Background(Colors.Transparent.ToBrush())
+        var r = New<Grid>().Background(Brushes.Transparent)
             .Children(New<OpenGlPageControl>().Ref(out GLControl));
+        GLControl.UpdateScale(scale);
         RegKeyAction(r);
         return r;
     }
@@ -40,7 +41,7 @@ public class OpenglView() : MvuView
     public void UpdateScale(double newScale)
     {
         this.scale = newScale;
-        this.GLControl.UpdateScale(newScale);
+        this.GLControl?.UpdateScale(newScale);
     }
 
     private DateTime lastMouseMoveTime = DateTime.MinValue;
@@ -232,7 +233,6 @@ public class OpenglView() : MvuView
         // 合并的 PointerWheelChanged 事件处理
         container.PointerWheelChanged += (sender, args) =>
         {
-            var p = args.GetCurrentPoint(this);
             GLControl.GlRender!.MouseWheel((int)args.Delta.Y * 100);
         };
 

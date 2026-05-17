@@ -51,6 +51,7 @@ public class OpenGlPageControl : OpenGlControlBase
             var _gl = GL.GetApi(gl.GetProcAddress);
             GlRender = new GlRender(_gl);
             GlRender.GLControlLoad();
+            GlRender.GLControlResize(width, height);
             inited = true;
             sw.Start();
         }
@@ -58,12 +59,6 @@ public class OpenGlPageControl : OpenGlControlBase
 
     protected override unsafe void OnOpenGlRender(GlInterface gl, int fb)
     {
-        //执行opengl相关操作的函数，必须在OnOpenGlRender或OnOpenGlInit内执行
-        if (sw.ElapsedMilliseconds > 1000)
-        {
-            this.RequestNextFrameRendering();
-            return;
-        }
         //执行opengl相关操作的函数，必须在OnOpenGlRender或OnOpenGlInit内执行
         //包括使用Dispatcher.UIThread.Post到主线程执行opengl相关的函数都不行，具体原因还不清楚，可能是上下文错误
         this.GlRender!.Hover(hoverX, hoverY);
@@ -86,6 +81,7 @@ public class OpenGlPageControl : OpenGlControlBase
             updateSize = false;
             GlRender.GLControlResize(width, height);
         }
+        GlRender.BindControlFramebuffer((uint)fb);
         GlRender.Render();
         this.RequestNextFrameRendering();
     }

@@ -203,6 +203,12 @@ public partial class GlRender(GL gl) : IDisposable
         this.UpdateProjMatrix();
     }
 
+    public void BindControlFramebuffer(uint framebuffer)
+    {
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, framebuffer);
+        gl.Viewport(0, 0, width, height);
+    }
+
     public void MouseDown(KeyCode keyCode, int x, int y)
     {
         lastX = x;

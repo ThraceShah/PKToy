@@ -20,8 +20,7 @@
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
     <DefineConstants>LINUX</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup
-    Condition="'$(OS)' != 'Windows_NT' AND !$([MSBuild]::IsOSPlatform('OSX')) AND !$([MSBuild]::IsOSPlatform('Linux'))">
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT' AND !$([MSBuild]::IsOSPlatform('OSX')) AND !$([MSBuild]::IsOSPlatform('Linux'))">
     <DefineConstants>UNIX</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
@@ -33,14 +32,9 @@
     <TrimmableAssembly Include="Avalonia.Themes.Default" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Avalonia.Desktop" Version="11.2.8" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.8" />
-    <!--Condition
-    below is needed to remove Avalonia.Diagnostics package from build output in Release
-    configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics"
-      Version="11.2.8" />
-    <PackageReference Include="navalonia.markup" Version="11.2.6-beta2.2.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.3" />
+    <PackageReference Include="Avalonia.Markup.Declarative" Version="12.0.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Viewer.Graphic.Opengl/Viewer.Graphic.Opengl.csproj" />
