@@ -90,7 +90,7 @@ public class Step2Mid
 
     private static void ResolveShapeRes(Dictionary<int, IStepObj> stepIdObjMap, List<shape_representation> stepShapeRes, MidMgr midMgr)
     {
-        var unit2Mid = new StepUnit2Mid(stepIdObjMap);
+        var unit2Mid = new StepUnit2Mid();
         foreach (var stepShape in stepShapeRes)
         {
             unit2Mid.ResolveUnit(stepShape, midMgr);
