@@ -1,0 +1,46 @@
+<Project>
+  <PropertyGroup>
+    <_ParasolidRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_ParasolidRid>
+    <_ParasolidRid Condition="'$(_ParasolidRid)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</_ParasolidRid>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_ParasolidRid)' == 'win-x64'">
+    <ParasolidPlatform>win-x64</ParasolidPlatform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(_ParasolidRid)' == 'linux-x64'">
+    <ParasolidPlatform>linux-x64</ParasolidPlatform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(_ParasolidRid)' == 'linux-arm64'">
+    <ParasolidPlatform>linux-arm64</ParasolidPlatform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(_ParasolidRid)' == 'osx-arm64' or '$(_ParasolidRid)' == 'mac-arm64'">
+    <ParasolidPlatform>mac-arm64</ParasolidPlatform>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ParasolidPlatform)' != ''">
+    <ParasolidLibraryDirectory>$(ParasolidRoot)lib\$(ParasolidPlatform)\</ParasolidLibraryDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ParasolidPlatform)' == 'win-x64'">
+    <ParasolidDynamicLibrary>$(ParasolidLibraryDirectory)pskernel.dll</ParasolidDynamicLibrary>
+    <ParasolidStaticLibrary>$(ParasolidLibraryDirectory)pskernel_archive.lib</ParasolidStaticLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ParasolidPlatform)' == 'linux-x64' or '$(ParasolidPlatform)' == 'linux-arm64'">
+    <ParasolidDynamicLibrary>$(ParasolidLibraryDirectory)libpskernel.so</ParasolidDynamicLibrary>
+    <ParasolidStaticLibrary>$(ParasolidLibraryDirectory)pskernel_archive.a</ParasolidStaticLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(ParasolidPlatform)' == 'mac-arm64'">
+    <ParasolidDynamicLibrary>$(ParasolidLibraryDirectory)libpskernel.dylib</ParasolidDynamicLibrary>
+    <ParasolidStaticLibrary>$(ParasolidLibraryDirectory)pskernel_archive.a</ParasolidStaticLibrary>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(PublishAot)' == 'true' and '$(ParasolidStaticLibrary)' != ''">
+    <DirectPInvoke Include="pskernel" />
+    <NativeLibrary Include="$(ParasolidStaticLibrary)" />
+    <LinkerArg Include="-lc++" Condition="'$(ParasolidPlatform)' != 'win-x64'" />
+    <LinkerArg Include="-lm" Condition="'$(ParasolidPlatform)' != 'win-x64'" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PublishAot)' != 'true' and '$(ParasolidDynamicLibrary)' != ''">
+    <None Include="$(ParasolidDynamicLibrary)" Link="$([System.IO.Path]::GetFileName('$(ParasolidDynamicLibrary)'))" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
