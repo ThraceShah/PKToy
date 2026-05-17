@@ -13,18 +13,15 @@ var lifetime = new ClassicDesktopStyleApplicationLifetime { Args = args, Shutdow
 AppBuilder.Configure<Application>()
     .UsePlatformDetect()
     .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Wgl] })
+    .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.OpenGl] })
     .AfterSetup(b => b.Instance?.Styles.Add(new FluentTheme()))
     // uncomment the line below to enable rider ht reload workaround
     //.UseRiderHotReload()
     .SetupWithLifetime(lifetime);
 
 lifetime.MainWindow = new Window()
-    .Title("PKToy MVU")
+    .Title("PKToy")
     .Width(1280)
     .Height(720).Content(new MainView());
-
-#if DEBUG
-lifetime.MainWindow.AttachDevTools();
-#endif
 
 lifetime.Start(args);

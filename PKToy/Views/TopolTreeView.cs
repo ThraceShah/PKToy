@@ -3,7 +3,7 @@ using Avalonia.Controls.Templates;
 using PKToy.Lib;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-public class TopolTreeView : MvuView
+public class TopolTreeView : ViewBase
 {
     private Node? _bodies = null;
     private ObservableCollection<Node>? Items { get; set; } = null;
@@ -14,18 +14,22 @@ public class TopolTreeView : MvuView
         set
         {
             _selectedNode = value;
-            StateHasChanged();
             Console.WriteLine(_selectedNode?.ParentSense);
         }
     }
 
-    protected override object Build() =>
-    New<TreeView>().SelectionMode(SelectionMode.Toggle)
-    .ItemsSource(() => Items!)
-    .ItemTemplate(new FuncTreeDataTemplate<Node>(
-            (node, _) => New<TextBlock>().Text(node.Header ?? string.Empty),
-            n => n.Children!))
-    .SelectedItem(() => SelectedNode!, v => SelectedNode = (Node?)v);
+    protected override object Build()
+    {
+        var tree = New<TreeView>().SelectionMode(SelectionMode.Toggle)
+            .ItemTemplate(new FuncTreeDataTemplate<Node>(
+                (node, _) => New<TextBlock>().Text(node.Header ?? string.Empty),
+                n => n.Children!));
+
+        tree.ItemsSource = Items;
+        tree.SelectedItem = SelectedNode;
+        tree.SelectionChanged += (_, _) => SelectedNode = tree.SelectedItem as Node;
+        return tree;
+    }
 
     public void UpdateTree(int partitionTag = 0)
     {
@@ -36,7 +40,7 @@ public class TopolTreeView : MvuView
         };
         Items.Add(_bodies);
         UpdateBodyTopolTree(partitionTag);
-        base.UpdateState();
+        Reload();
     }
 
     private void UpdateBodyTopolTree(int partitionTag = 0)
