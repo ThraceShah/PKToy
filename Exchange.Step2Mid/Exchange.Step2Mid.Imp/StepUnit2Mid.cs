@@ -11,7 +11,7 @@ namespace Exchange.Step2Mid.Ap203e2;
 #if AP_VERSION_214E3
 namespace Exchange.Step2Mid.Ap214e3;
 #endif
-internal class StepUnit2Mid(Dictionary<int, IStepObj> stepIdObjMap)
+internal class StepUnit2Mid()
 {
     public void ResolveUnit(shape_representation shapeRep, MidMgr midMgr)
     {
