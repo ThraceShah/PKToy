@@ -15,7 +15,7 @@
 
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="../lib/PskernelSharp.dll" />
+    <ProjectReference Include="..\PskernelSharp\PskernelSharp.csproj" />
     <None Include="../lib/pskernel.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -33,6 +33,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="../lib/Using.cs" />
+    <Compile Include="../PskernelSharp/Using.cs" />
   </ItemGroup>
 </Project>

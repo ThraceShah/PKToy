@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exchange.Step2Mid.Ap203e2",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exchange.Step2Mid.Ap214e3", "Exchange.Step2Mid\Exchange.Step2Mid.Imp\Exchange.Step2Mid.Ap214e3.csproj", "{8A8DD6C6-8082-EBFA-8008-112440BE90CB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PskernelSharp", "PskernelSharp\PskernelSharp.csproj", "{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -209,6 +211,18 @@ Global
 		{8A8DD6C6-8082-EBFA-8008-112440BE90CB}.Release|x64.Build.0 = Release|Any CPU
 		{8A8DD6C6-8082-EBFA-8008-112440BE90CB}.Release|x86.ActiveCfg = Release|Any CPU
 		{8A8DD6C6-8082-EBFA-8008-112440BE90CB}.Release|x86.Build.0 = Release|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Debug|x64.Build.0 = Debug|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Debug|x86.Build.0 = Debug|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Release|x64.ActiveCfg = Release|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Release|x64.Build.0 = Release|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Release|x86.ActiveCfg = Release|Any CPU
+		{09BA6A0B-8FC5-4206-8E5F-CF77E5423B58}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

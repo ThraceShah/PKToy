@@ -11,10 +11,10 @@
     <ProjectReference Include="..\NativeCorLib\NativeCorLib.csproj" />
     <ProjectReference Include="..\Exchange.Midlayer\Exchange.Midlayer.csproj" />
     <ProjectReference Include="..\Exchange.Step2Mid\Exchange.Step2Mid.csproj" />
-    <Reference Include="../lib/PskernelSharp.dll" />
+    <ProjectReference Include="..\PskernelSharp\PskernelSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../lib/Using.cs" />
+    <Compile Include="../PskernelSharp/Using.cs" />
   </ItemGroup>
 </Project>

@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="../lib/PskernelSharp.dll" />
+    <ProjectReference Include="..\PskernelSharp\PskernelSharp.csproj" />
   </ItemGroup>  
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.13.0" />
