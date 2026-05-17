@@ -1,0 +1,5 @@
+<Project>
+  <PropertyGroup>
+    <ParasolidRoot Condition="'$(ParasolidRoot)' == ''">$(MSBuildThisFileDirectory)..\parasolid\</ParasolidRoot>
+  </PropertyGroup>
+</Project>

@@ -16,12 +16,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PskernelSharp\PskernelSharp.csproj" />
-    <None Include="../lib/pskernel.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="../lib/libpskernel.dylib">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Viewer.IContract\Viewer.IContract.csproj" />
