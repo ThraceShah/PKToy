@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NativeCorLib\NativeCorLib.csproj" />
+    <ProjectReference Include="..\PKToy.Lib\PKToy.Lib.csproj" />
+    <ProjectReference Include="..\Viewer.IContract\Viewer.IContract.csproj" />
   </ItemGroup>
 
   <ItemGroup>

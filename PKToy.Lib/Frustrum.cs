@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 namespace PKToy.Lib;
-public unsafe static class Frustrum
+public unsafe static partial class Frustrum
 {
     const string end_of_header_s = "**END_OF_HEADER";
 
@@ -83,6 +83,32 @@ public unsafe static class Frustrum
     static Dictionary<int, PSFile> open_files = [];
     static int next_file_id = 0;
 
+    [LibraryImport("kernel32.dll")]
+    private static partial uint GetACP();
+
+    internal static Encoding GetFileNameEncoding(bool isWindows, int windowsCodePage)
+    {
+        if (!isWindows || windowsCodePage == Encoding.UTF8.CodePage)
+        {
+            return Encoding.UTF8;
+        }
+
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return Encoding.GetEncoding(windowsCodePage);
+    }
+
+    internal static string DecodeFileName(ReadOnlySpan<byte> name, bool isWindows, int windowsCodePage)
+    {
+        return GetFileNameEncoding(isWindows, windowsCodePage).GetString(name);
+    }
+
+    private static string DecodeFileName(byte* name, int length)
+    {
+        var isWindows = OperatingSystem.IsWindows();
+        var codePage = isWindows ? checked((int)GetACP()) : Encoding.UTF8.CodePage;
+        return DecodeFileName(new ReadOnlySpan<byte>(name, length), isWindows, codePage);
+    }
+
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static unsafe void FrustrumStart(int* ifail)
     {
@@ -110,7 +136,7 @@ public unsafe static class Frustrum
     public static unsafe void FrustrumFileOpenRead(int* guise, int* format, byte* name, int* namlen, int* skiphd, int* strid, int* ifail)
     {
         PrintParameters(guise, format, name, namlen, skiphd, strid, ifail);
-        var name_str = new string((sbyte*)name, 0, *namlen, Encoding.UTF8);
+        var name_str = DecodeFileName(name, *namlen);
         switch ((file_guise_tokens_t)(*guise))
         {
             case FFCSCH:
@@ -139,7 +165,7 @@ public unsafe static class Frustrum
     public static unsafe void FrustrumFileOpenWrite(int* guise, int* format, byte* name, int* namlen, byte* pd2hdr, int* pd2len, int* strid, int* ifail)
     {
         PrintParameters(guise, format, name, namlen, pd2hdr, pd2len, strid, ifail);
-        var name_str = new string((sbyte*)name, 0, *namlen, Encoding.UTF8);
+        var name_str = DecodeFileName(name, *namlen);
         var file = new PSFile(name_str);
         open_files[next_file_id] = file;
         *strid = next_file_id;

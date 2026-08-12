@@ -81,15 +81,23 @@ namespace Viewer.IContract
             {
                 var comp = this.comps[i];
                 var partBox = partBoxMap[comp.PartIndex];
-                var newBox = new Box
+                Span<Vector3> corners =
+                [
+                    new(partBox.Min.X, partBox.Min.Y, partBox.Min.Z),
+                    new(partBox.Min.X, partBox.Min.Y, partBox.Max.Z),
+                    new(partBox.Min.X, partBox.Max.Y, partBox.Min.Z),
+                    new(partBox.Min.X, partBox.Max.Y, partBox.Max.Z),
+                    new(partBox.Max.X, partBox.Min.Y, partBox.Min.Z),
+                    new(partBox.Max.X, partBox.Min.Y, partBox.Max.Z),
+                    new(partBox.Max.X, partBox.Max.Y, partBox.Min.Z),
+                    new(partBox.Max.X, partBox.Max.Y, partBox.Max.Z)
+                ];
+                foreach (var corner in corners)
                 {
-                    Min = Vector3.Transform(partBox.Min, comp.CompMatrix),
-                    Max = Vector3.Transform(partBox.Max, comp.CompMatrix)
-                };
-                min = Vector3.Min(min, newBox.Min);
-                max = Vector3.Max(max, newBox.Max);
-                min = Vector3.Min(min, newBox.Max);
-                max = Vector3.Max(max, newBox.Min);
+                    var transformed = Vector3.Transform(corner, comp.CompMatrix);
+                    min = Vector3.Min(min, transformed);
+                    max = Vector3.Max(max, transformed);
+                }
             }
             var box = new Box
             {

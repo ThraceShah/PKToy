@@ -6,6 +6,7 @@ using Avalonia.Platform.Storage;
 using PKToy.Lib;
 using PKToy.Script;
 using System.Numerics;
+using Viewer.Graphic.Opengl;
 using Viewer.IContract;
 class MainView : ViewBase
 {
@@ -49,9 +50,6 @@ class MainView : ViewBase
 
     private async void FileClick(object obj)
     {
-        long before = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
-        Console.WriteLine($"before Memory Used: {before}MB");
-
         var option = new FilePickerOpenOptions
         {
             AllowMultiple = false,
@@ -68,6 +66,13 @@ class MainView : ViewBase
         }
 
         string filename = result[0].TryGetLocalPath()!;
+        OpenFile(filename);
+    }
+
+    internal void OpenFile(string filename)
+    {
+        long before = Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024;
+        Console.WriteLine($"before Memory Used: {before}MB");
         var stop = new Stopwatch();
         stop.Start();
         var extension = System.IO.Path.GetExtension(filename).ToLower();
@@ -105,11 +110,17 @@ class MainView : ViewBase
         {
             return;
         }
-        string filename = result.TryGetLocalPath()!;
-        PKSession.SavePart(filename);
+        SaveFile(result.TryGetLocalPath()!);
     }
 
+    internal void SaveFile(string filename) => PKSession.SavePart(filename);
+
     private void ResetClick(object obj)
+    {
+        Reset();
+    }
+
+    internal void Reset()
     {
         PKSession.StopSession();
         PKSession.NewSession();
@@ -120,6 +131,11 @@ class MainView : ViewBase
     }
 
     private void CubeClick(object obj)
+    {
+        ShowCube();
+    }
+
+    internal void ShowCube()
     {
         var cube = CreateCubeLine();
         this.GL.GLControl.UpdateGeometry(cube);
@@ -142,17 +158,39 @@ class MainView : ViewBase
         }
 
         string filename = result[0].TryGetLocalPath()!;
+        await RunScript(filename);
+    }
+
+    internal async Task<bool> RunScript(string filename)
+    {
         var stop = new Stopwatch();
         stop.Start();
         var r = await CsxRunner.Run(filename);
         stop.Stop();
         if (r == false)
         {
-            return;
+            return false;
         }
         Console.WriteLine($"run script elapsed time:{stop.ElapsedMilliseconds} ms");
         UpdateView();
+        return true;
     }
+
+    internal void FitDisplay() => GL.GLControl.GlRender?.FitDisplay();
+
+    internal bool SetStandardView(string viewName) => GL.GLControl.GlRender?.SetStandardView(viewName) == true;
+
+    internal void RotateView(float yawDegrees, float pitchDegrees) => GL.GLControl.GlRender?.Rotate(yawDegrees, pitchDegrees);
+
+    internal void ZoomView(int delta) => GL.GLControl.GlRender?.MouseWheel(delta);
+
+    internal void SelectView(int x, int y) => GL.GLControl.LeftReleased(x, y);
+
+    internal Task<ViewCapture> CaptureView(string? viewName = null) => GL.GLControl.CaptureAsync(viewName);
+
+    internal OpenGlPageControl ViewControl => GL.GLControl;
+
+    internal List<TopolTable> GetTopology() => PKSession.GetCurPartitionTopolTree();
 
     private void UpdateView()
     {

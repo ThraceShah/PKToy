@@ -18,8 +18,6 @@ public partial class GlRender(GL gl) : IDisposable
 
     private bool disposed = false;
 
-    Matrix world;
-
     VSConstantBuffer m_VSConstantBuffer;
     PSConstantBuffer m_PSConstantBuffer;
 
@@ -170,16 +168,83 @@ public partial class GlRender(GL gl) : IDisposable
         }
         m_VSConstantBuffer = VSConstantBuffer.GetDefault();
         UpdateProjMatrix();
-        // bBoxCenter = asmGeometry.GetBBoxCenter();
-        bBoxCenter = new(0, 0, 0);
-        asmGeometry.CreateAsmWorldRH(1, 1, out world);
         partBuffers?.Dispose();
         partBuffers = PartBuffers.GenPartBuffers(gl, asmGeometry);
         geometry = asmGeometry;
+        FitDisplay();
+        this.EnableHover = true;
+    }
 
+    public void FitDisplay()
+    {
+        if (geometry == null || geometry.Components.Count == 0)
+        {
+            return;
+        }
+
+        rotation = Quaternion.Identity;
+        m_VSConstantBuffer.translation = Matrix.Identity;
         var box = geometry.GetBoundingBox();
         FitToBoundingBox(box.Min, box.Max);
-        this.EnableHover = true;
+    }
+
+    public bool SetStandardView(string viewName)
+    {
+        var angles = viewName.ToLowerInvariant() switch
+        {
+            "front" => (0f, 0f),
+            "back" => (180f, 0f),
+            "left" => (90f, 0f),
+            "right" => (-90f, 0f),
+            "top" => (0f, -90f),
+            "bottom" => (0f, 90f),
+            "front-top-left" => (45f, -35.264f),
+            "front-top-right" => (-45f, -35.264f),
+            "front-bottom-left" => (45f, 35.264f),
+            "front-bottom-right" => (-45f, 35.264f),
+            "back-top-left" => (135f, -35.264f),
+            "back-top-right" => (-135f, -35.264f),
+            "back-bottom-left" => (135f, 35.264f),
+            "back-bottom-right" => (-135f, 35.264f),
+            _ => ((float Yaw, float Pitch)?)null
+        };
+        if (angles is null)
+        {
+            return false;
+        }
+
+        FitDisplay();
+        rotation = Quaternion.CreateFromYawPitchRoll(Radians(angles.Value.Yaw), Radians(angles.Value.Pitch), 0);
+        return true;
+    }
+
+    public void Rotate(float yawDegrees, float pitchDegrees)
+    {
+        var yaw = Quaternion.CreateFromAxisAngle(Vector3.UnitY, Radians(yawDegrees));
+        var pitch = Quaternion.CreateFromAxisAngle(Vector3.UnitX, Radians(pitchDegrees));
+        rotation = yaw * pitch * rotation;
+    }
+
+    public unsafe ViewCapture CaptureView()
+    {
+        var pixels = GC.AllocateUninitializedArray<byte>(checked((int)(width * height * 4)));
+        fixed (byte* data = pixels)
+        {
+            gl.PixelStore(PixelStoreParameter.PackAlignment, 1);
+            gl.ReadPixels(0, 0, width, height, GLEnum.Rgba, GLEnum.UnsignedByte, data);
+        }
+
+        var stride = checked((int)width * 4);
+        var row = GC.AllocateUninitializedArray<byte>(stride);
+        for (var y = 0; y < height / 2; y++)
+        {
+            var top = checked((int)y * stride);
+            var bottom = checked(((int)height - 1 - (int)y) * stride);
+            pixels.AsSpan(top, stride).CopyTo(row);
+            pixels.AsSpan(bottom, stride).CopyTo(pixels.AsSpan(top, stride));
+            row.CopyTo(pixels.AsSpan(bottom, stride));
+        }
+        return new ViewCapture(width, height, pixels);
     }
 
     public void FitToBoundingBox(Vector3 min, Vector3 max)
@@ -187,6 +252,7 @@ public partial class GlRender(GL gl) : IDisposable
         var center = (min + max) / 2;
         var size = max - min;
         var scale = float.Max(size.X, float.Max(size.Y, size.Z));
+        scale = float.Max(scale, 0.0001f);
         bBoxCenter = center;
         orthoScale = scale * DEFAULT_ORTHO_SCALE;
         viewScaleFactor = scale * DEFAULT_VIEW_SCALE_FACTOR;

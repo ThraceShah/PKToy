@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Timers;
+using System.Collections.Concurrent;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -21,6 +22,9 @@ using Viewer.IContract;
 
 public class OpenGlPageControl : OpenGlControlBase
 {
+    private sealed record CaptureRequest(string? ViewName, TaskCompletionSource<ViewCapture> Completion);
+
+    private readonly ConcurrentQueue<CaptureRequest> captureRequests = new();
 
     bool inited = false;
 
@@ -83,6 +87,22 @@ public class OpenGlPageControl : OpenGlControlBase
         }
         GlRender.BindControlFramebuffer((uint)fb);
         GlRender.Render();
+        if (captureRequests.TryDequeue(out var captureRequest))
+        {
+            try
+            {
+                if (captureRequest.ViewName != null && !GlRender.SetStandardView(captureRequest.ViewName))
+                {
+                    throw new ArgumentException($"Unknown view '{captureRequest.ViewName}'.", nameof(captureRequest.ViewName));
+                }
+                GlRender.Render();
+                captureRequest.Completion.SetResult(GlRender.CaptureView());
+            }
+            catch (Exception exception)
+            {
+                captureRequest.Completion.SetException(exception);
+            }
+        }
         this.RequestNextFrameRendering();
     }
 
@@ -131,6 +151,19 @@ public class OpenGlPageControl : OpenGlControlBase
     {
         hoverX = x;
         hoverY = y;
+    }
+
+    public Task<ViewCapture> CaptureAsync(string? viewName = null)
+    {
+        if (!inited)
+        {
+            return Task.FromException<ViewCapture>(new InvalidOperationException("The 3D view is not initialized."));
+        }
+
+        var completion = new TaskCompletionSource<ViewCapture>(TaskCreationOptions.RunContinuationsAsynchronously);
+        captureRequests.Enqueue(new CaptureRequest(viewName, completion));
+        RequestNextFrameRendering();
+        return completion.Task;
     }
 
 }
