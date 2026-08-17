@@ -1,7 +1,7 @@
 #version 300 es
 
-precision mediump float;
-layout(location = 0) in 3 vIn;
+precision highp float;
+layout(location = 0) in vec3 vIn;
 layout(location = 2) in vec3 normalIn;
 
 uniform mat4 g_World;

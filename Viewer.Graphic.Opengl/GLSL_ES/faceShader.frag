@@ -1,10 +1,10 @@
 #version 300 es
 
-precision mediump float;
+precision highp float;
 
 in vec3 fs_normal;
 in vec3 fs_posW;
-flat in uint fs_color;
+flat in float fs_color;
 
 out vec4 FragColor;
 
@@ -21,10 +21,11 @@ void main()
     float diff = max(dot(fs_normal, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
 
-    float alpha = float((fs_color >> 24u) & 0xFFu) / 255.0;
-    float blue = float((fs_color >> 16u) & 0xFFu) / 255.0;
-    float green = float((fs_color >> 8u) & 0xFFu) / 255.0;
-    float red = float(fs_color & 0xFFu) / 255.0;
+    uint uintColor = floatBitsToUint(fs_color);
+    float alpha = float((uintColor >> 24u) & 0xFFu) / 255.0;
+    float blue = float((uintColor >> 16u) & 0xFFu) / 255.0;
+    float green = float((uintColor >> 8u) & 0xFFu) / 255.0;
+    float red = float(uintColor & 0xFFu) / 255.0;
 
     vec3 color = vec3(red, green, blue);
     vec3 result = (ambient + diffuse) * color;

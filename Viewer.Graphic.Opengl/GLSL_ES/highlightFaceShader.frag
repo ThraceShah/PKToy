@@ -1,6 +1,6 @@
 #version 300 es
 
-precision mediump float;
+precision highp float;
 
 uniform vec4 objectColor;
 
@@ -19,7 +19,7 @@ void main()
     vec3 ambient = ambientStrength * lightColor;
   	
     // diffuse 
-    vec3 lightDir = normalize(lightPos - objectColor.xyz);
+    vec3 lightDir = normalize(lightPos - fs_posW);
     float diff = max(dot(fs_normal, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
             

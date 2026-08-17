@@ -24,6 +24,8 @@ internal sealed class AutomationServer : IDisposable
     private readonly MainView mainView;
     private readonly Window window;
     private readonly WebApplication application;
+    private bool started;
+    private int disposed;
 
     public AutomationServer(MainView mainView, Window window, int port)
     {
@@ -36,7 +38,12 @@ internal sealed class AutomationServer : IDisposable
         MapRoutes();
     }
 
-    public void Start() => application.StartAsync().GetAwaiter().GetResult();
+    public void Start()
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
+        application.StartAsync().GetAwaiter().GetResult();
+        started = true;
+    }
 
     private void MapRoutes()
     {
@@ -291,7 +298,15 @@ internal sealed class AutomationServer : IDisposable
 
     public void Dispose()
     {
-        application.StopAsync().GetAwaiter().GetResult();
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
+        {
+            return;
+        }
+
+        if (started)
+        {
+            application.StopAsync().GetAwaiter().GetResult();
+        }
         application.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

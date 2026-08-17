@@ -13,7 +13,7 @@ var lifetime = new ClassicDesktopStyleApplicationLifetime { Args = args, Shutdow
 
 AppBuilder.Configure<Application>()
     .UsePlatformDetect()
-    .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Wgl] })
+    .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.AngleEgl] })
     .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.OpenGl] })
     .AfterSetup(b => b.Instance?.Styles.Add(new FluentTheme()))
     // uncomment the line below to enable rider ht reload workaround
@@ -28,10 +28,26 @@ var mainWindow = new Window()
 lifetime.MainWindow = mainWindow;
 
 var httpPort = GetHttpPort(args);
-using var automationServer = new AutomationServer(mainView, mainWindow, httpPort);
-automationServer.Start();
-Console.WriteLine($"PKToy automation API: http://127.0.0.1:{httpPort}");
-lifetime.Start(args);
+var automationServer = new AutomationServer(mainView, mainWindow, httpPort);
+EventHandler<ControlledApplicationLifetimeStartupEventArgs> startAutomationServer = (_, _) =>
+{
+    automationServer.Start();
+    Console.WriteLine($"PKToy automation API: http://127.0.0.1:{httpPort}");
+};
+EventHandler<ShutdownRequestedEventArgs> stopAutomationServer = (_, _) => automationServer.Dispose();
+
+lifetime.Startup += startAutomationServer;
+lifetime.ShutdownRequested += stopAutomationServer;
+try
+{
+    lifetime.Start(args);
+}
+finally
+{
+    lifetime.Startup -= startAutomationServer;
+    lifetime.ShutdownRequested -= stopAutomationServer;
+    automationServer.Dispose();
+}
 
 static int GetHttpPort(string[] args)
 {
