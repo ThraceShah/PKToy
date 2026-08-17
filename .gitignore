@@ -10,3 +10,4 @@ releaseout
 .csproj.user
 .idea
 *.user
+lib/parasolid

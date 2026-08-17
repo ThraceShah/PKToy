@@ -1,4 +1,8 @@
 <Project>
+  <Target Name="ValidateParasolidRoot" BeforeTargets="PrepareForBuild" Condition="'$(ParasolidRoot)' == ''">
+    <Error Text="Parasolid dependencies were not found. Please run download-parasolid.sh or manually place the Parasolid dependency in the repository's parasolid or lib\parasolid directory." />
+  </Target>
+
   <PropertyGroup>
     <_ParasolidRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_ParasolidRid>
     <_ParasolidRid Condition="'$(_ParasolidRid)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</_ParasolidRid>

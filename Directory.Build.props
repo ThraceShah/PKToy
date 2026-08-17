@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
-    <ParasolidRoot Condition="'$(ParasolidRoot)' == ''">$(MSBuildThisFileDirectory)..\parasolid\</ParasolidRoot>
+    <ParasolidRoot Condition="'$(ParasolidRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\parasolid\')">$(MSBuildThisFileDirectory)..\parasolid\</ParasolidRoot>
+    <ParasolidRoot Condition="'$(ParasolidRoot)' == '' and Exists('$(MSBuildThisFileDirectory)lib\parasolid\')">$(MSBuildThisFileDirectory)lib\parasolid\</ParasolidRoot>
   </PropertyGroup>
 </Project>
