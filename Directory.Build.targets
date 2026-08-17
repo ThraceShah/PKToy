@@ -4,6 +4,9 @@
     <_ParasolidRid Condition="'$(_ParasolidRid)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != ''">$(NETCoreSdkRuntimeIdentifier)</_ParasolidRid>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(_ParasolidRid)' == 'win-arm64'">
+    <ParasolidPlatform>win-arm64</ParasolidPlatform>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(_ParasolidRid)' == 'win-x64'">
     <ParasolidPlatform>win-x64</ParasolidPlatform>
   </PropertyGroup>
@@ -20,7 +23,7 @@
   <PropertyGroup Condition="'$(ParasolidPlatform)' != ''">
     <ParasolidLibraryDirectory>$(ParasolidRoot)lib\$(ParasolidPlatform)\</ParasolidLibraryDirectory>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(ParasolidPlatform)' == 'win-x64'">
+  <PropertyGroup Condition="'$(ParasolidPlatform)' == 'win-x64' or '$(ParasolidPlatform)' == 'win-arm64'">
     <ParasolidDynamicLibrary>$(ParasolidLibraryDirectory)pskernel.dll</ParasolidDynamicLibrary>
     <ParasolidStaticLibrary>$(ParasolidLibraryDirectory)pskernel_archive.lib</ParasolidStaticLibrary>
   </PropertyGroup>
