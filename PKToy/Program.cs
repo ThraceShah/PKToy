@@ -34,7 +34,7 @@ EventHandler<ControlledApplicationLifetimeStartupEventArgs> startAutomationServe
     automationServer.Start();
     Console.WriteLine($"PKToy automation API: http://127.0.0.1:{httpPort}");
 };
-EventHandler<ShutdownRequestedEventArgs> stopAutomationServer = (_, _) => automationServer.Dispose();
+EventHandler<ShutdownRequestedEventArgs> stopAutomationServer = (_, _) => Environment.Exit(0);
 
 lifetime.Startup += startAutomationServer;
 lifetime.ShutdownRequested += stopAutomationServer;
@@ -46,7 +46,7 @@ finally
 {
     lifetime.Startup -= startAutomationServer;
     lifetime.ShutdownRequested -= stopAutomationServer;
-    automationServer.Dispose();
+    Environment.Exit(0);
 }
 
 static int GetHttpPort(string[] args)
